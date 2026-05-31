@@ -1,0 +1,57 @@
+# Built application files
+*.apk
+*.ap_
+*.aab
+
+# Files for the ART/Dalvik VM
+*.dex
+
+# Java class files
+*.class
+
+# Generated files
+bin/
+gen/
+out/
+
+# Gradle files
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Local config (SDK paths, keystores)
+local.properties
+
+# IntelliJ
+*.iml
+.idea/
+*.ipr
+*.iws
+
+# Eclipse
+.project
+.classpath
+.settings/
+
+# Android Studio (lint/intermediates)
+lint/intermediates/
+lint/generated/
+
+# Keystore files (NEVER commit these)
+*.jks
+*.keystore
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Excalidraw (auto-saved, can bloat repo)
+*.excalidraw
+excalidraw.log
+
+# Local build outputs
+*.apk
+*.aab
