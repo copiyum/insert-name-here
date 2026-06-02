@@ -40,20 +40,8 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
         )
     }
 
-    val currency: Flow<String> = dataStore.data.map { prefs ->
-        prefs[UserPreferencesKeys.CURRENCY] ?: "USD"
-    }
-
     suspend fun updateCurrency(code: String) {
         dataStore.edit { prefs -> prefs[UserPreferencesKeys.CURRENCY] = code }
-    }
-
-    suspend fun updateName(name: String) {
-        dataStore.edit { prefs -> prefs[UserPreferencesKeys.NAME] = name }
-    }
-
-    suspend fun updateResetDay(day: Int) {
-        dataStore.edit { prefs -> prefs[UserPreferencesKeys.RESET_DAY] = day.toString() }
     }
 
     suspend fun updateDarkMode(mode: String) { // "system" | "light" | "dark"

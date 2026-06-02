@@ -55,3 +55,5 @@ excalidraw.log
 # Local build outputs
 *.apk
 *.aab
+.pi-lens/
+.rpiv/

@@ -143,7 +143,11 @@ fun Keypad(
                             .background(c.bgCard)
                             .border(GroveBorder.Thin, c.border, GroveShapes.Keypad)
                             .clickable {
-                                if (isBackspace) onBackspace() else onDigit(key)
+                                when {
+                                    isBackspace -> onBackspace()
+                                    key == '.' -> onDecimal()
+                                    else -> onDigit(key)
+                                }
                             },
                         contentAlignment = Alignment.Center,
                     ) {

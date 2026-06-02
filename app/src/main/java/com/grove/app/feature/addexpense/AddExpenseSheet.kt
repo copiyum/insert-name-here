@@ -3,7 +3,6 @@ package com.grove.app.feature.addexpense
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,7 +22,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.outlined.Backspace
 import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -49,6 +47,7 @@ import com.grove.app.data.model.Category
 import com.grove.app.data.model.Expense
 import com.grove.app.designsystem.component.CategoryIcon
 import com.grove.app.designsystem.component.GroveBottomSheet
+import com.grove.app.designsystem.component.Keypad
 import com.grove.app.designsystem.component.PrimaryButton
 import com.grove.app.designsystem.format.Money
 import com.grove.app.designsystem.theme.Fraunces
@@ -73,6 +72,18 @@ fun AddExpenseSheet(
     var selectedCategoryId by remember { mutableStateOf(categories.firstOrNull()?.id) }
     var note by remember { mutableStateOf("") }
     var isDetailsStep by remember { mutableStateOf(false) }
+    fun saveExpense() {
+        onSave(
+            Expense(
+                id = "e${System.currentTimeMillis()}",
+                amount = amountNum,
+                category = selectedCategoryId ?: "other",
+                note = note,
+                date = LocalDate.now().atTime(LocalTime.now()),
+            )
+        )
+        onDismiss()
+    }
 
     GroveBottomSheet(onDismiss = onDismiss) {
         if (!isDetailsStep) {
@@ -140,48 +151,18 @@ fun AddExpenseSheet(
                 Spacer(Modifier.height(GroveSpacing.XL))
                 Spacer(Modifier.height(GroveSpacing.MD))
 
-                // Keypad
-                val rows = listOf(
-                    listOf("1", "2", "3"),
-                    listOf("4", "5", "6"),
-                    listOf("7", "8", "9"),
-                    listOf(".", "0", "CLEAR")
+                Keypad(
+                    onDigit = { digit ->
+                        if (amount.length < 10) amount += digit
+                    },
+                    onBackspace = {
+                        if (amount.isNotEmpty()) amount = amount.dropLast(1)
+                    },
+                    onDecimal = {
+                        if (!amount.contains(".")) amount += if (amount.isEmpty()) "0." else "."
+                    },
+                    modifier = Modifier.padding(horizontal = GroveSpacing.XL),
                 )
-
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = GroveSpacing.XL),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    rows.forEach { row ->
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            row.forEach { key ->
-                                val isBackspace = key == "CLEAR"
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(64.dp)
-                                        .clickable(
-                                            interactionSource = remember { MutableInteractionSource() },
-                                            indication = null
-                                        ) {
-                                            when {
-                                                isBackspace -> { if (amount.isNotEmpty()) amount = amount.dropLast(1) }
-                                                key == "." -> { if (!amount.contains(".")) amount += if (amount.isEmpty()) "0." else "." }
-                                                else -> { if (amount.length < 10) amount += key }
-                                            }
-                                        },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    if (isBackspace) {
-                                        Icon(Icons.Outlined.Backspace, contentDescription = "Backspace", tint = c.fg1, modifier = Modifier.size(24.dp))
-                                    } else {
-                                        Text(key, fontFamily = InterTight, fontSize = 28.sp, color = c.fg1)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
 
                 Spacer(Modifier.height(GroveSpacing.XL))
             }
@@ -201,17 +182,7 @@ fun AddExpenseSheet(
                     }
                     Text("Details", fontFamily = InterTight, fontSize = 16.sp, color = c.fg1)
                     TextButton(
-                        onClick = {
-                            val expense = Expense(
-                                id = "e${System.currentTimeMillis()}",
-                                amount = amountNum,
-                                category = selectedCategoryId ?: "other",
-                                note = note,
-                                date = LocalDate.now().atTime(LocalTime.now()),
-                            )
-                            onSave(expense)
-                            onDismiss()
-                        },
+                        onClick = { saveExpense() },
                         modifier = Modifier.offset(x = 8.dp)
                     ) {
                         Text("Save", color = c.accent, fontFamily = InterTight, fontSize = 16.sp)
@@ -323,17 +294,7 @@ fun AddExpenseSheet(
                 // Primary Button
                 PrimaryButton(
                     text = "Save expense",
-                    onClick = {
-                        val expense = Expense(
-                            id = "e${System.currentTimeMillis()}",
-                            amount = amountNum,
-                            category = selectedCategoryId ?: "other",
-                            note = note,
-                            date = LocalDate.now().atTime(LocalTime.now()),
-                        )
-                        onSave(expense)
-                        onDismiss()
-                    },
+                    onClick = { saveExpense() },
                     modifier = Modifier.fillMaxWidth()
                 )
                 
