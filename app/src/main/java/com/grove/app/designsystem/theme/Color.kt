@@ -3,7 +3,6 @@ package com.grove.app.designsystem.theme
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 
-// ─── Raw palette ─────────────────────────────────────────────────────────────
 
 val Pine = Color(0xFF344E41)
 val Fern = Color(0xFF588157)
@@ -35,9 +34,7 @@ data class GroveColors(
     val claySoft: Color,
     val clayBg: Color,
     val isDark: Boolean,
-    // ─── Accent surface — reusable selection / highlight bg ─────────────────
     val accentSurface: Color,
-    // ─── Navigation ────────────────────────────────────────────────────────
     val navBg: Color,
     val navActiveText: Color,
     val navInactiveText: Color,

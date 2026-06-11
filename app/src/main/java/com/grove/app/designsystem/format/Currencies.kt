@@ -31,7 +31,7 @@ object Currencies {
 
     fun current(code: String): Currency = map[code] ?: list[1]
 
-    /** Number of decimal places for a currency's minor unit. JPY/KRW = 0, most = 2. */
+
     fun minorUnitExponent(code: String): Int =
         when (code) {
             "JPY", "KRW" -> 0

@@ -52,6 +52,7 @@ import com.grove.app.designsystem.component.LeafGlyph
 import com.grove.app.designsystem.component.PresetChipRow
 import com.grove.app.designsystem.component.PrimaryButton
 import com.grove.app.designsystem.component.Stepper
+import com.grove.app.designsystem.format.Currencies
 import com.grove.app.designsystem.format.ordinal
 import com.grove.app.designsystem.theme.Fraunces
 import com.grove.app.designsystem.theme.GroveTheme
@@ -62,7 +63,7 @@ data class OnboardingResult(val monthBudget: Double, val resetDay: Int)
 private const val STEPS = 4
 
 @Composable
-fun OnboardingFlow(userName: String = "there", onDone: (OnboardingResult) -> Unit, onSkip: () -> Unit) {
+fun OnboardingFlow(userName: String = "there", currency: String = "USD", onDone: (OnboardingResult) -> Unit, onSkip: () -> Unit) {
     val c = GroveTheme.colors
     var step by rememberSaveable { mutableIntStateOf(0) }
     var budget by rememberSaveable { mutableIntStateOf(1500) }
@@ -107,9 +108,9 @@ fun OnboardingFlow(userName: String = "there", onDone: (OnboardingResult) -> Uni
             AnimatedContent(targetState = step, transitionSpec = { fadeIn() togetherWith fadeOut() }, label = "onbStep") { s ->
                 when (s) {
                     0 -> StepWelcome()
-                    1 -> StepBudget(budget) { budget = it }
+                    1 -> StepBudget(budget, currency) { budget = it }
                     2 -> StepResetDay(resetDay) { resetDay = it }
-                    else -> StepSummary(userName, budget, resetDay)
+                    else -> StepSummary(userName, budget, resetDay, currency)
                 }
             }
         }
@@ -137,16 +138,17 @@ private fun StepWelcome() {
 }
 
 @Composable
-private fun StepBudget(budget: Int, onBudget: (Int) -> Unit) {
+private fun StepBudget(budget: Int, currency: String, onBudget: (Int) -> Unit) {
     Column {
         OnbKicker("Step 1")
         OnbTitle("What's your monthly budget?")
         Spacer(Modifier.height(12.dp))
         OnbSub("The total you'd like to spend each month. You can fine-tune categories later.")
         Spacer(Modifier.height(28.dp))
-        Stepper(value = budget, onChange = onBudget, step = 50, min = 100)
+        Stepper(value = budget, onChange = onBudget, step = 50, min = 100, currency = currency)
         Spacer(Modifier.height(6.dp))
-        PresetChipRow(items = listOf(1000, 1500, 2000, 2500), label = { "$${"%,d".format(it)}" }, onClick = onBudget, selected = { it == budget })
+        val symbol = Currencies.current(currency).symbol
+        PresetChipRow(items = listOf(1000, 1500, 2000, 2500), label = { "$symbol${"%,d".format(it)}" }, onClick = onBudget, selected = { it == budget })
     }
 }
 
@@ -177,7 +179,7 @@ private fun StepResetDay(resetDay: Int, onResetDay: (Int) -> Unit) {
 }
 
 @Composable
-private fun StepSummary(userName: String, budget: Int, resetDay: Int) {
+private fun StepSummary(userName: String, budget: Int, resetDay: Int, currency: String) {
     val c = GroveTheme.colors
     Column {
         OnbEmblem(success = true) { Icon(Icons.Outlined.Check, contentDescription = null, tint = c.fgOnFern, modifier = Modifier.size(44.dp)) }
@@ -187,9 +189,10 @@ private fun StepSummary(userName: String, budget: Int, resetDay: Int) {
         OnbSub("Here's your plan. You can change anything from the Budget tab whenever you like.")
         Spacer(Modifier.height(24.dp))
         Column(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(c.bgCard).border(1.dp, c.border, RoundedCornerShape(16.dp)).padding(horizontal = 18.dp)) {
-            SummaryRow("Monthly budget", "$${"%,d".format(budget)}", divider = false)
+        val symbol = Currencies.current(currency).symbol
+            SummaryRow("Monthly budget", "$symbol${"%,d".format(budget)}", divider = false)
             SummaryRow("Resets", "${ordinal(resetDay)} of each month", divider = true)
-            SummaryRow("Safe to spend / day", "~$${Math.round(budget / 30.0)}", divider = true)
+            SummaryRow("Safe to spend / day", "~$symbol${Math.round(budget / 30.0)}", divider = true)
         }
     }
 }

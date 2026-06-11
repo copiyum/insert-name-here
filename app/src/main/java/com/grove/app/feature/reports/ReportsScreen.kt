@@ -54,8 +54,6 @@ import com.grove.app.designsystem.theme.GroveType
 import com.grove.app.designsystem.theme.InterTight
 import kotlin.math.abs
 
-private const val LAST_MONTH = 1390.0
-
 @Composable
 fun ReportsScreen(
     state: BudgetState,
@@ -73,8 +71,8 @@ fun ReportsScreen(
     val byCategory: List<Pair<String, Double>> =
         remember(state.expenses) {
             state.expenses
-                .groupBy { it.categoryId }
-                .map { e -> Pair(e.key.toString(), e.value.sumOf { it.amountMinor } / 100.0) }
+                .groupBy { it.iconKey }
+                .map { e -> Pair(e.key, e.value.sumOf { it.amountMinor } / 100.0) }
                 .sortedByDescending { it.second }
         }
 
@@ -83,22 +81,33 @@ fun ReportsScreen(
             DoubleArray(state.dayOfMonth) { 0.0 }
                 .also { arr ->
                     state.expenses.forEach { e ->
-                        val day = e.occurredAt.atZone(java.time.ZoneOffset.UTC).dayOfMonth - 1
+                        val day = e.occurredAt.atZone(java.time.ZoneId.systemDefault()).dayOfMonth - 1
                         if (day in 0 until state.dayOfMonth) arr[day] += e.amountMinor / 100.0
                     }
                 }.toList()
         }
 
     val months: List<MonthBar> =
-        remember(state.totalSpent) {
-            listOf(
-                MonthBar("Feb", 1520.0),
-                MonthBar("Mar", 1685.0),
-                MonthBar("Apr", LAST_MONTH),
-                MonthBar(monthName.take(3), state.totalSpent, now = true),
-            )
+        remember(state.pastMonths, state.totalSpent) {
+            val raw = state.pastMonths.take(4).reversed().map { mt ->
+                MonthBar(
+                    mt.monthName.take(3),
+                    mt.totalMinor.toDouble() / Math.pow(10.0, com.grove.app.designsystem.format.Currencies.minorUnitExponent(currency).toDouble()),
+                    mt.year == state.today.year && mt.month == state.today.monthValue,
+                )
+            }
+            if (raw.none { it.now }) {
+                raw + MonthBar(monthName.take(3), state.totalSpent, now = true)
+            } else {
+                raw.map { if (it.now) it.copy(value = state.totalSpent) else it }
+            }
         }
-    val momDelta = (state.totalSpent - LAST_MONTH) / LAST_MONTH
+    val prevMonthTotal = state.pastMonths
+        .firstOrNull { !(it.year == state.today.year && it.month == state.today.monthValue) }
+        ?.totalMinor?.toDouble()?.let { it / Math.pow(10.0, com.grove.app.designsystem.format.Currencies.minorUnitExponent(currency).toDouble()) }
+    val momDelta = if (prevMonthTotal != null && prevMonthTotal > 0) {
+        (state.totalSpent - prevMonthTotal) / prevMonthTotal
+    } else 0.0
 
     LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 120.dp)) {
         item { AppTopBar(title = "Reports", subtitle = "$monthName 2026") }
@@ -120,7 +129,7 @@ fun ReportsScreen(
                     DonutChart(data = byCategory, total = state.totalSpent, selected = selected, onSelect = {
                         selected =
                             if (selected == it) null else it
-                    }, modifier = Modifier.size(132.dp))
+                    }, modifier = Modifier.size(132.dp), currency = currency)
                     Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(GroveSpacing.SM)) {
                         for (entry in byCategory.take(5)) {
                             val cat = entry.first
@@ -170,7 +179,7 @@ fun ReportsScreen(
                     Column {
                         Text("AVG / DAY", style = GroveType.capLabel, color = c.fg3)
                         Text(
-                            Money.currency(state.totalSpent / state.dayOfMonth, 0, currency),
+                            Money.currency(state.totalSpent / state.daysSinceFirstExpense, 0, currency),
                             style = GroveType.rowTitle.copy(fontSize = 24.sp),
                             color = c.fg1,
                         )
@@ -178,7 +187,7 @@ fun ReportsScreen(
                     Column(horizontalAlignment = Alignment.End) {
                         Text("SAFE / DAY", style = GroveType.capLabel, color = c.fg3)
                         Text(
-                            Money.currency(state.monthBudget / state.daysInMonth, 0, currency),
+                            Money.currency(state.safePerDay, 0, currency),
                             style = GroveType.rowTitle.copy(fontSize = 24.sp),
                             color = c.accentDeep,
                         )
@@ -190,6 +199,7 @@ fun ReportsScreen(
                     baseline = state.monthBudget / state.daysInMonth,
                     monthShort = monthName.take(3),
                     modifier = Modifier.fillMaxWidth().height(130.dp),
+                    currency = currency,
                 )
                 Spacer(Modifier.height(GroveSpacing.SM))
                 Row(horizontalArrangement = Arrangement.spacedBy(GroveSpacing.SM + 2.dp)) {
@@ -213,7 +223,9 @@ fun ReportsScreen(
                         style = GroveType.rowTitle.copy(fontSize = 24.sp, letterSpacing = (-0.5).sp),
                         color = c.fg1,
                     )
-                    MomDelta(momDelta)
+                    MomDelta(momDelta, prevMonthName = state.pastMonths
+                        .firstOrNull { !(it.year == state.today.year && it.month == state.today.monthValue) }
+                        ?.monthName?.take(3) ?: "Apr")
                 }
                 Spacer(Modifier.height(GroveSpacing.SM + 2.dp))
                 MonthBars(months)
@@ -255,7 +267,7 @@ fun ReportsScreen(
 }
 
 @Composable
-private fun MomDelta(delta: Double) {
+private fun MomDelta(delta: Double, prevMonthName: String = "Apr") {
     val c = GroveTheme.colors
     val down = delta <= 0
     val bg = if (down) c.accent.copy(alpha = 0.14f) else c.clayBg
@@ -269,7 +281,7 @@ private fun MomDelta(delta: Double) {
                 .padding(horizontal = GroveSpacing.SM + 2.dp, vertical = GroveSpacing.XS),
     ) {
         Text(
-            "${if (down) "↓" else "↑"} ${abs(delta * 100).toInt()}% vs Apr",
+            "${if (down) "↓" else "↑"} ${abs(delta * 100).toInt()}% vs $prevMonthName",
             fontFamily = InterTight,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,

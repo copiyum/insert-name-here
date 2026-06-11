@@ -17,8 +17,8 @@ import com.grove.app.designsystem.catalog.CategoryVisuals
 import com.grove.app.designsystem.theme.GroveSize
 
 @Composable
-fun CategoryIcon(categoryId: String, size: Int = GroveSize.CategoryIcon.value.toInt()) {
-    val v = CategoryVisuals.of(categoryId)
+fun CategoryIcon(iconKey: String, size: Int = GroveSize.CategoryIcon.value.toInt()) {
+    val v = CategoryVisuals.of(iconKey)
     val radius = (size * 0.35f).coerceAtMost(14f)
     Box(
         modifier = Modifier

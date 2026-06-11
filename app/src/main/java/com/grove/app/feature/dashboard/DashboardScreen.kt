@@ -23,9 +23,11 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -39,12 +41,13 @@ import com.grove.app.designsystem.component.LeafGlyph
 import com.grove.app.designsystem.component.SectionHeader
 import com.grove.app.designsystem.component.animatedOnce
 import com.grove.app.designsystem.component.charts.ArcProgress
+import com.grove.app.designsystem.format.Currencies
 import com.grove.app.designsystem.format.Money
 import com.grove.app.designsystem.theme.Fraunces
 import com.grove.app.designsystem.theme.GroveSpacing
 import com.grove.app.designsystem.theme.GroveTheme
 import com.grove.app.designsystem.theme.GroveType
-import com.grove.app.designsystem.theme.toneOf
+import com.grove.app.designsystem.theme.SpendTone
 import java.time.format.DateTimeFormatter
 
 @Composable
@@ -56,14 +59,18 @@ fun DashboardScreen(
 ) {
     val c = GroveTheme.colors
     val monthName = remember(state.today) { state.today.format(DateTimeFormatter.ofPattern("MMMM")) }
-    val pctSpent = if (state.monthBudget > 0.0) {
-        (state.totalSpent / state.monthBudget).coerceIn(0.0, 1.0).toFloat()
-    } else {
-        0.0f
+    val safePerDay = state.safePerDay
+    val spentToday = state.spentToday
+    val safe = state.safeToSpendToday
+    val over = spentToday > safePerDay && safePerDay > 0
+    val pctSpent = if (safePerDay > 0) (spentToday / safePerDay).toFloat().coerceIn(0f, 1f) else 0f
+    val tone = when {
+        state.monthBudgetMinor == 0L -> SpendTone(c.accent, c.accentDeep, "On track", healthy = true)
+        over -> SpendTone(c.clay, Color(0xFF8F6A4C), "Over budget", healthy = false)
+        spentToday > safePerDay * 0.85 -> SpendTone(c.claySoft, c.clay, "Spending fast", healthy = false)
+        else -> SpendTone(c.accent, c.accentDeep, "On track", healthy = true)
     }
-    val tone = toneOf(state.pace)
     val recent = remember(state.expenses) { state.expenses.sortedByDescending { it.occurredAt }.take(4) }
-    val safe = animatedOnce(state.safeToSpendToday.toFloat())
     val safeDollars = safe.toInt()
     val safeCents = ((safe - safeDollars) * 100).toInt().toString().padStart(2, '0')
 
@@ -104,7 +111,7 @@ fun DashboardScreen(
                             )
                             Spacer(Modifier.height(GroveSpacing.SM))
                             Row(verticalAlignment = Alignment.Top) {
-                                Text("$", fontFamily = Fraunces, fontSize = 26.sp, color = c.fg2, modifier = Modifier.padding(top = 6.dp))
+                                Text(Currencies.current(currency).symbol, fontFamily = Fraunces, fontSize = 26.sp, color = c.fg2, modifier = Modifier.padding(top = 6.dp))
                                 Text(
                                     safeDollars.toString(),
                                     fontFamily = Fraunces,
@@ -153,8 +160,8 @@ fun DashboardScreen(
             Row(modifier = Modifier.fillMaxWidth().padding(top = GroveSpacing.SM), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 CalloutCard(
                     "BILLS DUE",
-                    Money.currencyLong(
-                        state.upcomingBills.toLong(),
+                    Money.currency(
+                        state.upcomingBills,
                         0,
                         currency,
                     ),
@@ -167,11 +174,11 @@ fun DashboardScreen(
                 CalloutCard(
                     "DAILY AVG",
                     Money.currency(
-                        state.totalSpent / state.dayOfMonth,
+                        state.totalSpent / state.daysSinceFirstExpense,
                         0,
                         currency,
                     ),
-                    "over ${state.dayOfMonth} days",
+                    "over ${state.daysSinceFirstExpense} days",
                     {
                         onNavigate("reports")
                     },

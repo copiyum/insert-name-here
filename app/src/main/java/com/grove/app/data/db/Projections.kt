@@ -8,6 +8,7 @@ import java.util.UUID
 data class CategoryLite(
     val id: UUID,
     val displayName: String,
+    val iconKey: String,
 )
 
 @Immutable
@@ -16,6 +17,7 @@ data class ExpenseLite(
     val amountMinor: Long,
     val currencyCode: String,
     val categoryId: UUID,
+    val iconKey: String,
     val note: String,
     val occurredAt: Instant,
 )

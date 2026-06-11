@@ -69,7 +69,7 @@ import com.grove.app.designsystem.theme.GroveSpacing
 import com.grove.app.designsystem.theme.GroveTheme
 import com.grove.app.designsystem.theme.GroveType
 import com.grove.app.designsystem.theme.InterTight
-import java.time.ZoneOffset
+import java.time.ZoneId
 import java.util.UUID
 
 private val Chips =
@@ -122,7 +122,7 @@ fun HistoryScreen(
         }
     val grouped =
         remember(filtered) {
-            filtered.groupBy { it.occurredAt.atZone(ZoneOffset.UTC).toLocalDate() }.toList().sortedByDescending { it.first }
+            filtered.groupBy { it.occurredAt.atZone(ZoneId.systemDefault()).toLocalDate() }.toList().sortedByDescending { it.first }
         }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -169,7 +169,7 @@ fun HistoryScreen(
                                     expenses
                                         .first()
                                         .occurredAt
-                                        .atZone(ZoneOffset.UTC)
+                                        .atZone(ZoneId.systemDefault())
                                         .toLocalDateTime(),
                                     state.today,
                                 ),
@@ -255,14 +255,14 @@ private fun SwipeableExpenseRow(
                     }.padding(vertical = GroveSpacing.MD),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            CategoryIcon(expense.categoryId.toString())
+            CategoryIcon(expense.iconKey)
             Spacer(Modifier.width(GroveSpacing.MD))
             Column(modifier = Modifier.weight(1f)) {
                 Text(expense.note, style = GroveType.rowTitle, color = c.fg1, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
                     "${Dates.time(
-                        expense.occurredAt.atZone(ZoneOffset.UTC).toLocalDateTime(),
-                    )} · ${CategoryVisuals.label(expense.categoryId.toString())}",
+                        expense.occurredAt.atZone(ZoneId.systemDefault()).toLocalDateTime(),
+                    )} · ${CategoryVisuals.label(expense.iconKey)}",
                     style = GroveType.rowSub,
                     color = c.fg3,
                 )

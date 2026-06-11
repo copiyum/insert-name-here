@@ -26,7 +26,7 @@ object Money {
         }
     }
 
-    /** Long-minor-unit variant — use for amounts read from Room. */
+
     fun currencyLong(
         minor: Long,
         decimals: Int = 2,

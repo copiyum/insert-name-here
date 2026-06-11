@@ -3,7 +3,6 @@ package com.grove.app.designsystem.theme
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-// ─── Spacing scale ───────────────────────────────────────────────────────────
 object GroveSpacing {
     val XS: Dp = 4.dp
     val SM: Dp = 8.dp
@@ -13,28 +12,26 @@ object GroveSpacing {
     val XXL: Dp = 32.dp
 }
 
-// ─── Corner radii ────────────────────────────────────────────────────────────
 
 object GroveRadius {
-    val Container = 16.dp    // GroveCard, most containers
-    val Nav = 22.dp         // Bottom nav bar
-    val NavPill = 18.dp     // Active nav pill
-    val NavPillEnd = 8.dp   // First/last pill end cap
+    val Container = 16.dp
+    val Nav = 22.dp
+    val NavPill = 18.dp
+    val NavPillEnd = 8.dp
     val Button = 16.dp
-    val Chip = 999.dp        // Full circle
+    val Chip = 999.dp
     val InputOutlined = 10.dp
     val InputFilled = 14.dp
     val Sheet = 28.dp
-    val Tile = 14.dp        // IconTileRow background
-    val Toggle = 999.dp     // Switch / progress bar
+    val Tile = 14.dp
+    val Toggle = 999.dp
     val Stepper = 16.dp
     val Keypad = 14.dp
-    val CatPicker = 14.dp   // Category grid item
+    val CatPicker = 14.dp
     val DateRow = 14.dp
     val SmallTile = 8.dp
 }
 
-// ─── Sizes ───────────────────────────────────────────────────────────────────
 
 object GroveSize {
     val NavItemHeight = 44.dp
@@ -52,14 +49,12 @@ object GroveSize {
     val StatusDot = 7.dp
 }
 
-// ─── Elevation ───────────────────────────────────────────────────────────────
 
 object GroveElevation {
     val Card = 14.dp
     val Nav = 14.dp
 }
 
-// ─── Animation ───────────────────────────────────────────────────────────────
 
 object GroveMotion {
     val DrawInMs = 1100
@@ -70,7 +65,6 @@ object GroveMotion {
     val SwipeDismissMs = 280
 }
 
-// ─── Border widths ───────────────────────────────────────────────────────────
 
 object GroveBorder {
     val Thin = 1.dp
@@ -78,7 +72,6 @@ object GroveBorder {
     val AddButton = 2.dp
 }
 
-// ─── Backward-compatible alias ─────────────────────────────────────────────────
 
 @Suppress("MemberVisibilityCanBePrivate")
 object GroveTokens {

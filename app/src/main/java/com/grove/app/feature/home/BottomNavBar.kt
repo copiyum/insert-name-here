@@ -113,7 +113,6 @@ fun BottomNavBar(
                     }
                 }
 
-                // Glow
                 Box(modifier = Modifier.matchParentSize()) {
                     val glow = c.accent.copy(alpha = if (c.isDark) 0.15f else 0.25f)
                     Box(
@@ -128,7 +127,6 @@ fun BottomNavBar(
                     )
                 }
 
-                // Pill
                 Box(
                     modifier = Modifier
                         .offset(x = pillOffset)
@@ -197,7 +195,6 @@ fun BottomNavBar(
                     }
                 }
 
-                // Sheen
                 val sheenCenter = ((pillOffset + slotWidth / 2).value / maxWidth.value).coerceIn(0f, 1f)
                 val sheenAlpha = if (c.isDark) 0.45f else 0.40f
                 Box(

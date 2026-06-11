@@ -1,7 +1,9 @@
 package com.grove.app.feature.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -47,7 +49,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.grove.app.data.BudgetState
 import com.grove.app.designsystem.component.AppTopBar
+import com.grove.app.designsystem.component.FieldLabel
+import com.grove.app.designsystem.component.GroveBottomSheet
 import com.grove.app.designsystem.component.GroveCard
+import com.grove.app.designsystem.component.GroveTextField
+import com.grove.app.designsystem.component.PrimaryButton
 import com.grove.app.designsystem.component.SettingRow
 import com.grove.app.designsystem.component.SwitchRow
 import com.grove.app.designsystem.format.Currencies
@@ -65,15 +71,20 @@ fun SettingsScreen(
     state: BudgetState,
     currency: String,
     dark: Boolean,
+    debugDate: String = "",
+    debugDateOffset: Int = 0,
     onToggleDark: () -> Unit,
     onReplayOnboarding: () -> Unit,
     onOpenBudget: () -> Unit,
     onUpdateCurrency: (String) -> Unit,
+    onUpdateName: (String) -> Unit,
+    onShiftDebugDate: (Int) -> Unit = {},
 ) {
     val c = GroveTheme.colors
     var reminders by rememberSaveable { mutableStateOf(true) }
     var billAlerts by rememberSaveable { mutableStateOf(true) }
     var showCurrencyPicker by rememberSaveable { mutableStateOf(false) }
+    var showEditName by rememberSaveable { mutableStateOf(false) }
     val resetOrdinal = ordinal(state.user?.resetDay ?: 1)
     val currentCurrency = Currencies.current(currency)
 
@@ -81,7 +92,7 @@ fun SettingsScreen(
         item { AppTopBar(title = "Settings") }
 
         item {
-            GroveCard(modifier = Modifier.fillMaxWidth(), padding = PaddingValues(GroveSpacing.SM + 2.dp)) {
+            GroveCard(modifier = Modifier.fillMaxWidth().clickable { showEditName = true }, padding = PaddingValues(GroveSpacing.SM + 2.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(modifier = Modifier.size(56.dp).clip(CircleShape).background(c.accent), contentAlignment = Alignment.Center) {
                         Text(
@@ -155,11 +166,64 @@ fun SettingsScreen(
             }
         }
 
+        item { SectionLabel("DEBUG") }
+        item {
+            GroveCard(modifier = Modifier.fillMaxWidth(), padding = PaddingValues(horizontal = GroveSpacing.LG)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = GroveSpacing.SM),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(GroveSpacing.SM),
+                ) {
+                    Box(
+                        modifier = Modifier.size(40.dp).clip(GroveShapes.Toggle).background(c.bgCard).border(1.dp, c.border, GroveShapes.Toggle).clickable {
+                            onShiftDebugDate(-1)
+                        },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text("−", fontFamily = InterTight, fontSize = 18.sp, fontWeight = FontWeight.Medium, color = c.fg1)
+                    }
+                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Debug date", style = GroveType.capLabel, color = c.fg3)
+                        Text(if (debugDateOffset == 0) "Today ($debugDate)" else "$debugDate (${
+                            if (debugDateOffset > 0) "+" else ""
+                        }${debugDateOffset}d)", fontFamily = InterTight, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = c.fg1)
+                    }
+                    Box(
+                        modifier = Modifier.size(40.dp).clip(GroveShapes.Toggle).background(c.bgCard).border(1.dp, c.border, GroveShapes.Toggle).clickable {
+                            onShiftDebugDate(1)
+                        },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text("+", fontFamily = InterTight, fontSize = 18.sp, fontWeight = FontWeight.Medium, color = c.fg1)
+                    }
+                    Box(
+                        modifier = Modifier.size(40.dp).clip(GroveShapes.Toggle).background(c.clayBg).border(1.dp, c.clay, GroveShapes.Toggle).clickable {
+                            onShiftDebugDate(-debugDateOffset)
+                        },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text("Reset", fontFamily = InterTight, fontSize = 10.sp, fontWeight = FontWeight.Medium, color = c.clay)
+                    }
+                }
+            }
+        }
+
         item {
             Box(modifier = Modifier.fillMaxWidth().padding(top = GroveSpacing.LG), contentAlignment = Alignment.Center) {
                 Text("Grove v1.0 · made for quiet budgets", fontFamily = InterTight, fontSize = 12.sp, color = c.fg3)
             }
         }
+    }
+
+    if (showEditName) {
+        EditNameSheet(
+            current = state.user?.name ?: "Mae",
+            onSave = { name ->
+                onUpdateName(name)
+                showEditName = false
+            },
+            onDismiss = { showEditName = false },
+        )
     }
 
     if (showCurrencyPicker) {
@@ -227,6 +291,33 @@ private fun CurrencyPickerSheet(
                     if (i < Currencies.list.size - 1) HorizontalDivider(color = c.border)
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun EditNameSheet(
+    current: String,
+    onSave: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val c = GroveTheme.colors
+    var name by remember { mutableStateOf(current) }
+    GroveBottomSheet(onDismiss = onDismiss) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = GroveSpacing.XL).padding(bottom = GroveSpacing.XL),
+        ) {
+            Text("Your name", style = com.grove.app.designsystem.theme.GroveType.sheetTitle, color = c.fg1)
+            Spacer(Modifier.height(GroveSpacing.SM + 4.dp))
+            FieldLabel("NAME")
+            GroveTextField(value = name, onValueChange = { name = it }, placeholder = "e.g. Mae")
+            Spacer(Modifier.height(GroveSpacing.SM + 6.dp))
+            PrimaryButton(
+                "Save",
+                onClick = { onSave(name) },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = name.trim().isNotEmpty(),
+            )
         }
     }
 }

@@ -47,6 +47,10 @@ class BillRepository(
         )
     }
 
+    suspend fun delete(id: UUID) {
+        billDao.setActive(id, false, Instant.now())
+    }
+
     suspend fun upsertPayment(payment: BillPayment) {
         val now = Instant.now()
         paymentDao.upsert(

@@ -97,7 +97,7 @@ abstract class GroveDatabase : RoomDatabase() {
                                 scope.launch { SeedData.seed(instance) }
                             }
                         },
-                    ).fallbackToDestructiveMigration() // v1 only; v2 adds real migrations
+                    ).fallbackToDestructiveMigration()
                     .build()
             return instance
         }

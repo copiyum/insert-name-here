@@ -12,11 +12,11 @@ import kotlinx.coroutines.flow.map
 val Context.userPreferencesDataStore: DataStore<Preferences> by preferencesDataStore(name = "user_preferences")
 
 data class UserPreferences(
-    val darkModeOverride: Boolean? = null, // null = follow system
+    val darkModeOverride: Boolean? = null,
 )
 
 object UserPreferencesKeys {
-    val DARK_MODE = stringPreferencesKey("dark_mode") // "system" | "light" | "dark"
+    val DARK_MODE = stringPreferencesKey("dark_mode")
 }
 
 class UserPreferencesRepository(
@@ -34,7 +34,7 @@ class UserPreferencesRepository(
             )
         }
 
-    suspend fun updateDarkMode(mode: String) { // "system" | "light" | "dark"
+    suspend fun updateDarkMode(mode: String) {
         dataStore.edit { prefs -> prefs[UserPreferencesKeys.DARK_MODE] = mode }
     }
 }

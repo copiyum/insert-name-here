@@ -34,7 +34,7 @@ import com.grove.app.designsystem.theme.GroveTheme
 import com.grove.app.designsystem.theme.GroveType
 import com.grove.app.designsystem.theme.InterTight
 import java.time.LocalDateTime
-import java.time.ZoneOffset
+import java.time.ZoneId
 
 @Composable
 fun ExpenseRow(
@@ -47,15 +47,15 @@ fun ExpenseRow(
         modifier = modifier.fillMaxWidth().padding(vertical = GroveSpacing.MD),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        CategoryIcon(expense.categoryId.toString())
+        CategoryIcon(expense.iconKey)
         Spacer(Modifier.width(GroveSpacing.MD))
         Column(modifier = Modifier.weight(1f)) {
             Text(expense.note, style = GroveType.rowTitle, color = GroveTheme.colors.fg1, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
                 "${Dates.relative(
-                    expense.occurredAt.atZone(ZoneOffset.UTC).toLocalDateTime(),
+                    expense.occurredAt.atZone(ZoneId.systemDefault()).toLocalDateTime(),
                     today,
-                )} · ${Dates.time(expense.occurredAt.atZone(ZoneOffset.UTC).toLocalDateTime())}",
+                )} · ${Dates.time(expense.occurredAt.atZone(ZoneId.systemDefault()).toLocalDateTime())}",
                 style = GroveType.rowSub,
                 color = GroveTheme.colors.fg3,
             )

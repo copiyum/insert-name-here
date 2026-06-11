@@ -64,10 +64,12 @@ fun GroveApp() {
     val darkOverride by vm.darkOverride.collectAsStateWithLifecycle()
     val dark = darkOverride ?: isSystemInDarkTheme()
     val currency by vm.currency.collectAsStateWithLifecycle()
+    val debugDateOffset by vm.debugDateOffset.collectAsStateWithLifecycle()
+    val debugDate by vm.debugDate.collectAsStateWithLifecycle()
 
     GroveTheme(dark = dark) {
         SystemBars(dark)
-        HomeScaffold(vm = vm, dark = dark, currency = currency)
+        HomeScaffold(vm = vm, dark = dark, currency = currency, debugDateOffset = debugDateOffset, debugDate = debugDate)
     }
 }
 
@@ -76,6 +78,8 @@ private fun HomeScaffold(
     vm: MainViewModel,
     dark: Boolean,
     currency: String,
+    debugDateOffset: Int,
+    debugDate: String,
 ) {
     val c = GroveTheme.colors
     val state by vm.state.collectAsStateWithLifecycle()
@@ -117,7 +121,7 @@ private fun HomeScaffold(
                         )
                     }
                     composable(Dest.Bills.route) {
-                        BillsScreen(state = state, currency = currency, onToggleBill = vm::toggleBill, onAddBill = vm::addBill)
+                        BillsScreen(state = state, currency = currency, onToggleBill = vm::toggleBill, onAddBill = vm::addBill, onDeleteBill = vm::deleteBill, triggerAddSheet = showAdd, onTriggerHandled = { showAdd = false })
                     }
                     composable(Dest.Reports.route) {
                         ReportsScreen(state = state, currency = currency)
@@ -135,10 +139,14 @@ private fun HomeScaffold(
                             state = state,
                             currency = currency,
                             dark = dark,
+                            debugDate = debugDate,
+                            debugDateOffset = debugDateOffset,
                             onToggleDark = { vm.toggleDark(dark) },
                             onReplayOnboarding = { onboarding = true },
                             onOpenBudget = { nav.navigate(Dest.Budget.route) },
                             onUpdateCurrency = vm::updateCurrency,
+                            onUpdateName = vm::updateUserName,
+                            onShiftDebugDate = vm::shiftDebugDate,
                         )
                     }
                 }
@@ -152,7 +160,7 @@ private fun HomeScaffold(
             modifier = Modifier.align(Alignment.BottomCenter),
         )
 
-        if (showAdd || editing != null) {
+        if ((showAdd || editing != null) && activeTab != Dest.Bills.route) {
             AddExpenseSheet(
                 categories = state.categories,
                 currency = currency,
@@ -168,6 +176,7 @@ private fun HomeScaffold(
         if (onboarding) {
             OnboardingFlow(
                 userName = state.user?.name ?: "Mae",
+                currency = currency,
                 onDone = { result ->
                     vm.applyOnboarding(result.monthBudget, result.resetDay)
                     onboarding = false

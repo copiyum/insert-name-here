@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
@@ -110,12 +109,10 @@ fun AddExpenseSheet(
 
     GroveBottomSheet(onDismiss = onDismiss) {
         if (!isDetailsStep) {
-            // STEP 1: KEYPAD
             Column(
                 modifier = Modifier.fillMaxWidth().padding(bottom = GroveSpacing.MD),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                // Header
                 Row(
                     modifier =
                         Modifier
@@ -143,43 +140,12 @@ fun AddExpenseSheet(
 
                 Spacer(Modifier.height(GroveSpacing.XL))
 
-                // Amount Display
                 Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.Center) {
-                    Text("$", fontFamily = Fraunces, fontSize = 36.sp, color = c.fg2, modifier = Modifier.padding(top = 8.dp, end = 4.dp))
-                    Text(amount.ifEmpty { "0" }, fontFamily = Fraunces, fontSize = 80.sp, letterSpacing = (-2).sp, color = c.fg1)
+                    Text(Currencies.current(currency).symbol, fontFamily = Fraunces, fontSize = 32.sp, color = c.fg2, modifier = Modifier.padding(top = 8.dp, end = 4.dp))
+                    Text(amount.ifEmpty { "0" }, fontFamily = Fraunces, fontSize = 64.sp, letterSpacing = (-2).sp, color = c.fg1)
                 }
 
                 Spacer(Modifier.height(GroveSpacing.LG))
-
-                // Categories LazyRow
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(GroveSpacing.SM),
-                    contentPadding = PaddingValues(horizontal = GroveSpacing.LG),
-                ) {
-                    items(categories) { category ->
-                        val isSelected = category.id.toString() == selectedCategoryId
-                        Box(
-                            modifier =
-                                Modifier
-                                    .clip(RoundedCornerShape(50))
-                                    .background(if (isSelected) c.fg1 else c.bgCard)
-                                    .clickable { selectedCategoryId = category.id.toString() }
-                                    .padding(horizontal = 20.dp, vertical = 12.dp),
-                        ) {
-                            Text(
-                                text = category.displayName,
-                                fontFamily = InterTight,
-                                fontSize = 15.sp,
-                                fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
-                                color = if (isSelected) c.bgApp else c.fg1,
-                            )
-                        }
-                    }
-                }
-
-                Spacer(Modifier.height(GroveSpacing.XL))
-                Spacer(Modifier.height(GroveSpacing.MD))
 
                 Keypad(
                     onDigit = { digit ->
@@ -197,11 +163,9 @@ fun AddExpenseSheet(
                 Spacer(Modifier.height(GroveSpacing.XL))
             }
         } else {
-            // STEP 2: DETAILS
             Column(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = GroveSpacing.LG, vertical = GroveSpacing.MD),
             ) {
-                // Header
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -221,7 +185,6 @@ fun AddExpenseSheet(
 
                 Spacer(Modifier.height(GroveSpacing.XL))
 
-                // Amount and Edit
                 Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text =
@@ -259,7 +222,6 @@ fun AddExpenseSheet(
 
                 Spacer(Modifier.height(GroveSpacing.XL))
 
-                // Category Section
                 Text(
                     "CATEGORY",
                     fontFamily = InterTight,
@@ -290,7 +252,7 @@ fun AddExpenseSheet(
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        CategoryIcon(categoryId = cat.id.toString(), size = 38)
+                                        CategoryIcon(iconKey = cat.iconKey, size = 38)
                                         Spacer(Modifier.height(8.dp))
                                         Text(text = cat.displayName, fontFamily = InterTight, fontSize = 12.sp, color = c.fg1)
                                     }
@@ -305,7 +267,6 @@ fun AddExpenseSheet(
 
                 Spacer(Modifier.height(GroveSpacing.XL))
 
-                // Note Section
                 Text(
                     "NOTE",
                     fontFamily = InterTight,
@@ -340,7 +301,6 @@ fun AddExpenseSheet(
 
                 Spacer(Modifier.height(GroveSpacing.XL))
 
-                // Date Section
                 Text(
                     "DATE",
                     fontFamily = InterTight,
@@ -368,7 +328,6 @@ fun AddExpenseSheet(
                 Spacer(Modifier.height(GroveSpacing.XL))
                 Spacer(Modifier.height(GroveSpacing.MD))
 
-                // Primary Button
                 PrimaryButton(
                     text = "Save expense",
                     onClick = { saveExpense() },

@@ -23,7 +23,7 @@ interface BillPaymentDao {
         end: Instant,
     ): Flow<List<BillPaymentEntity>>
 
-    @Insert(onConflict = OnConflictStrategy.IGNORE) // deterministic id → silent PK no-op on duplicate
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun upsert(entity: BillPaymentEntity)
 
     @Query("UPDATE bill_payments SET paidAt = :paidAt, amountPaidMinor = :amountPaidMinor, updatedAt = :updatedAt WHERE id = :id")

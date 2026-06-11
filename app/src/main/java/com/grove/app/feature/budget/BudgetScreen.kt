@@ -76,7 +76,7 @@ fun BudgetScreen(
     val spentByCat =
         remember(state.expenses) { state.expenses.groupBy { it.categoryId }.mapValues { (_, e) -> e.sumOf { it.amountMinor } } }
     val billsTotal = remember(state.bills) { state.bills.sumOf { it.amountMinor } }
-    val allocated = billsTotal // v1: per-category budget not on CategoryLite; only bills total contributes
+    val allocated = billsTotal
     val unallocated = (state.monthBudget - allocated).coerceAtLeast(0.0)
     val segments =
         remember(billsTotal, unallocated) {
@@ -164,12 +164,12 @@ fun BudgetScreen(
             GroveCard(modifier = Modifier.fillMaxWidth(), padding = PaddingValues(horizontal = GroveSpacing.LG)) {
                 state.categories.forEachIndexed { i, cat ->
                     val spent = spentByCat[cat.id] ?: 0L
-                    val pct = 0.0 // v1: per-cat budget not yet wired; pct stays 0
+                    val pct = 0.0
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(vertical = GroveSpacing.MD),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        CategoryIcon(cat.id.toString())
+                        CategoryIcon(cat.iconKey)
                         Spacer(Modifier.width(GroveSpacing.SM))
                         Column(modifier = Modifier.weight(1f)) {
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -220,6 +220,7 @@ fun BudgetScreen(
                 },
             step = if (monthly) 50 else 10,
             presets = if (monthly) listOf(50, 100, 250) else listOf(10, 25, 50),
+            currency = currency,
             onClose = { edit = null },
             onSave = { v ->
                 when (target) {
@@ -248,6 +249,7 @@ private fun BudgetEditSheet(
     value: Int,
     step: Int,
     presets: List<Int>,
+    currency: String,
     onClose: () -> Unit,
     onSave: (Int) -> Unit,
 ) {
@@ -257,9 +259,9 @@ private fun BudgetEditSheet(
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = GroveSpacing.LG).padding(bottom = GroveSpacing.XL)) {
             Text(title, style = GroveType.sheetTitle, color = c.fg1, modifier = Modifier.padding(bottom = GroveSpacing.XS))
             Text(sub, style = GroveType.rowSub, color = c.fg3, modifier = Modifier.padding(bottom = GroveSpacing.SM))
-            Stepper(value = v, onChange = { v = it }, step = step, min = 0)
+            Stepper(value = v, onChange = { v = it }, step = step, min = 0, currency = currency)
             PresetChipRow(items = presets, label = {
-                "+${Money.short(it.toDouble())}"
+                "+${it}"
             }, onClick = { v += it }, modifier = Modifier.fillMaxWidth().padding(top = GroveSpacing.XS))
             Spacer(Modifier.height(GroveSpacing.SM + 4.dp))
             PrimaryButton("Save", onClick = {

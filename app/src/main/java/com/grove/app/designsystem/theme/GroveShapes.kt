@@ -3,8 +3,6 @@ package com.grove.app.designsystem.theme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
 
-// Only shapes reused across multiple components.
-// One-off shapes (nav pill variants, stepper, etc.) stay inline.
 
 object GroveShapes {
     val Container = RoundedCornerShape(GroveRadius.Container)

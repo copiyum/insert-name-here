@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.grove.app.designsystem.catalog.CategoryVisuals
 import com.grove.app.designsystem.component.animatedOnce
+import com.grove.app.designsystem.format.Currencies
 import com.grove.app.designsystem.format.Money
 import com.grove.app.designsystem.theme.GroveTheme
 import com.grove.app.designsystem.theme.GroveShapes
@@ -92,6 +93,7 @@ fun DonutChart(
     selected: String?,
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier,
+    currency: String = "USD",
 ) {
     val c = GroveTheme.colors
     if (data.isEmpty() || total <= 0) return
@@ -137,7 +139,7 @@ fun DonutChart(
                 fontFamily = InterTight, fontWeight = FontWeight.Medium, fontSize = 11.sp,
                 letterSpacing = 0.8.sp, color = c.fg3,
             )
-            Text(Money.currency(selData?.second ?: total, 0), fontFamily = InterTight, fontWeight = FontWeight.SemiBold, fontSize = 22.sp, color = c.fg1)
+            Text(Money.currency(selData?.second ?: total, 0, currency), fontFamily = InterTight, fontWeight = FontWeight.SemiBold, fontSize = 22.sp, color = c.fg1)
             if (selData != null) {
                 Text("${(selData.second / total * 100).toInt()}%", fontFamily = InterTight, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = c.fg3)
             }
@@ -146,7 +148,7 @@ fun DonutChart(
 }
 
 @Composable
-fun LineChart(data: List<Double>, baseline: Double, monthShort: String = "", modifier: Modifier = Modifier) {
+fun LineChart(data: List<Double>, baseline: Double, monthShort: String = "", modifier: Modifier = Modifier, currency: String = "USD") {
     val c = GroveTheme.colors
     if (data.isEmpty()) return
     val density = LocalDensity.current
@@ -203,7 +205,7 @@ fun LineChart(data: List<Double>, baseline: Double, monthShort: String = "", mod
                         fontFamily = InterTight, fontSize = 9.5.sp, letterSpacing = 0.4.sp,
                         color = c.bgCard.copy(alpha = 0.7f),
                     )
-                    Text(Money.currency(data[h], 2), fontFamily = InterTight, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = c.bgCard)
+                    Text(Money.currency(data[h], 2, currency), fontFamily = InterTight, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = c.bgCard)
                 }
             }
         }

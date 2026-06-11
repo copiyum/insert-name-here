@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -57,7 +58,22 @@ class MainViewModel(
         reactor = Graph.reactor(application),
     )
 
-    val state: StateFlow<BudgetState> = reactor.state
+    private val _toast = MutableStateFlow<String?>(null)
+    val toast: StateFlow<String?> = _toast.asStateFlow()
+
+    private val _debugDateOffset = MutableStateFlow(0)
+    val debugDateOffset: StateFlow<Int> = _debugDateOffset.asStateFlow()
+    val debugDate: StateFlow<String> =
+        _debugDateOffset.map { offset ->
+            val d = LocalDate.now().plusDays(offset.toLong())
+            d.format(java.time.format.DateTimeFormatter.ofPattern("MMM d"))
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("MMM d")))
+
+    val state: StateFlow<BudgetState> =
+        combine(reactor.state, _debugDateOffset) { st, offset ->
+            val shiftedToday = java.time.LocalDateTime.now().plusDays(offset.toLong())
+            st.copy(today = shiftedToday)
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, reactor.state.value)
 
     val preferences: StateFlow<UserPreferences> =
         prefs.preferences
@@ -73,8 +89,9 @@ class MainViewModel(
             .map { it.darkModeOverride }
             .stateIn(viewModelScope, SharingStarted.Eagerly, UserPreferences().darkModeOverride)
 
-    private val _toast = MutableStateFlow<String?>(null)
-    val toast: StateFlow<String?> = _toast.asStateFlow()
+    fun shiftDebugDate(days: Int) {
+        _debugDateOffset.value += days
+    }
 
     fun toggleDark(current: Boolean) {
         viewModelScope.launch { prefs.updateDarkMode(if (current) "light" else "dark") }
@@ -82,16 +99,26 @@ class MainViewModel(
 
     fun saveExpense(expense: Expense) {
         viewModelScope.launch {
+            val offset = _debugDateOffset.value
+            val adjusted = if (offset != 0) {
+                val shiftedInstant = expense.occurredAt.plusSeconds(offset * 86400L)
+                expense.copy(occurredAt = shiftedInstant)
+            } else expense
             val existed = state.value.expenses.any { it.id == expense.id }
-            expenseRepo.upsert(expense)
-            val display = Money.currencyLong(expense.amountMinor, 2, currency.value)
-            _toast.value = "${if (existed) "Updated" else "Saved"} · $display"
+            expenseRepo.upsert(adjusted)
+            val display = Money.currencyLong(adjusted.amountMinor, 2, currency.value)
+            toast("${if (existed) "Updated" else "Saved"} · $display")
         }
     }
 
     fun deleteExpense(id: UUID) = viewModelScope.launch { expenseRepo.delete(id) }
 
-    fun addBill(bill: Bill) = viewModelScope.launch { billRepo.upsert(bill) }
+    fun deleteBill(id: UUID) = viewModelScope.launch { billRepo.delete(id) }
+
+    fun addBill(bill: Bill) = viewModelScope.launch {
+        billRepo.upsert(bill)
+        toast("Bill added · ${bill.name}")
+    }
 
     fun toggleBill(id: UUID) {
         viewModelScope.launch {
@@ -135,7 +162,6 @@ class MainViewModel(
         id: String,
         value: Double,
     ) {
-        // v1: no-op stub. Per-category budget writes are deferred to v1.1.
     }
 
     fun applyOnboarding(
@@ -189,6 +215,16 @@ class MainViewModel(
         }
     }
 
+    fun updateUserName(name: String) {
+        viewModelScope.launch {
+            val current = userRepo.get() ?: return@launch
+            val trimmed = name.trim().take(30)
+            if (trimmed.isNotEmpty()) {
+                userRepo.upsert(current.copy(name = trimmed))
+            }
+        }
+    }
+
     fun findExpenseForEdit(
         id: UUID,
         onFound: (Expense) -> Unit,
@@ -205,7 +241,7 @@ class MainViewModel(
     }
 }
 
-/** Process-scoped DI graph: a single GroveDatabase, repositories, and the BudgetStateReactor. */
+
 object Graph {
     @Volatile private var db: GroveDatabase? = null
 
