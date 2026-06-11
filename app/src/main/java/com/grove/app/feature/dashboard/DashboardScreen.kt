@@ -56,7 +56,11 @@ fun DashboardScreen(
 ) {
     val c = GroveTheme.colors
     val monthName = remember(state.today) { state.today.format(DateTimeFormatter.ofPattern("MMMM")) }
-    val pctSpent = (state.totalSpent / state.monthBudget).coerceIn(0.0, 1.0).toFloat()
+    val pctSpent = if (state.monthBudget > 0.0) {
+        (state.totalSpent / state.monthBudget).coerceIn(0.0, 1.0).toFloat()
+    } else {
+        0.0f
+    }
     val tone = toneOf(state.pace)
     val recent = remember(state.expenses) { state.expenses.sortedByDescending { it.occurredAt }.take(4) }
     val safe = animatedOnce(state.safeToSpendToday.toFloat())

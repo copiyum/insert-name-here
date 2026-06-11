@@ -52,7 +52,7 @@ data class BudgetState(
             return if (spentFrac > timeFrac + 0.1) SpendPace.Tight else SpendPace.Healthy
         }
 
-    private fun minorExponent(currencyCode: String): Double = Currencies.minorUnitExponent(currencyCode).toDouble()
+    private fun minorExponent(currencyCode: String): Double = Math.pow(10.0, Currencies.minorUnitExponent(currencyCode).toDouble())
 
     companion object {
         fun empty() =
