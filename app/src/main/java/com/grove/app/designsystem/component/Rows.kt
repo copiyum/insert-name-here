@@ -23,45 +23,74 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.grove.app.data.model.Expense
+import com.grove.app.data.db.ExpenseLite
 import com.grove.app.designsystem.format.Dates
 import com.grove.app.designsystem.format.Money
 import com.grove.app.designsystem.theme.GroveBorder
-import com.grove.app.designsystem.theme.GroveTheme
 import com.grove.app.designsystem.theme.GroveShapes
 import com.grove.app.designsystem.theme.GroveSize
 import com.grove.app.designsystem.theme.GroveSpacing
+import com.grove.app.designsystem.theme.GroveTheme
 import com.grove.app.designsystem.theme.GroveType
 import com.grove.app.designsystem.theme.InterTight
 import java.time.LocalDateTime
+import java.time.ZoneOffset
 
 @Composable
-fun ExpenseRow(expense: Expense, today: LocalDateTime, currency: String = "USD", modifier: Modifier = Modifier) {
+fun ExpenseRow(
+    expense: ExpenseLite,
+    today: LocalDateTime,
+    currency: String = "USD",
+    modifier: Modifier = Modifier,
+) {
     Row(
         modifier = modifier.fillMaxWidth().padding(vertical = GroveSpacing.MD),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        CategoryIcon(expense.category)
+        CategoryIcon(expense.categoryId.toString())
         Spacer(Modifier.width(GroveSpacing.MD))
         Column(modifier = Modifier.weight(1f)) {
             Text(expense.note, style = GroveType.rowTitle, color = GroveTheme.colors.fg1, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text("${Dates.relative(expense.date, today)} · ${Dates.time(expense.date)}", style = GroveType.rowSub, color = GroveTheme.colors.fg3)
+            Text(
+                "${Dates.relative(
+                    expense.occurredAt.atZone(ZoneOffset.UTC).toLocalDateTime(),
+                    today,
+                )} · ${Dates.time(expense.occurredAt.atZone(ZoneOffset.UTC).toLocalDateTime())}",
+                style = GroveType.rowSub,
+                color = GroveTheme.colors.fg3,
+            )
         }
-        Text(Money.signed(expense.amount, currency), style = GroveType.amount, color = GroveTheme.colors.fg1)
+        Text(
+            Money.currencyLong(
+                expense.amountMinor,
+                2,
+                expense.currencyCode.ifEmpty {
+                    currency
+                },
+            ),
+            style = GroveType.amount,
+            color = GroveTheme.colors.fg1,
+        )
     }
 }
 
 @Composable
-fun IconTileRow(icon: ImageVector, title: String, subtitle: String, trailing: @Composable () -> Unit) {
+fun IconTileRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    trailing: @Composable () -> Unit,
+) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = GroveSpacing.MD),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            modifier = Modifier
-                .size(GroveSize.IconTile)
-                .clip(GroveShapes.Tile)
-                .background(GroveTheme.colors.bone),
+            modifier =
+                Modifier
+                    .size(GroveSize.IconTile)
+                    .clip(GroveShapes.Tile)
+                    .background(GroveTheme.colors.bone),
             contentAlignment = Alignment.Center,
         ) {
             Icon(icon, contentDescription = null, tint = GroveTheme.colors.fg2, modifier = Modifier.size(18.dp))
@@ -76,7 +105,13 @@ fun IconTileRow(icon: ImageVector, title: String, subtitle: String, trailing: @C
 }
 
 @Composable
-fun SwitchRow(icon: ImageVector, title: String, subtitle: String, checked: Boolean, onToggle: () -> Unit) {
+fun SwitchRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onToggle: () -> Unit,
+) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = GroveSpacing.MD),
         verticalAlignment = Alignment.CenterVertically,
@@ -100,10 +135,11 @@ fun SettingRow(
     onClick: (() -> Unit)? = null,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
-            .padding(vertical = GroveSpacing.MD),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
+                .padding(vertical = GroveSpacing.MD),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(icon, contentDescription = null, tint = GroveTheme.colors.fg2, modifier = Modifier.size(20.dp))

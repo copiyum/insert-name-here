@@ -43,44 +43,67 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.grove.app.data.model.Category
+import com.grove.app.data.db.CategoryLite
 import com.grove.app.data.model.Expense
 import com.grove.app.designsystem.component.CategoryIcon
 import com.grove.app.designsystem.component.GroveBottomSheet
 import com.grove.app.designsystem.component.Keypad
 import com.grove.app.designsystem.component.PrimaryButton
+import com.grove.app.designsystem.format.Currencies
 import com.grove.app.designsystem.format.Money
 import com.grove.app.designsystem.theme.Fraunces
 import com.grove.app.designsystem.theme.GroveSpacing
 import com.grove.app.designsystem.theme.GroveTheme
 import com.grove.app.designsystem.theme.InterTight
+import java.time.Instant
 import java.time.LocalDate
-import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import java.util.Locale
+import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddExpenseSheet(
-    categories: List<Category>,
+    categories: List<CategoryLite>,
     currency: String,
+    editing: Expense? = null,
     onSave: (Expense) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val c = GroveTheme.colors
-    var amount by remember { mutableStateOf("") }
+    var amount by remember(editing) {
+        mutableStateOf(
+            editing?.let {
+                val exp = Currencies.minorUnitExponent(currency)
+                val d = it.amountMinor.toDouble() / Math.pow(10.0, exp.toDouble())
+                if (exp == 0) d.toLong().toString() else String.format(Locale.US, "%.${exp}f", d)
+            } ?: "",
+        )
+    }
     val amountNum = amount.toDoubleOrNull() ?: 0.0
-    var selectedCategoryId by remember { mutableStateOf(categories.firstOrNull()?.id) }
-    var note by remember { mutableStateOf("") }
+    var selectedCategoryId by remember(editing) {
+        mutableStateOf(editing?.categoryId?.toString() ?: categories.firstOrNull()?.id?.toString())
+    }
+    var note by remember(editing) { mutableStateOf(editing?.note ?: "") }
     var isDetailsStep by remember { mutableStateOf(false) }
+
     fun saveExpense() {
+        val now = Instant.now()
+        val exp = Currencies.minorUnitExponent(currency)
+        val minor = (amountNum * Math.pow(10.0, exp.toDouble())).toLong()
+        val catId = selectedCategoryId?.let { UUID.fromString(it) } ?: categories.firstOrNull()?.id ?: return
         onSave(
             Expense(
-                id = "e${System.currentTimeMillis()}",
-                amount = amountNum,
-                category = selectedCategoryId ?: "other",
+                id = editing?.id ?: UUID.randomUUID(),
+                amountMinor = minor,
+                currencyCode = currency,
+                categoryId = catId,
+                paymentMethodId = editing?.paymentMethodId,
                 note = note,
-                date = LocalDate.now().atTime(LocalTime.now()),
-            )
+                occurredAt = editing?.occurredAt ?: now,
+                createdAt = editing?.createdAt ?: now,
+                updatedAt = now,
+            ),
         )
         onDismiss()
     }
@@ -90,23 +113,29 @@ fun AddExpenseSheet(
             // STEP 1: KEYPAD
             Column(
                 modifier = Modifier.fillMaxWidth().padding(bottom = GroveSpacing.MD),
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 // Header
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = GroveSpacing.MD),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = GroveSpacing.MD),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     IconButton(onClick = onDismiss) {
                         Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = c.fg1)
                     }
-                    Text("New expense", fontFamily = InterTight, fontSize = 16.sp, color = c.fg1)
+                    Text(
+                        if (editing != null) "Edit expense" else "New expense",
+                        fontFamily = InterTight,
+                        fontSize = 16.sp,
+                        color = c.fg1,
+                    )
                     TextButton(
                         onClick = { isDetailsStep = true },
-                        enabled = amountNum > 0
+                        enabled = amountNum > 0,
                     ) {
                         Text("Next", color = if (amountNum > 0) c.fg1 else c.fg2, fontFamily = InterTight, fontSize = 16.sp)
                     }
@@ -126,23 +155,24 @@ fun AddExpenseSheet(
                 LazyRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(GroveSpacing.SM),
-                    contentPadding = PaddingValues(horizontal = GroveSpacing.LG)
+                    contentPadding = PaddingValues(horizontal = GroveSpacing.LG),
                 ) {
                     items(categories) { category ->
-                        val isSelected = category.id == selectedCategoryId
+                        val isSelected = category.id.toString() == selectedCategoryId
                         Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(50))
-                                .background(if (isSelected) c.fg1 else c.bgCard)
-                                .clickable { selectedCategoryId = category.id }
-                                .padding(horizontal = 20.dp, vertical = 12.dp)
+                            modifier =
+                                Modifier
+                                    .clip(RoundedCornerShape(50))
+                                    .background(if (isSelected) c.fg1 else c.bgCard)
+                                    .clickable { selectedCategoryId = category.id.toString() }
+                                    .padding(horizontal = 20.dp, vertical = 12.dp),
                         ) {
                             Text(
-                                text = category.name,
+                                text = category.displayName,
                                 fontFamily = InterTight,
                                 fontSize = 15.sp,
                                 fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
-                                color = if (isSelected) c.bgApp else c.fg1
+                                color = if (isSelected) c.bgApp else c.fg1,
                             )
                         }
                     }
@@ -175,7 +205,7 @@ fun AddExpenseSheet(
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     IconButton(onClick = onDismiss, modifier = Modifier.offset(x = (-8).dp)) {
                         Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = c.fg1)
@@ -183,7 +213,7 @@ fun AddExpenseSheet(
                     Text("Details", fontFamily = InterTight, fontSize = 16.sp, color = c.fg1)
                     TextButton(
                         onClick = { saveExpense() },
-                        modifier = Modifier.offset(x = 8.dp)
+                        modifier = Modifier.offset(x = 8.dp),
                     ) {
                         Text("Save", color = c.accent, fontFamily = InterTight, fontSize = 16.sp)
                     }
@@ -194,20 +224,32 @@ fun AddExpenseSheet(
                 // Amount and Edit
                 Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = Money.currency(amountNum, 2, currency),
+                        text =
+                            Money.currencyLong(
+                                editing?.amountMinor ?: (
+                                    amountNum *
+                                        Math.pow(
+                                            10.0,
+                                            Currencies.minorUnitExponent(currency).toDouble(),
+                                        )
+                                ).toLong(),
+                                2,
+                                currency,
+                            ),
                         fontFamily = Fraunces,
                         fontSize = 48.sp,
                         letterSpacing = (-1).sp,
-                        color = c.fg1
+                        color = c.fg1,
                     )
                     Spacer(Modifier.height(8.dp))
                     Row(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(50))
-                            .clickable { isDetailsStep = false }
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        modifier =
+                            Modifier
+                                .clip(RoundedCornerShape(50))
+                                .clickable { isDetailsStep = false }
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
+                        horizontalArrangement = Arrangement.Center,
                     ) {
                         Icon(Icons.Outlined.Edit, contentDescription = null, tint = c.fg2, modifier = Modifier.size(14.dp))
                         Spacer(Modifier.width(4.dp))
@@ -218,28 +260,39 @@ fun AddExpenseSheet(
                 Spacer(Modifier.height(GroveSpacing.XL))
 
                 // Category Section
-                Text("CATEGORY", fontFamily = InterTight, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = c.fg3, letterSpacing = 1.sp)
+                Text(
+                    "CATEGORY",
+                    fontFamily = InterTight,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = c.fg3,
+                    letterSpacing = 1.sp,
+                )
                 Spacer(Modifier.height(8.dp))
-                
+
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     categories.chunked(4).forEach { rowCats ->
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                             rowCats.forEach { cat ->
-                                val isSelected = cat.id == selectedCategoryId
+                                val isSelected = cat.id.toString() == selectedCategoryId
                                 Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .aspectRatio(1f)
-                                        .clip(RoundedCornerShape(16.dp))
-                                        .background(c.bgCard)
-                                        .border(if (isSelected) 1.dp else 0.dp, if (isSelected) c.fg1 else Color.Transparent, RoundedCornerShape(16.dp))
-                                        .clickable { selectedCategoryId = cat.id },
-                                    contentAlignment = Alignment.Center
+                                    modifier =
+                                        Modifier
+                                            .weight(1f)
+                                            .aspectRatio(1f)
+                                            .clip(RoundedCornerShape(16.dp))
+                                            .background(c.bgCard)
+                                            .border(
+                                                if (isSelected) 1.dp else 0.dp,
+                                                if (isSelected) c.fg1 else Color.Transparent,
+                                                RoundedCornerShape(16.dp),
+                                            ).clickable { selectedCategoryId = cat.id.toString() },
+                                    contentAlignment = Alignment.Center,
                                 ) {
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        CategoryIcon(categoryId = cat.id, size = 38)
+                                        CategoryIcon(categoryId = cat.id.toString(), size = 38)
                                         Spacer(Modifier.height(8.dp))
-                                        Text(text = cat.name, fontFamily = InterTight, fontSize = 12.sp, color = c.fg1)
+                                        Text(text = cat.displayName, fontFamily = InterTight, fontSize = 12.sp, color = c.fg1)
                                     }
                                 }
                             }
@@ -253,7 +306,14 @@ fun AddExpenseSheet(
                 Spacer(Modifier.height(GroveSpacing.XL))
 
                 // Note Section
-                Text("NOTE", fontFamily = InterTight, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = c.fg3, letterSpacing = 1.sp)
+                Text(
+                    "NOTE",
+                    fontFamily = InterTight,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = c.fg3,
+                    letterSpacing = 1.sp,
+                )
                 Spacer(Modifier.height(8.dp))
                 BasicTextField(
                     value = note,
@@ -262,25 +322,42 @@ fun AddExpenseSheet(
                     cursorBrush = SolidColor(c.accent),
                     decorationBox = { innerTextField ->
                         Box(
-                            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(c.bgCard).padding(16.dp),
-                            contentAlignment = Alignment.CenterStart
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(c.bgCard)
+                                    .padding(16.dp),
+                            contentAlignment = Alignment.CenterStart,
                         ) {
                             if (note.isEmpty()) {
                                 Text("What was it?", fontFamily = InterTight, fontSize = 16.sp, color = c.fg2)
                             }
                             innerTextField()
                         }
-                    }
+                    },
                 )
 
                 Spacer(Modifier.height(GroveSpacing.XL))
 
                 // Date Section
-                Text("DATE", fontFamily = InterTight, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = c.fg3, letterSpacing = 1.sp)
+                Text(
+                    "DATE",
+                    fontFamily = InterTight,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = c.fg3,
+                    letterSpacing = 1.sp,
+                )
                 Spacer(Modifier.height(8.dp))
                 Row(
-                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(c.bgCard).padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(c.bgCard)
+                            .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(Icons.Outlined.CalendarToday, contentDescription = null, tint = c.fg1, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(12.dp))
@@ -295,9 +372,9 @@ fun AddExpenseSheet(
                 PrimaryButton(
                     text = "Save expense",
                     onClick = { saveExpense() },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 )
-                
+
                 Spacer(Modifier.height(GroveSpacing.LG))
             }
         }

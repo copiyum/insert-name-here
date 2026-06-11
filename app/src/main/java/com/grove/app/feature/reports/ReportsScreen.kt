@@ -47,9 +47,9 @@ import com.grove.app.designsystem.component.charts.LineChart
 import com.grove.app.designsystem.component.charts.MonthBar
 import com.grove.app.designsystem.component.charts.MonthBars
 import com.grove.app.designsystem.format.Money
-import com.grove.app.designsystem.theme.GroveTheme
 import com.grove.app.designsystem.theme.GroveShapes
 import com.grove.app.designsystem.theme.GroveSpacing
+import com.grove.app.designsystem.theme.GroveTheme
 import com.grove.app.designsystem.theme.GroveType
 import com.grove.app.designsystem.theme.InterTight
 import kotlin.math.abs
@@ -57,29 +57,47 @@ import kotlin.math.abs
 private const val LAST_MONTH = 1390.0
 
 @Composable
-fun ReportsScreen(state: BudgetState, currency: String) {
+fun ReportsScreen(
+    state: BudgetState,
+    currency: String,
+) {
     val c = GroveTheme.colors
     var range by rememberSaveable { mutableStateOf("month") }
     var selected by rememberSaveable { mutableStateOf<String?>(null) }
-    val monthName = state.today.month.toString().lowercase().replaceFirstChar { it.uppercase() }
+    val monthName =
+        state.today.month
+            .toString()
+            .lowercase()
+            .replaceFirstChar { it.uppercase() }
 
-    val byCategory: List<Pair<String, Double>> = remember(state.expenses) {
-        state.expenses.groupBy { it.category }
-            .map { e -> Pair(e.key, e.value.sumOf { it.amount }) }
-            .sortedByDescending { it.second }
-    }
+    val byCategory: List<Pair<String, Double>> =
+        remember(state.expenses) {
+            state.expenses
+                .groupBy { it.categoryId }
+                .map { e -> Pair(e.key.toString(), e.value.sumOf { it.amountMinor } / 100.0) }
+                .sortedByDescending { it.second }
+        }
 
-    val dailyData = remember(state.expenses, state.dayOfMonth) {
-        DoubleArray(state.dayOfMonth) { 0.0 }.also { arr ->
-            state.expenses.forEach { e ->
-                (e.date.dayOfMonth - 1).let { if (it in 0 until state.dayOfMonth) arr[it] += e.amount }
-            }
-        }.toList()
-    }
+    val dailyData =
+        remember(state.expenses, state.dayOfMonth) {
+            DoubleArray(state.dayOfMonth) { 0.0 }
+                .also { arr ->
+                    state.expenses.forEach { e ->
+                        val day = e.occurredAt.atZone(java.time.ZoneOffset.UTC).dayOfMonth - 1
+                        if (day in 0 until state.dayOfMonth) arr[day] += e.amountMinor / 100.0
+                    }
+                }.toList()
+        }
 
-    val months: List<MonthBar> = remember(state.totalSpent) {
-        listOf(MonthBar("Feb", 1520.0), MonthBar("Mar", 1685.0), MonthBar("Apr", LAST_MONTH), MonthBar(monthName.take(3), state.totalSpent, now = true))
-    }
+    val months: List<MonthBar> =
+        remember(state.totalSpent) {
+            listOf(
+                MonthBar("Feb", 1520.0),
+                MonthBar("Mar", 1685.0),
+                MonthBar("Apr", LAST_MONTH),
+                MonthBar(monthName.take(3), state.totalSpent, now = true),
+            )
+        }
     val momDelta = (state.totalSpent - LAST_MONTH) / LAST_MONTH
 
     LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 120.dp)) {
@@ -99,22 +117,44 @@ fun ReportsScreen(state: BudgetState, currency: String) {
                 Text(if (selected != null) "Tap again to clear" else "Tap a slice to focus", style = GroveType.rowSub, color = c.fg3)
                 Spacer(Modifier.height(GroveSpacing.SM))
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(GroveSpacing.SM + 2.dp)) {
-                    DonutChart(data = byCategory, total = state.totalSpent, selected = selected, onSelect = { selected = if (selected == it) null else it }, modifier = Modifier.size(132.dp))
+                    DonutChart(data = byCategory, total = state.totalSpent, selected = selected, onSelect = {
+                        selected =
+                            if (selected == it) null else it
+                    }, modifier = Modifier.size(132.dp))
                     Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(GroveSpacing.SM)) {
                         for (entry in byCategory.take(5)) {
                             val cat = entry.first
                             val amount = entry.second
                             val dim = selected != null && selected != cat
                             Row(
-                                modifier = Modifier.fillMaxWidth().graphicsLayer { alpha = if (dim) 0.4f else 1f }
-                                    .clip(RoundedCornerShape(8.dp)).clickable { selected = if (selected == cat) null else cat }
-                                    .padding(vertical = 2.dp),
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .graphicsLayer { alpha = if (dim) 0.4f else 1f }
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .clickable { selected = if (selected == cat) null else cat }
+                                        .padding(vertical = 2.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Box(modifier = Modifier.size(12.dp).clip(RoundedCornerShape(4.dp)).background(CategoryVisuals.color(cat)))
                                 Spacer(Modifier.width(10.dp))
-                                Text(CategoryVisuals.label(cat), fontFamily = InterTight, fontWeight = FontWeight.Medium, fontSize = 13.sp, color = c.fg1, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                Text(Money.currency(amount, 0, currency), fontFamily = InterTight, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = c.fg2)
+                                Text(
+                                    CategoryVisuals.label(cat),
+                                    fontFamily = InterTight,
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = 13.sp,
+                                    color = c.fg1,
+                                    modifier = Modifier.weight(1f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                Text(
+                                    Money.currency(amount, 0, currency),
+                                    fontFamily = InterTight,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = c.fg2,
+                                )
                             }
                         }
                     }
@@ -129,15 +169,28 @@ fun ReportsScreen(state: BudgetState, currency: String) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Column {
                         Text("AVG / DAY", style = GroveType.capLabel, color = c.fg3)
-                        Text(Money.currency(state.totalSpent / state.dayOfMonth, 0, currency), style = GroveType.rowTitle.copy(fontSize = 24.sp), color = c.fg1)
+                        Text(
+                            Money.currency(state.totalSpent / state.dayOfMonth, 0, currency),
+                            style = GroveType.rowTitle.copy(fontSize = 24.sp),
+                            color = c.fg1,
+                        )
                     }
                     Column(horizontalAlignment = Alignment.End) {
                         Text("SAFE / DAY", style = GroveType.capLabel, color = c.fg3)
-                        Text(Money.currency(state.monthBudget / state.daysInMonth, 0, currency), style = GroveType.rowTitle.copy(fontSize = 24.sp), color = c.accentDeep)
+                        Text(
+                            Money.currency(state.monthBudget / state.daysInMonth, 0, currency),
+                            style = GroveType.rowTitle.copy(fontSize = 24.sp),
+                            color = c.accentDeep,
+                        )
                     }
                 }
                 Spacer(Modifier.height(GroveSpacing.SM))
-                LineChart(dailyData, baseline = state.monthBudget / state.daysInMonth, monthShort = monthName.take(3), modifier = Modifier.fillMaxWidth().height(130.dp))
+                LineChart(
+                    dailyData,
+                    baseline = state.monthBudget / state.daysInMonth,
+                    monthShort = monthName.take(3),
+                    modifier = Modifier.fillMaxWidth().height(130.dp),
+                )
                 Spacer(Modifier.height(GroveSpacing.SM))
                 Row(horizontalArrangement = Arrangement.spacedBy(GroveSpacing.SM + 2.dp)) {
                     LegendDot(c.accent, "Daily spend")
@@ -150,8 +203,16 @@ fun ReportsScreen(state: BudgetState, currency: String) {
 
         item {
             GroveCard(modifier = Modifier.fillMaxWidth()) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
-                    Text(Money.currency(state.totalSpent, 0, currency), style = GroveType.rowTitle.copy(fontSize = 24.sp, letterSpacing = (-0.5).sp), color = c.fg1)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom,
+                ) {
+                    Text(
+                        Money.currency(state.totalSpent, 0, currency),
+                        style = GroveType.rowTitle.copy(fontSize = 24.sp, letterSpacing = (-0.5).sp),
+                        color = c.fg1,
+                    )
                     MomDelta(momDelta)
                 }
                 Spacer(Modifier.height(GroveSpacing.SM + 2.dp))
@@ -170,7 +231,10 @@ fun ReportsScreen(state: BudgetState, currency: String) {
                     val amount = entry.second
                     val dim = selected != null && selected != cat
                     Row(
-                        modifier = Modifier.fillMaxWidth().graphicsLayer { alpha = if (dim) 0.4f else 1f }.padding(vertical = GroveSpacing.MD),
+                        modifier =
+                            Modifier.fillMaxWidth().graphicsLayer { alpha = if (dim) 0.4f else 1f }.padding(
+                                vertical = GroveSpacing.MD,
+                            ),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         CategoryIcon(cat)
@@ -196,13 +260,29 @@ private fun MomDelta(delta: Double) {
     val down = delta <= 0
     val bg = if (down) c.accent.copy(alpha = 0.14f) else c.clayBg
     val fg = if (down) (if (c.isDark) c.accentSoft else c.accentDeep) else c.clay
-    Box(modifier = Modifier.clip(GroveShapes.Toggle).background(bg).padding(horizontal = GroveSpacing.SM + 2.dp, vertical = GroveSpacing.XS)) {
-        Text("${if (down) "↓" else "↑"} ${abs(delta * 100).toInt()}% vs Apr", fontFamily = InterTight, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = fg)
+    Box(
+        modifier =
+            Modifier
+                .clip(
+                    GroveShapes.Toggle,
+                ).background(bg)
+                .padding(horizontal = GroveSpacing.SM + 2.dp, vertical = GroveSpacing.XS),
+    ) {
+        Text(
+            "${if (down) "↓" else "↑"} ${abs(delta * 100).toInt()}% vs Apr",
+            fontFamily = InterTight,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = fg,
+        )
     }
 }
 
 @Composable
-private fun LegendDot(color: Color, label: String) {
+private fun LegendDot(
+    color: Color,
+    label: String,
+) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(modifier = Modifier.size(16.dp, 2.dp).background(color))
         Spacer(Modifier.width(GroveSpacing.XS + 2.dp))

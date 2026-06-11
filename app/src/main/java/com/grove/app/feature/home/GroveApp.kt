@@ -1,9 +1,9 @@
 package com.grove.app.feature.home
 
 import android.app.Activity
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
@@ -72,12 +72,21 @@ fun GroveApp() {
 }
 
 @Composable
-private fun HomeScaffold(vm: MainViewModel, dark: Boolean, currency: String) {
+private fun HomeScaffold(
+    vm: MainViewModel,
+    dark: Boolean,
+    currency: String,
+) {
     val c = GroveTheme.colors
     val state by vm.state.collectAsStateWithLifecycle()
     val toast by vm.toast.collectAsStateWithLifecycle()
     val nav = rememberNavController()
-    val currentRoute = nav.currentBackStackEntryAsState().value?.destination?.route
+    val currentRoute =
+        nav
+            .currentBackStackEntryAsState()
+            .value
+            ?.destination
+            ?.route
     val activeTab = if (BottomTabs.any { it.route == currentRoute }) currentRoute!! else Dest.Home.route
 
     var showAdd by remember { mutableStateOf(false) }
@@ -94,10 +103,18 @@ private fun HomeScaffold(vm: MainViewModel, dark: Boolean, currency: String) {
                     exitTransition = { fadeOut(tween(GroveTokens.MotionExitSlow)) },
                 ) {
                     composable(Dest.Home.route) {
-                        DashboardScreen(state = state, currency = currency, onNavigate = { nav.switchTab(it) }, onAddExpense = { showAdd = true })
+                        DashboardScreen(state = state, currency = currency, onNavigate = { nav.switchTab(it) }, onAddExpense = {
+                            showAdd =
+                                true
+                        })
                     }
                     composable(Dest.History.route) {
-                        HistoryScreen(state = state, currency = currency, onDelete = vm::deleteExpense, onEdit = { editing = it })
+                        HistoryScreen(
+                            state = state,
+                            currency = currency,
+                            onDelete = vm::deleteExpense,
+                            onEdit = { lite -> vm.findExpenseForEdit(lite.id) { editing = it } },
+                        )
                     }
                     composable(Dest.Bills.route) {
                         BillsScreen(state = state, currency = currency, onToggleBill = vm::toggleBill, onAddBill = vm::addBill)
@@ -106,7 +123,12 @@ private fun HomeScaffold(vm: MainViewModel, dark: Boolean, currency: String) {
                         ReportsScreen(state = state, currency = currency)
                     }
                     composable(Dest.Budget.route) {
-                        BudgetScreen(state = state, currency = currency, onUpdateBudget = vm::updateMonthBudget, onUpdateCatBudget = vm::updateCategoryBudget)
+                        BudgetScreen(
+                            state = state,
+                            currency = currency,
+                            onUpdateBudget = vm::updateMonthBudget,
+                            onUpdateCatBudget = vm::updateCategoryBudget,
+                        )
                     }
                     composable(Dest.Settings.route) {
                         SettingsScreen(
@@ -134,14 +156,18 @@ private fun HomeScaffold(vm: MainViewModel, dark: Boolean, currency: String) {
             AddExpenseSheet(
                 categories = state.categories,
                 currency = currency,
+                editing = editing,
                 onSave = vm::saveExpense,
-                onDismiss = { showAdd = false; editing = null },
+                onDismiss = {
+                    showAdd = false
+                    editing = null
+                },
             )
         }
 
         if (onboarding) {
             OnboardingFlow(
-                userName = state.user.name,
+                userName = state.user?.name ?: "Mae",
                 onDone = { result ->
                     vm.applyOnboarding(result.monthBudget, result.resetDay)
                     onboarding = false
@@ -153,13 +179,14 @@ private fun HomeScaffold(vm: MainViewModel, dark: Boolean, currency: String) {
 
         toast?.let { msg ->
             Row(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .navigationBarsPadding()
-                    .padding(bottom = 92.dp)
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(c.fg1)
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .navigationBarsPadding()
+                        .padding(bottom = 92.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(c.fg1)
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(Icons.Default.Check, contentDescription = null, tint = c.bgCard, modifier = Modifier.size(14.dp))
@@ -170,11 +197,12 @@ private fun HomeScaffold(vm: MainViewModel, dark: Boolean, currency: String) {
     }
 }
 
-private fun NavController.switchTab(route: String) = navigate(route) {
-    launchSingleTop = true
-    restoreState = true
-    popUpTo(graph.findStartDestination().id) { saveState = true }
-}
+private fun NavController.switchTab(route: String) =
+    navigate(route) {
+        launchSingleTop = true
+        restoreState = true
+        popUpTo(graph.findStartDestination().id) { saveState = true }
+    }
 
 @Composable
 private fun SystemBars(dark: Boolean) {

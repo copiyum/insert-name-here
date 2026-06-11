@@ -53,9 +53,9 @@ import com.grove.app.designsystem.component.SwitchRow
 import com.grove.app.designsystem.format.Currencies
 import com.grove.app.designsystem.format.ordinal
 import com.grove.app.designsystem.theme.Fraunces
-import com.grove.app.designsystem.theme.GroveTheme
 import com.grove.app.designsystem.theme.GroveShapes
 import com.grove.app.designsystem.theme.GroveSpacing
+import com.grove.app.designsystem.theme.GroveTheme
 import com.grove.app.designsystem.theme.GroveType
 import com.grove.app.designsystem.theme.InterTight
 import kotlinx.coroutines.launch
@@ -74,7 +74,7 @@ fun SettingsScreen(
     var reminders by rememberSaveable { mutableStateOf(true) }
     var billAlerts by rememberSaveable { mutableStateOf(true) }
     var showCurrencyPicker by rememberSaveable { mutableStateOf(false) }
-    val resetOrdinal = ordinal(state.user.resetDay)
+    val resetOrdinal = ordinal(state.user?.resetDay ?: 1)
     val currentCurrency = Currencies.current(currency)
 
     LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 120.dp)) {
@@ -84,11 +84,19 @@ fun SettingsScreen(
             GroveCard(modifier = Modifier.fillMaxWidth(), padding = PaddingValues(GroveSpacing.SM + 2.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(modifier = Modifier.size(56.dp).clip(CircleShape).background(c.accent), contentAlignment = Alignment.Center) {
-                        Text(state.user.name.first().toString(), fontFamily = Fraunces, fontSize = 22.sp, fontWeight = FontWeight.Medium, color = c.fgOnFern)
+                        Text(
+                            (state.user?.name ?: "Mae")
+                                .first()
+                                .toString(),
+                            fontFamily = Fraunces,
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = c.fgOnFern,
+                        )
                     }
                     Spacer(Modifier.width(GroveSpacing.SM))
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(state.user.name, style = GroveType.rowTitle, fontWeight = FontWeight.Medium, color = c.fg1)
+                        Text(state.user?.name ?: "Mae", style = GroveType.rowTitle, fontWeight = FontWeight.Medium, color = c.fg1)
                         Text("${currentCurrency.code} · Resets on the $resetOrdinal", style = GroveType.rowSub, color = c.fg3)
                     }
                     Icon(Icons.Outlined.ChevronRight, contentDescription = null, tint = c.fg3, modifier = Modifier.size(16.dp))
@@ -99,9 +107,18 @@ fun SettingsScreen(
         item { SectionLabel("PREFERENCES") }
         item {
             GroveCard(modifier = Modifier.fillMaxWidth(), padding = PaddingValues(horizontal = GroveSpacing.LG)) {
-                SwitchRow(if (dark) Icons.Outlined.DarkMode else Icons.Outlined.LightMode, "Dark mode", "Easier on the eyes at night", dark, onToggleDark)
+                SwitchRow(
+                    if (dark) Icons.Outlined.DarkMode else Icons.Outlined.LightMode,
+                    "Dark mode",
+                    "Easier on the eyes at night",
+                    dark,
+                    onToggleDark,
+                )
                 HorizontalDivider(color = c.border)
-                SwitchRow(Icons.Outlined.NotificationsNone, "Daily safe-to-spend", "Gentle nudge each morning at 8am", reminders) { reminders = !reminders }
+                SwitchRow(Icons.Outlined.NotificationsNone, "Daily safe-to-spend", "Gentle nudge each morning at 8am", reminders) {
+                    reminders =
+                        !reminders
+                }
                 HorizontalDivider(color = c.border)
                 SwitchRow(Icons.Outlined.Receipt, "Bill due alerts", "3 days before each bill", billAlerts) { billAlerts = !billAlerts }
             }
@@ -110,11 +127,24 @@ fun SettingsScreen(
         item { SectionLabel("BUDGET") }
         item {
             GroveCard(modifier = Modifier.fillMaxWidth(), padding = PaddingValues(horizontal = GroveSpacing.LG)) {
-                SettingRow(Icons.Outlined.PieChart, "Budget & categories", subtitle = "Set monthly and per-category limits", onClick = onOpenBudget)
+                SettingRow(
+                    Icons.Outlined.PieChart,
+                    "Budget & categories",
+                    subtitle = "Set monthly and per-category limits",
+                    onClick = onOpenBudget,
+                )
                 HorizontalDivider(color = c.border)
-                SettingRow(Icons.Outlined.CalendarToday, "Reset day", subtitle = "When your budget resets", value = "$resetOrdinal of month")
+                SettingRow(
+                    Icons.Outlined.CalendarToday,
+                    "Reset day",
+                    subtitle = "When your budget resets",
+                    value = "$resetOrdinal of month",
+                )
                 HorizontalDivider(color = c.border)
-                SettingRow(Icons.Outlined.AttachMoney, "Currency", subtitle = currentCurrency.name, value = "${currentCurrency.symbol} ${currentCurrency.code}", onClick = { showCurrencyPicker = true })
+                SettingRow(Icons.Outlined.AttachMoney, "Currency", subtitle = currentCurrency.name, value = "${currentCurrency.symbol} ${currentCurrency.code}", onClick = {
+                    showCurrencyPicker =
+                        true
+                })
             }
         }
 
@@ -135,7 +165,10 @@ fun SettingsScreen(
     if (showCurrencyPicker) {
         CurrencyPickerSheet(
             current = currency,
-            onSelect = { code -> onUpdateCurrency(code); showCurrencyPicker = false },
+            onSelect = { code ->
+                onUpdateCurrency(code)
+                showCurrencyPicker = false
+            },
             onDismiss = { showCurrencyPicker = false },
         )
     }
@@ -143,7 +176,11 @@ fun SettingsScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CurrencyPickerSheet(current: String, onSelect: (String) -> Unit, onDismiss: () -> Unit) {
+private fun CurrencyPickerSheet(
+    current: String,
+    onSelect: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
     val c = GroveTheme.colors
     val scope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState()
@@ -157,15 +194,23 @@ private fun CurrencyPickerSheet(current: String, onSelect: (String) -> Unit, onD
                 Currencies.list.forEachIndexed { i, currency ->
                     val selected = currency.code == current
                     Row(
-                        modifier = Modifier.fillMaxWidth().clip(GroveShapes.CatPicker)
-                            .background(if (selected) c.accentSurface else androidx.compose.ui.graphics.Color.Transparent)
-                            .clickable {
-                                scope.launch { sheetState.hide(); onSelect(currency.code) }
-                            }
-                            .padding(horizontal = GroveSpacing.SM + 4.dp, vertical = GroveSpacing.SM + 2.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(GroveShapes.CatPicker)
+                                .background(if (selected) c.accentSurface else androidx.compose.ui.graphics.Color.Transparent)
+                                .clickable {
+                                    scope.launch {
+                                        sheetState.hide()
+                                        onSelect(currency.code)
+                                    }
+                                }.padding(horizontal = GroveSpacing.SM + 4.dp, vertical = GroveSpacing.SM + 2.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Box(modifier = Modifier.size(40.dp).clip(GroveShapes.CatPicker).background(c.bone), contentAlignment = Alignment.Center) {
+                        Box(
+                            modifier = Modifier.size(40.dp).clip(GroveShapes.CatPicker).background(c.bone),
+                            contentAlignment = Alignment.Center,
+                        ) {
                             Text(currency.symbol, fontFamily = InterTight, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = c.fg1)
                         }
                         Spacer(Modifier.width(GroveSpacing.SM + 4.dp))

@@ -1,0 +1,105 @@
+package com.grove.app.data.db
+
+import android.content.Context
+import androidx.room.Database
+import androidx.room.Room
+import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
+import androidx.sqlite.db.SupportSQLiteDatabase
+import com.grove.app.data.db.dao.BillDao
+import com.grove.app.data.db.dao.BillPaymentDao
+import com.grove.app.data.db.dao.CategoryDao
+import com.grove.app.data.db.dao.ExpenseDao
+import com.grove.app.data.db.dao.IncomeDao
+import com.grove.app.data.db.dao.MonthlyBudgetDao
+import com.grove.app.data.db.dao.NotificationDao
+import com.grove.app.data.db.dao.PaymentMethodDao
+import com.grove.app.data.db.dao.TagDao
+import com.grove.app.data.db.dao.UserProfileDao
+import com.grove.app.data.db.entity.BillEntity
+import com.grove.app.data.db.entity.BillPaymentEntity
+import com.grove.app.data.db.entity.CategoryEntity
+import com.grove.app.data.db.entity.ExpenseEntity
+import com.grove.app.data.db.entity.ExpenseFtsEntity
+import com.grove.app.data.db.entity.ExpenseTagCrossRef
+import com.grove.app.data.db.entity.IncomeEntity
+import com.grove.app.data.db.entity.IncomeTagCrossRef
+import com.grove.app.data.db.entity.MonthlyBudgetEntity
+import com.grove.app.data.db.entity.MonthlyCategoryBudgetEntity
+import com.grove.app.data.db.entity.NotificationSettingsEntity
+import com.grove.app.data.db.entity.PaymentMethodEntity
+import com.grove.app.data.db.entity.ScheduledNotificationEntity
+import com.grove.app.data.db.entity.TagEntity
+import com.grove.app.data.db.entity.UserProfileEntity
+import com.grove.app.data.db.seed.SeedData
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+
+@Database(
+    entities = [
+        UserProfileEntity::class,
+        CategoryEntity::class,
+        ExpenseEntity::class,
+        ExpenseFtsEntity::class,
+        BillEntity::class,
+        BillPaymentEntity::class,
+        IncomeEntity::class,
+        MonthlyBudgetEntity::class,
+        MonthlyCategoryBudgetEntity::class,
+        PaymentMethodEntity::class,
+        TagEntity::class,
+        ExpenseTagCrossRef::class,
+        IncomeTagCrossRef::class,
+        NotificationSettingsEntity::class,
+        ScheduledNotificationEntity::class,
+    ],
+    version = 1,
+    exportSchema = true,
+)
+@TypeConverters(Converters::class)
+abstract class GroveDatabase : RoomDatabase() {
+    abstract fun userProfileDao(): UserProfileDao
+
+    abstract fun categoryDao(): CategoryDao
+
+    abstract fun expenseDao(): ExpenseDao
+
+    abstract fun billDao(): BillDao
+
+    abstract fun billPaymentDao(): BillPaymentDao
+
+    abstract fun incomeDao(): IncomeDao
+
+    abstract fun monthlyBudgetDao(): MonthlyBudgetDao
+
+    abstract fun paymentMethodDao(): PaymentMethodDao
+
+    abstract fun tagDao(): TagDao
+
+    abstract fun notificationDao(): NotificationDao
+
+    companion object {
+        fun build(context: Context): GroveDatabase {
+            val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+            lateinit var instance: GroveDatabase
+            instance =
+                Room
+                    .databaseBuilder(
+                        context.applicationContext,
+                        GroveDatabase::class.java,
+                        "grove.db",
+                    ).addCallback(
+                        object : Callback() {
+                            override fun onCreate(db: SupportSQLiteDatabase) {
+                                super.onCreate(db)
+                                scope.launch { SeedData.seed(instance) }
+                            }
+                        },
+                    ).fallbackToDestructiveMigration() // v1 only; v2 adds real migrations
+                    .build()
+            return instance
+        }
+    }
+}

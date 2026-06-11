@@ -47,14 +47,19 @@ import com.grove.app.designsystem.component.SectionHeader
 import com.grove.app.designsystem.component.Stepper
 import com.grove.app.designsystem.format.Money
 import com.grove.app.designsystem.theme.Fraunces
-import com.grove.app.designsystem.theme.GroveTheme
 import com.grove.app.designsystem.theme.GroveShapes
 import com.grove.app.designsystem.theme.GroveSpacing
+import com.grove.app.designsystem.theme.GroveTheme
 import com.grove.app.designsystem.theme.GroveType
 
 private sealed interface EditTarget {
     data object Monthly : EditTarget
-    data class Cat(val id: String, val name: String, val value: Double) : EditTarget
+
+    data class Cat(
+        val id: String,
+        val name: String,
+        val value: Double,
+    ) : EditTarget
 }
 
 @Composable
@@ -68,17 +73,18 @@ fun BudgetScreen(
     var edit by remember { mutableStateOf<EditTarget?>(null) }
     var period by remember { mutableStateOf("Monthly") }
 
-    val spentByCat = remember(state.expenses) { state.expenses.groupBy { it.category }.mapValues { (_, e) -> e.sumOf { it.amount } } }
-    val billsTotal = remember(state.bills) { state.bills.sumOf { it.amount } }
-    val allocated = remember(state.categories, billsTotal) { state.categories.sumOf { it.budget } + billsTotal }
+    val spentByCat =
+        remember(state.expenses) { state.expenses.groupBy { it.categoryId }.mapValues { (_, e) -> e.sumOf { it.amountMinor } } }
+    val billsTotal = remember(state.bills) { state.bills.sumOf { it.amountMinor } }
+    val allocated = billsTotal // v1: per-category budget not on CategoryLite; only bills total contributes
     val unallocated = (state.monthBudget - allocated).coerceAtLeast(0.0)
-    val segments = remember(state.categories, billsTotal, unallocated) {
-        buildList {
-            state.categories.forEach { add(it.budget to CategoryVisuals.color(it.id)) }
-            add(billsTotal to c.boneSoft)
-            if (unallocated > 0) add(unallocated to c.bgMuted)
+    val segments =
+        remember(billsTotal, unallocated) {
+            buildList {
+                if (billsTotal > 0) add(billsTotal.toDouble() to c.boneSoft)
+                if (unallocated > 0) add(unallocated to c.bgMuted)
+            }
         }
-    }
 
     LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 120.dp)) {
         item { AppTopBar(title = "Budget", subtitle = "Monthly plan") }
@@ -88,22 +94,42 @@ fun BudgetScreen(
                 Text("MONTHLY BUDGET", style = GroveType.fieldLabel, color = c.fg3)
                 Spacer(Modifier.height(GroveSpacing.SM))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(Money.currency(state.monthBudget, 0, currency), fontFamily = Fraunces, fontSize = 44.sp, letterSpacing = (-0.9).sp, color = c.fg1)
+                    Text(
+                        Money.currency(state.monthBudget, 0, currency),
+                        fontFamily = Fraunces,
+                        fontSize = 44.sp,
+                        letterSpacing = (-0.9).sp,
+                        color = c.fg1,
+                    )
                     Spacer(Modifier.width(GroveSpacing.SM))
                     EditButton(size = 32) { edit = EditTarget.Monthly }
                 }
                 Spacer(Modifier.height(GroveSpacing.SM + 2.dp))
-                Row(modifier = Modifier.fillMaxWidth().height(5.dp).clip(GroveShapes.Toggle).background(c.bgMuted)) {
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(5.dp)
+                            .clip(GroveShapes.Toggle)
+                            .background(c.bgMuted),
+                ) {
                     segments.forEach { (value, color) ->
                         if (value > 0) {
-                            Box(modifier = Modifier.fillMaxHeight().weight((value / state.monthBudget).toFloat().coerceAtLeast(0.001f)).background(color))
+                            Box(
+                                modifier =
+                                    Modifier
+                                        .fillMaxHeight()
+                                        .weight(
+                                            (value / state.monthBudget).toFloat().coerceAtLeast(0.001f),
+                                        ).background(color),
+                            )
                         }
                     }
                 }
                 Spacer(Modifier.height(GroveSpacing.SM))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("${Money.currency(allocated, 0, currency)} allocated", style = GroveType.rowSub, color = c.fg3)
-                    Text("${Money.currency(unallocated, 0, currency)} free", style = GroveType.rowSub, color = c.fg3)
+                    Text("${Money.currencyLong(allocated, 0, currency)} allocated", style = GroveType.rowSub, color = c.fg3)
+                    Text("${Money.currencyLong(unallocated.toLong(), 0, currency)} free", style = GroveType.rowSub, color = c.fg3)
                 }
             }
         }
@@ -116,8 +142,13 @@ fun BudgetScreen(
                     listOf("Weekly", "Monthly", "Custom").forEach { label ->
                         val selected = period == label
                         Box(
-                            modifier = Modifier.weight(1f).clip(GroveShapes.Chip).background(if (selected) c.fg1 else Color.Transparent)
-                                .clickable { period = label }.padding(vertical = GroveSpacing.SM),
+                            modifier =
+                                Modifier
+                                    .weight(1f)
+                                    .clip(GroveShapes.Chip)
+                                    .background(if (selected) c.fg1 else Color.Transparent)
+                                    .clickable { period = label }
+                                    .padding(vertical = GroveSpacing.SM),
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(label, style = GroveType.link, color = if (selected) c.bgCard else c.fg2)
@@ -132,21 +163,28 @@ fun BudgetScreen(
         item {
             GroveCard(modifier = Modifier.fillMaxWidth(), padding = PaddingValues(horizontal = GroveSpacing.LG)) {
                 state.categories.forEachIndexed { i, cat ->
-                    val spent = spentByCat[cat.id] ?: 0.0
-                    val pct = if (cat.budget > 0) spent / cat.budget else 0.0
-                    Row(modifier = Modifier.fillMaxWidth().padding(vertical = GroveSpacing.MD), verticalAlignment = Alignment.CenterVertically) {
-                        CategoryIcon(cat.id)
+                    val spent = spentByCat[cat.id] ?: 0L
+                    val pct = 0.0 // v1: per-cat budget not yet wired; pct stays 0
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = GroveSpacing.MD),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        CategoryIcon(cat.id.toString())
                         Spacer(Modifier.width(GroveSpacing.SM))
                         Column(modifier = Modifier.weight(1f)) {
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text(cat.name, style = GroveType.rowTitle, color = c.fg1)
-                                Text("${Money.currency(spent, 0, currency)} / ${Money.currency(cat.budget, 0, currency)}", style = GroveType.rowSub, color = c.fg3)
+                                Text(cat.displayName, style = GroveType.rowTitle, color = c.fg1)
+                                Text(
+                                    "${Money.currencyLong(spent, 0, currency)} / $0",
+                                    style = GroveType.rowSub,
+                                    color = c.fg3,
+                                )
                             }
                             Spacer(Modifier.height(GroveSpacing.SM))
-                            ProgressBar(pct.toFloat().coerceIn(0f, 1f), if (spent > cat.budget) c.clay else CategoryVisuals.color(cat.id), height = 5)
+                            ProgressBar(pct.toFloat().coerceIn(0f, 1f), c.bgMuted, height = 5)
                         }
                         Spacer(Modifier.width(GroveSpacing.SM))
-                        EditButton(size = 32) { edit = EditTarget.Cat(cat.id, cat.name, cat.budget) }
+                        EditButton(size = 32) { edit = EditTarget.Cat(cat.id.toString(), cat.displayName, 0.0) }
                     }
                     if (i < state.categories.size - 1) HorizontalDivider(color = c.border)
                 }
@@ -159,10 +197,11 @@ fun BudgetScreen(
             GroveCard(modifier = Modifier.fillMaxWidth(), padding = PaddingValues(horizontal = GroveSpacing.LG)) {
                 state.bills.take(4).forEachIndexed { i, bill ->
                     IconTileRow(
-                        com.grove.app.designsystem.catalog.BillIcons.of(bill.icon),
+                        com.grove.app.designsystem.catalog.BillIcons
+                            .of(bill.iconKey),
                         bill.name,
                         "Day ${bill.dueDay}",
-                    ) { Text(Money.currency(bill.amount, 0, currency), style = GroveType.amount, color = c.fg1) }
+                    ) { Text(Money.currencyLong(bill.amountMinor, 0, currency), style = GroveType.amount, color = c.fg1) }
                     if (i < state.bills.size - 1) HorizontalDivider(color = c.border)
                 }
             }
@@ -174,10 +213,11 @@ fun BudgetScreen(
         BudgetEditSheet(
             title = if (monthly) "Monthly budget" else "${(target as EditTarget.Cat).name} budget",
             sub = if (monthly) "Your total to spend each month" else "Set a limit for this category",
-            value = when (target) {
-                is EditTarget.Monthly -> state.monthBudget.toInt()
-                is EditTarget.Cat -> target.value.toInt()
-            },
+            value =
+                when (target) {
+                    is EditTarget.Monthly -> state.monthBudget.toInt()
+                    is EditTarget.Cat -> target.value.toInt()
+                },
             step = if (monthly) 50 else 10,
             presets = if (monthly) listOf(50, 100, 250) else listOf(10, 25, 50),
             onClose = { edit = null },
@@ -192,14 +232,25 @@ fun BudgetScreen(
 }
 
 @Composable
-private fun EditButton(size: Int = 40, onClick: () -> Unit) {
+private fun EditButton(
+    size: Int = 40,
+    onClick: () -> Unit,
+) {
     Box(modifier = Modifier.size(size.dp).clip(GroveShapes.SmallTile).clickable { onClick() }, contentAlignment = Alignment.Center) {
         Icon(Icons.Outlined.Edit, contentDescription = "Edit", tint = GroveTheme.colors.fg3, modifier = Modifier.size((size * 0.45f).dp))
     }
 }
 
 @Composable
-private fun BudgetEditSheet(title: String, sub: String, value: Int, step: Int, presets: List<Int>, onClose: () -> Unit, onSave: (Int) -> Unit) {
+private fun BudgetEditSheet(
+    title: String,
+    sub: String,
+    value: Int,
+    step: Int,
+    presets: List<Int>,
+    onClose: () -> Unit,
+    onSave: (Int) -> Unit,
+) {
     val c = GroveTheme.colors
     var v by remember { mutableStateOf(value) }
     GroveBottomSheet(onDismiss = onClose) {
@@ -207,9 +258,14 @@ private fun BudgetEditSheet(title: String, sub: String, value: Int, step: Int, p
             Text(title, style = GroveType.sheetTitle, color = c.fg1, modifier = Modifier.padding(bottom = GroveSpacing.XS))
             Text(sub, style = GroveType.rowSub, color = c.fg3, modifier = Modifier.padding(bottom = GroveSpacing.SM))
             Stepper(value = v, onChange = { v = it }, step = step, min = 0)
-            PresetChipRow(items = presets, label = { "+${Money.short(it.toDouble())}" }, onClick = { v += it }, modifier = Modifier.fillMaxWidth().padding(top = GroveSpacing.XS))
+            PresetChipRow(items = presets, label = {
+                "+${Money.short(it.toDouble())}"
+            }, onClick = { v += it }, modifier = Modifier.fillMaxWidth().padding(top = GroveSpacing.XS))
             Spacer(Modifier.height(GroveSpacing.SM + 4.dp))
-            PrimaryButton("Save", onClick = { onSave(v); onClose() }, modifier = Modifier.fillMaxWidth())
+            PrimaryButton("Save", onClick = {
+                onSave(v)
+                onClose()
+            }, modifier = Modifier.fillMaxWidth())
         }
     }
 }
