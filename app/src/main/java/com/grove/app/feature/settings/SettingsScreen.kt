@@ -2,21 +2,26 @@ package com.grove.app.feature.settings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AttachMoney
 import androidx.compose.material.icons.outlined.CalendarToday
@@ -26,6 +31,7 @@ import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.NotificationsNone
 import androidx.compose.material.icons.outlined.PieChart
+import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Receipt
 import androidx.compose.material.icons.outlined.Spa
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -58,14 +64,17 @@ import com.grove.app.designsystem.component.GroveTextField
 import com.grove.app.designsystem.component.PrimaryButton
 import com.grove.app.designsystem.component.SettingRow
 import com.grove.app.designsystem.component.SwitchRow
+import com.grove.app.designsystem.component.groveClick
+import com.grove.app.designsystem.component.groveFadeSlide
 import com.grove.app.designsystem.format.Currencies
 import com.grove.app.designsystem.format.ordinal
-import com.grove.app.designsystem.theme.Fraunces
 import com.grove.app.designsystem.theme.GroveShapes
+import com.grove.app.designsystem.theme.GroveSize
 import com.grove.app.designsystem.theme.GroveSpacing
 import com.grove.app.designsystem.theme.GroveTheme
 import com.grove.app.designsystem.theme.GroveType
 import com.grove.app.designsystem.theme.InterTight
+import com.grove.app.designsystem.theme.SpaceGrotesk
 import kotlinx.coroutines.launch
 
 @Composable
@@ -74,7 +83,9 @@ fun SettingsScreen(
     currency: String,
     dark: Boolean,
     notificationSettings: NotificationSettings,
+    soundsEnabled: Boolean,
     onToggleDark: () -> Unit,
+    onToggleSounds: (Boolean) -> Unit,
     onReplayOnboarding: () -> Unit,
     onOpenBudget: () -> Unit,
     onUpdateCurrency: (String) -> Unit,
@@ -84,28 +95,34 @@ fun SettingsScreen(
     onUpdateBillAlerts: (Boolean) -> Unit,
 ) {
     val c = GroveTheme.colors
+    val listState = rememberLazyListState()
     var showCurrencyPicker by rememberSaveable { mutableStateOf(false) }
     var showEditName by rememberSaveable { mutableStateOf(false) }
     var showResetDay by rememberSaveable { mutableStateOf(false) }
     val resetOrdinal = ordinal(state.user?.resetDay ?: 1)
     val currentCurrency = Currencies.current(currency)
+    val displayName = state.user?.name?.trim()?.takeIf { it.isNotEmpty() } ?: "Add your name"
+    val displayInitial = displayName.first().uppercaseChar().toString()
 
-    LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 120.dp)) {
+    val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    LazyColumn(
+        state = listState,
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = GroveSize.NavClearance + bottomInset),
+    ) {
         item { AppTopBar(title = "Settings") }
 
         item {
             GroveCard(
-                modifier = Modifier.fillMaxWidth().clickable { showEditName = true },
+                modifier = Modifier.fillMaxWidth().groveClick { showEditName = true },
                 padding = PaddingValues(GroveSpacing.SM + 2.dp),
                 variant = GroveCardVariant.Elevated,
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(modifier = Modifier.size(56.dp).clip(CircleShape).background(c.accent), contentAlignment = Alignment.Center) {
                         Text(
-                            (state.user?.name ?: "Mae")
-                                .first()
-                                .toString(),
-                            fontFamily = Fraunces,
+                            displayInitial,
+                            fontFamily = SpaceGrotesk,
                             fontSize = 22.sp,
                             fontWeight = FontWeight.Medium,
                             color = c.fgOnFern,
@@ -113,7 +130,7 @@ fun SettingsScreen(
                     }
                     Spacer(Modifier.width(GroveSpacing.SM))
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(state.user?.name ?: "Mae", style = GroveType.rowTitle, fontWeight = FontWeight.Medium, color = c.fg1)
+                        Text(displayName, style = GroveType.rowTitle, fontWeight = FontWeight.Medium, color = c.fg1)
                         Text("${currentCurrency.code} · Resets on the $resetOrdinal", style = GroveType.rowSub, color = c.fg3)
                     }
                     Icon(Icons.Outlined.ChevronRight, contentDescription = null, tint = c.fg3, modifier = Modifier.size(16.dp))
@@ -138,6 +155,10 @@ fun SettingsScreen(
                 HorizontalDivider(color = c.border)
                 SwitchRow(Icons.Outlined.Receipt, "Bill due alerts", "3 days before each bill", notificationSettings.billAlertsEnabled) {
                     onUpdateBillAlerts(!notificationSettings.billAlertsEnabled)
+                }
+                HorizontalDivider(color = c.border)
+                SwitchRow(Icons.Outlined.MusicNote, "Sounds", "Soft ticks and chimes as you go", soundsEnabled) {
+                    onToggleSounds(!soundsEnabled)
                 }
             }
         }
@@ -183,7 +204,7 @@ fun SettingsScreen(
 
     if (showEditName) {
         EditNameSheet(
-            current = state.user?.name ?: "Mae",
+            current = state.user?.name?.trim().orEmpty(),
             onSave = { name ->
                 onUpdateName(name)
                 showEditName = false
@@ -227,11 +248,11 @@ private fun CurrencyPickerSheet(
     val sheetState = rememberModalBottomSheetState()
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = c.bgCard, shape = GroveShapes.SheetTop, sheetState = sheetState) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = GroveSpacing.XL).padding(bottom = GroveSpacing.XL),
+            modifier = Modifier.fillMaxWidth().groveFadeSlide(distance = 20.dp, durationMillis = 240).padding(horizontal = GroveSpacing.XL).padding(bottom = GroveSpacing.XL),
         ) {
             Text("Currency", style = GroveType.sheetTitle, color = c.fg1)
             Spacer(Modifier.height(GroveSpacing.SM))
-            Column(modifier = Modifier.height(320.dp)) {
+            Column(modifier = Modifier.height(320.dp).verticalScroll(rememberScrollState())) {
                 Currencies.list.forEachIndexed { i, currency ->
                     val selected = currency.code == current
                     Row(
@@ -240,7 +261,7 @@ private fun CurrencyPickerSheet(
                                 .fillMaxWidth()
                                 .clip(GroveShapes.CatPicker)
                                 .background(if (selected) c.accentSurface else androidx.compose.ui.graphics.Color.Transparent)
-                                .clickable {
+                                .groveClick {
                                     scope.launch {
                                         sheetState.hide()
                                         onSelect(currency.code)
@@ -321,7 +342,7 @@ private fun EditResetDaySheet(
                 "Save",
                 onClick = { parsed?.let(onSave) },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = parsed in 1..31,
+                enabled = parsed in 1..28,
             )
         }
     }

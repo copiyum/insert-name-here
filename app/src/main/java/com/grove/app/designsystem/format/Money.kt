@@ -1,5 +1,7 @@
 package com.grove.app.designsystem.format
 
+import java.math.BigDecimal
+import java.math.RoundingMode
 import java.text.NumberFormat
 import java.util.Currency as JavaCurrency
 import java.util.Locale
@@ -10,7 +12,11 @@ object Money {
         currencyCode: String,
     ): Long {
         val exp = Currencies.minorUnitExponent(currencyCode)
-        return Math.round(amount * Math.pow(10.0, exp.toDouble()))
+        return BigDecimal
+            .valueOf(amount)
+            .movePointRight(exp)
+            .setScale(0, RoundingMode.HALF_UP)
+            .longValueExact()
     }
 
     fun fromMinor(
@@ -18,21 +24,13 @@ object Money {
         currencyCode: String,
     ): Double {
         val exp = Currencies.minorUnitExponent(currencyCode)
-        return minor.toDouble() / Math.pow(10.0, exp.toDouble())
-    }
-
-    fun format(
-        amount: Double,
-        currencyCode: String = "USD",
-    ): String {
-        val sym = Currencies.current(currencyCode).symbol
-        return "$sym${String.format(Locale.US, "%.2f", amount)}"
+        return BigDecimal.valueOf(minor, exp).toDouble()
     }
 
     fun currency(
         amount: Double,
         decimals: Int = 2,
-        currencyCode: String = "USD",
+        currencyCode: String = "INR",
     ): String {
         return runCatching {
             NumberFormat.getCurrencyInstance(localeFor(currencyCode)).apply {
@@ -53,33 +51,52 @@ object Money {
     fun currencyLong(
         minor: Long,
         decimals: Int = 2,
-        currencyCode: String = "USD",
+        currencyCode: String = "INR",
     ): String {
         val exp = Currencies.minorUnitExponent(currencyCode)
-        val display = fromMinor(minor, currencyCode)
+        val display = BigDecimal.valueOf(minor, exp).toDouble()
         val actualDecimals = if (decimals == 2) exp else decimals
         return currency(display, actualDecimals, currencyCode)
     }
 
-    fun signed(
-        amount: Double,
-        currencyCode: String = "USD",
+    fun parseMinor(
+        input: String,
+        currencyCode: String,
+    ): Long =
+        normalizedInput(input, currencyCode)
+            .takeIf { it.isNotBlank() && it != "." }
+            ?.let { normalized ->
+                val exp = Currencies.minorUnitExponent(currencyCode)
+                BigDecimal(normalized)
+                    .movePointRight(exp)
+                    .setScale(0, RoundingMode.HALF_UP)
+                    .longValueExact()
+            } ?: 0L
+
+    fun minorInputText(
+        minor: Long,
+        currencyCode: String,
     ): String {
-        val abs = kotlin.math.abs(amount)
-        val base = currency(abs, 2, currencyCode)
-        return if (amount < 0) "-$base" else "+$base"
+        val exp = Currencies.minorUnitExponent(currencyCode)
+        val decimal = BigDecimal.valueOf(minor, exp).setScale(exp, RoundingMode.UNNECESSARY)
+        return if (exp == 0) decimal.toBigIntegerExact().toString() else decimal.toPlainString()
     }
 
-    fun short(
-        amount: Double,
-        currencyCode: String = "USD",
+    fun normalizedInput(
+        value: String,
+        currencyCode: String,
+    ): String = normalizedInput(value, Currencies.minorUnitExponent(currencyCode))
+
+    fun normalizedInput(
+        value: String,
+        minorExponent: Int,
     ): String {
-        val sym = Currencies.current(currencyCode).symbol
-        return when {
-            amount >= 1_000_000 -> "$sym${String.format(Locale.US, "%.1fM", amount / 1_000_000)}"
-            amount >= 1_000 -> "$sym${String.format(Locale.US, "%.1fK", amount / 1_000)}"
-            else -> "$sym${String.format(Locale.US, "%.0f", amount)}"
-        }
+        val cleaned = value.filter { it.isDigit() || it == '.' }
+        val firstDot = cleaned.indexOf('.')
+        if (firstDot < 0 || minorExponent == 0) return cleaned.replace(".", "")
+        val whole = cleaned.take(firstDot).ifBlank { "0" }
+        val fractional = cleaned.drop(firstDot + 1).replace(".", "").take(minorExponent)
+        return "$whole.$fractional"
     }
 
     private fun localeFor(currencyCode: String): Locale =

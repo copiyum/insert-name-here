@@ -8,7 +8,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.HorizontalDivider
@@ -36,12 +40,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.grove.app.data.BudgetState
+import com.grove.app.data.model.CategoryKind
+import com.grove.app.data.suggestedCategoryBudgetMinor
+import com.grove.app.data.suggestedMonthBudgetMinor
 import com.grove.app.designsystem.catalog.CategoryVisuals
 import com.grove.app.designsystem.component.AppTopBar
 import com.grove.app.designsystem.component.CategoryIcon
 import com.grove.app.designsystem.component.EmptyState
 import com.grove.app.designsystem.component.GroveBottomSheet
 import com.grove.app.designsystem.component.GroveCard
+import com.grove.app.designsystem.component.GroveHaptic
 import com.grove.app.designsystem.component.GroveCardVariant
 import com.grove.app.designsystem.component.IconTileRow
 import com.grove.app.designsystem.component.MoneyText
@@ -51,11 +59,15 @@ import com.grove.app.designsystem.component.PrimaryButton
 import com.grove.app.designsystem.component.ProgressBar
 import com.grove.app.designsystem.component.SectionHeader
 import com.grove.app.designsystem.component.Stepper
+import com.grove.app.designsystem.component.groveClick
 import com.grove.app.designsystem.format.Money
 import com.grove.app.designsystem.theme.GroveShapes
+import com.grove.app.designsystem.theme.GroveSize
 import com.grove.app.designsystem.theme.GroveSpacing
 import com.grove.app.designsystem.theme.GroveTheme
 import com.grove.app.designsystem.theme.GroveType
+import java.util.UUID
+import kotlin.math.abs
 
 private sealed interface EditTarget {
     data object Monthly : EditTarget
@@ -75,17 +87,20 @@ fun BudgetScreen(
     onUpdateCatBudget: (String, Double) -> Unit,
 ) {
     val c = GroveTheme.colors
+    val listState = rememberLazyListState()
     var edit by remember { mutableStateOf<EditTarget?>(null) }
+    val budgetCategories = remember(state.categories) { state.categories.filter { it.kind != CategoryKind.income } }
+    val budgetCategoryIds = remember(budgetCategories) { budgetCategories.map { it.id }.toSet() }
 
     val spentByCat =
         remember(state.expenses, state.period) {
-            state.expenses
+            state.spendingExpenses
                 .filter { state.period.contains(it.occurredAt) }
                 .groupBy { it.categoryId }
                 .mapValues { (_, e) -> e.sumOf { it.amountMinor } }
         }
     val limitsByCat = remember(state.categoryBudgets) { state.categoryBudgets.associate { it.categoryId to it.amountMinor } }
-    val allocated = limitsByCat.values.sum()
+    val allocated = limitsByCat.filterKeys { it in budgetCategoryIds }.values.sum()
     val unallocated = (state.monthBudgetMinor - allocated).coerceAtLeast(0L)
     val segments =
         remember(allocated, unallocated) {
@@ -94,8 +109,12 @@ fun BudgetScreen(
                 if (unallocated > 0) add(unallocated to c.bgMuted)
             }
         }
-
-    LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 120.dp)) {
+    val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    LazyColumn(
+        state = listState,
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = GroveSize.NavClearance + bottomInset),
+    ) {
         item { AppTopBar(title = "Budget", subtitle = "Monthly plan") }
 
         item {
@@ -145,10 +164,10 @@ fun BudgetScreen(
 
         item {
             GroveCard(modifier = Modifier.fillMaxWidth(), padding = PaddingValues(horizontal = GroveSpacing.LG)) {
-                if (state.categories.isEmpty()) {
+                if (budgetCategories.isEmpty()) {
                     EmptyState("No categories yet", subtitle = "Categories will appear here after setup.")
                 } else {
-                    state.categories.forEachIndexed { i, cat ->
+                    budgetCategories.forEachIndexed { i, cat ->
                         val spent = spentByCat[cat.id] ?: 0L
                         val limit = limitsByCat[cat.id] ?: 0L
                         val pct = if (limit > 0) spent.toDouble() / limit.toDouble() else 0.0
@@ -169,7 +188,7 @@ fun BudgetScreen(
                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                     Text(cat.displayName, style = GroveType.rowTitle, color = c.fg1)
                                     Text(
-                                        "${Money.currencyLong(spent, 0, currency)} / ${Money.currencyLong(limit, 0, currency)}",
+                                        "${Money.currencyLong(spent, 0, currency)} / ${if (limit > 0) Money.currencyLong(limit, 0, currency) else "—"}",
                                         style = GroveType.rowSub,
                                         color = c.fg3,
                                     )
@@ -180,7 +199,7 @@ fun BudgetScreen(
                             Spacer(Modifier.width(GroveSpacing.SM))
                             EditButton(size = 32) { edit = EditTarget.Cat(cat.id.toString(), cat.displayName, Money.fromMinor(limit, currency)) }
                         }
-                        if (i < state.categories.size - 1) HorizontalDivider(color = c.border)
+                        if (i < budgetCategories.size - 1) HorizontalDivider(color = c.border)
                     }
                 }
             }
@@ -209,17 +228,37 @@ fun BudgetScreen(
 
     edit?.let { target ->
         val monthly = target is EditTarget.Monthly
+        // Adaptive suggestion from spending history; shown only when it meaningfully
+        // (>10%) differs from what's currently set.
+        val suggestionMinor =
+            remember(target, state) {
+                when (target) {
+                    is EditTarget.Monthly ->
+                        state.suggestedMonthBudgetMinor()?.takeIf { s ->
+                            abs(s - state.monthBudgetMinor) > state.monthBudgetMinor * 0.10
+                        }
+                    is EditTarget.Cat ->
+                        runCatching { UUID.fromString(target.id) }
+                            .getOrNull()
+                            ?.let { state.suggestedCategoryBudgetMinor(it) }
+                            ?.takeIf { s ->
+                                val current = Money.toMinor(target.value, currency)
+                                abs(s - current) > current * 0.10
+                            }
+                }
+            }
         BudgetEditSheet(
             title = if (monthly) "Monthly budget" else "${(target as EditTarget.Cat).name} budget",
-            sub = if (monthly) "Your total to spend each month" else "Set a limit for this category",
+            sub = if (monthly) "Your total to spend each month" else "A monthly ceiling for this category",
             value =
                 when (target) {
                     is EditTarget.Monthly -> state.monthBudget.toInt()
                     is EditTarget.Cat -> target.value.toInt()
                 },
-            step = if (monthly) 50 else 10,
-            presets = if (monthly) listOf(50, 100, 250) else listOf(10, 25, 50),
+            step = if (monthly) 1000 else 500,
+            presets = if (monthly) listOf(1000, 2500, 5000) else listOf(500, 1000, 2500),
             currency = currency,
+            suggestionMinor = suggestionMinor,
             onClose = { edit = null },
             onSave = { v ->
                 when (target) {
@@ -236,7 +275,7 @@ private fun EditButton(
     size: Int = 40,
     onClick: () -> Unit,
 ) {
-    Box(modifier = Modifier.size(size.dp).clip(GroveShapes.SmallTile).clickable(role = Role.Button) { onClick() }, contentAlignment = Alignment.Center) {
+    Box(modifier = Modifier.size(size.dp).clip(GroveShapes.SmallTile).groveClick(role = Role.Button) { onClick() }, contentAlignment = Alignment.Center) {
         Icon(Icons.Outlined.Edit, contentDescription = "Edit", tint = GroveTheme.colors.fg3, modifier = Modifier.size((size * 0.45f).dp))
     }
 }
@@ -251,6 +290,7 @@ private fun BudgetEditSheet(
     currency: String,
     onClose: () -> Unit,
     onSave: (Int) -> Unit,
+    suggestionMinor: Long? = null,
 ) {
     val c = GroveTheme.colors
     var v by remember { mutableIntStateOf(value) }
@@ -262,6 +302,29 @@ private fun BudgetEditSheet(
             PresetChipRow(items = presets, label = {
                 "+${it}"
             }, onClick = { v += it }, modifier = Modifier.fillMaxWidth().padding(top = GroveSpacing.XS))
+            if (suggestionMinor != null) {
+                val suggestedMajor = Money.fromMinor(suggestionMinor, currency).toInt()
+                if (suggestedMajor != v) {
+                    Row(
+                        modifier =
+                            Modifier
+                                .padding(top = GroveSpacing.SM)
+                                .clip(GroveShapes.Chip)
+                                .background(c.accentSurface)
+                                .groveClick(haptic = GroveHaptic.Light) {
+                                    v = suggestedMajor
+                                    onSave(suggestedMajor)
+                                }.padding(horizontal = 12.dp, vertical = 7.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            "Suggested · ${Money.currencyLong(suggestionMinor, 0, currency)}",
+                            style = GroveType.rowSub,
+                            color = if (c.isDark) c.accentSoft else c.accentDeep,
+                        )
+                    }
+                }
+            }
             Spacer(Modifier.height(GroveSpacing.SM + 4.dp))
             PrimaryButton("Save", onClick = {
                 onSave(v)

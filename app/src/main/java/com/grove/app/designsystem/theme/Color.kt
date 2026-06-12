@@ -4,15 +4,15 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 
 
-val Pine = Color(0xFF344E41)
-val Fern = Color(0xFF588157)
-val FernDeep = Color(0xFF4A6F49)
-val FernSoft = Color(0xFF7A9D78)
-val Clay = Color(0xFFB08968)
-val ClaySoft = Color(0xFFD4B89D)
-val ClayBg = Color(0xFFEFE2D3)
-val Bone = Color(0xFFDAD7CD)
-val BoneSoft = Color(0xFFE5E3DA)
+val Pine = Color(0xFF212121)
+val Fern = Color(0xFF328759)
+val FernDeep = Color(0xFF43A26D)
+val FernSoft = Color(0xFF62C37A)
+val Clay = Color(0xFFECA851)
+val ClaySoft = Color(0xFFE8AA4E)
+val ClayBg = Color(0x1FE8AA4E)
+val Bone = Color(0xFF191A1B)
+val BoneSoft = Color(0xFF23252A)
 
 @Immutable
 data class GroveColors(
@@ -50,69 +50,69 @@ data class GroveColors(
 )
 
 val LightColors = GroveColors(
-    bgApp = Color(0xFFF1EDE2),
-    bgCard = Color(0xFFFDFCF8),
-    bgCardRaised = Color(0xFFFFFFFF),
-    bgMuted = Color(0xFFEBE7DA),
-    fg1 = Color(0xFF2A3A32),
-    fg2 = Color(0xFF4F5F55),
-    fg3 = Color(0xFF8A988F),
+    bgApp = Color(0xFFFFFFFF),
+    bgCard = Color(0xFFF4F3EF),
+    bgCardRaised = Color(0xFFF4F3EF),
+    bgMuted = Color(0xFFEEECE7),
+    fg1 = Color(0xFF212121),
+    fg2 = Color(0xFF616161),
+    fg3 = Color(0xFF93939F),
     fgOnFern = Color(0xFFFFFFFF),
-    border = Color(0x1A3A5A40),
-    borderStrong = Color(0x2E3A5A40),
-    accent = Fern,
-    accentDeep = FernDeep,
-    accentSoft = FernSoft,
-    bone = Bone,
-    boneSoft = BoneSoft,
+    border = Color(0xFFE5E3DD),
+    borderStrong = Color(0xFFD9D9DD),
+    accent = Color(0xFF047745),
+    accentDeep = Color(0xFF006535),
+    accentSoft = Color(0xFF328759),
+    bone = Color(0xFFEEECE7),
+    boneSoft = Color(0xFFE5E3DD),
     clay = Clay,
     claySoft = ClaySoft,
     clayBg = ClayBg,
-    success = FernDeep,
-    successBg = Fern.copy(alpha = 0.13f),
-    warn = Color(0xFF9A6C2F),
-    warnBg = Color(0xFFF1E3CA),
-    danger = Color(0xFFB65F4F),
-    dangerBg = Color(0xFFF2D9D3),
-    info = Color(0xFF4D7384),
-    infoBg = Color(0xFFD9E6EA),
+    success = Color(0xFF27A644),
+    successBg = Color(0x2627A644),
+    warn = Color(0xFFC66C00),
+    warnBg = Color(0x29C66C00),
+    danger = Color(0xFFB30000),
+    dangerBg = Color(0x24B30000),
+    info = Color(0xFF4CB0E5),
+    infoBg = Color(0x244CB0E5),
     isDark = false,
-    accentSurface = Fern.copy(alpha = 0.08f),
-    navBg = Color(0xFFFDFCF8),
-    navActiveText = Color(0xFFFFFFFF),
-    navInactiveText = Color(0xFF8A988F),
+    accentSurface = Color(0xFFEDFCE9),
+    navBg = Color(0xFFFFFFFF),
+    navActiveText = Color(0xFF047745),
+    navInactiveText = Color(0xFF93939F),
 )
 
 val DarkColors = GroveColors(
-    bgApp = Color(0xFF0F1512),
-    bgCard = Color(0xFF17201B),
-    bgCardRaised = Color(0xFF1D2922),
-    bgMuted = Color(0xFF223029),
-    fg1 = Color(0xFFF0F3E9),
-    fg2 = Color(0xFFC6D0C4),
-    fg3 = Color(0xFF87948B),
-    fgOnFern = Color(0xFF0C1F13),
-    border = Color(0x14DAD7CD),
-    borderStrong = Color(0x29DAD7CD),
-    accent = Color(0xFF93E49A),
-    accentDeep = Color(0xFF66C873),
-    accentSoft = Color(0xFFC2F0C0),
-    bone = Color(0xFF26362E),
-    boneSoft = Color(0xFF2C3D34),
-    clay = Color(0xFFD8A16D),
-    claySoft = ClaySoft,
-    clayBg = Color(0xFF402F22),
-    success = Color(0xFF93E49A),
-    successBg = Color(0x1F93E49A),
-    warn = Color(0xFFE0B15E),
-    warnBg = Color(0x244D351A),
-    danger = Color(0xFFE47C68),
-    dangerBg = Color(0x2CE47C68),
-    info = Color(0xFF8BC7D8),
-    infoBg = Color(0x248BC7D8),
+    bgApp = Color(0xFF010102),
+    bgCard = Color(0xFF0F1011),
+    bgCardRaised = Color(0xFF0F1011),
+    bgMuted = Color(0xFF18191A),
+    fg1 = Color(0xFFF7F8F8),
+    fg2 = Color(0xFFD0D6E0),
+    fg3 = Color(0xFF8A8F98),
+    fgOnFern = Color(0xFFFFFFFF),
+    border = Color(0xFF23252A),
+    borderStrong = Color(0xFF34343A),
+    accent = Color(0xFF328759),
+    accentDeep = Color(0xFF43A26D),
+    accentSoft = Color(0xFF62C37A),
+    bone = Color(0xFF191A1B),
+    boneSoft = Color(0xFF23252A),
+    clay = Color(0xFFECA851),
+    claySoft = Color(0xFFE8AA4E),
+    clayBg = Color(0x1FE8AA4E),
+    success = Color(0xFF27A644),
+    successBg = Color(0x2627A644),
+    warn = Color(0xFFE8AA4E),
+    warnBg = Color(0x29E8AA4E),
+    danger = Color(0xFFEF5350),
+    dangerBg = Color(0x24EF5350),
+    info = Color(0xFF4CB0E5),
+    infoBg = Color(0x244CB0E5),
     isDark = true,
-    accentSurface = Color(0xFF93E49A).copy(alpha = 0.14f),
-    navBg = Color(0xFF121A15),
-    navActiveText = Color(0xFF0C1F13),
-    navInactiveText = Color(0xBFF0F3E9),
+    accentSurface = Color(0x26328759),
+    navBg = Color(0xFF0A0B0D),
+    navActiveText = Color(0xFF328759),
+    navInactiveText = Color(0xFF8A8F98),
 )

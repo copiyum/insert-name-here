@@ -10,9 +10,9 @@ import java.util.UUID
 class CategoryRepository(
     private val dao: CategoryDao,
 ) {
-    fun observeActive(): Flow<List<Category>> = dao.observeActive().map { list -> list.map { it.toDomain() } }
+    fun observeActive(): Flow<List<Category>> = dao.observeActive().mapList { it.toDomain() }
 
-    fun observeAll(): Flow<List<Category>> = dao.observeAll().map { list -> list.map { it.toDomain() } }
+    fun observeAll(): Flow<List<Category>> = dao.observeAll().mapList { it.toDomain() }
 
     suspend fun archive(id: UUID) = dao.archive(id, Instant.now())
 }

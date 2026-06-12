@@ -1,5 +1,9 @@
 package com.grove.app.designsystem.component
 
+import android.view.HapticFeedbackConstants
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -9,11 +13,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -24,8 +28,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -34,10 +36,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -45,14 +50,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.grove.app.designsystem.format.Currencies
 import com.grove.app.designsystem.theme.GroveBorder
+import com.grove.app.designsystem.theme.GroveEase
 import com.grove.app.designsystem.theme.GroveTheme
 import com.grove.app.designsystem.theme.GroveShapes
 import com.grove.app.designsystem.theme.GroveSize
 import com.grove.app.designsystem.theme.GroveSpacing
+import com.grove.app.designsystem.theme.GroveSprings
 import com.grove.app.designsystem.theme.InterTight
 import java.util.Locale
 
-enum class FieldVariant { Outlined, Filled, Bare }
+enum class FieldVariant { Outlined, Bare }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,15 +83,6 @@ fun GroveTextField(
                 focusedTextColor = c.fg1, unfocusedTextColor = c.fg1, cursorColor = c.accent,
             ),
         )
-        FieldVariant.Filled -> TextField(
-            value = value, onValueChange = onValueChange, placeholder = place,
-            modifier = modifier.fillMaxWidth(), singleLine = singleLine, shape = GroveShapes.InputFilled,
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = c.bgMuted, unfocusedContainerColor = c.bgMuted,
-                focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent,
-                focusedTextColor = c.fg1, unfocusedTextColor = c.fg1, cursorColor = c.accent,
-            ),
-        )
         FieldVariant.Bare -> BasicTextField(
             value = value, onValueChange = onValueChange,
             modifier = modifier.fillMaxWidth().padding(vertical = 13.dp), singleLine = singleLine,
@@ -103,19 +101,35 @@ fun GroveTextField(
 @Composable
 fun GroveSwitch(checked: Boolean, onToggle: () -> Unit) {
     val c = GroveTheme.colors
+    val trackColor by animateColorAsState(
+        targetValue = if (checked) c.accent else c.bgMuted,
+        animationSpec = GroveEase.normal(),
+        label = "switchTrackColor",
+    )
+    val borderColor by animateColorAsState(
+        targetValue = if (checked) c.accent else c.border,
+        animationSpec = GroveEase.normal(),
+        label = "switchBorderColor",
+    )
+    val knobOffset by animateDpAsState(
+        targetValue = if (checked) GroveSize.SwitchTrackW - GroveSize.SwitchKnob - 4.dp else 0.dp,
+        animationSpec = GroveSprings.snappy(),
+        label = "switchKnobOffset",
+    )
     Box(
         modifier = Modifier
             .size(GroveSize.SwitchTrackW, GroveSize.SwitchTrackH)
             .clip(GroveShapes.Toggle)
-            .background(if (checked) c.accent else c.bgMuted)
-            .border(GroveBorder.Thin, if (checked) c.accent else c.border, GroveShapes.Toggle)
+            .background(trackColor)
+            .border(GroveBorder.Thin, borderColor, GroveShapes.Toggle)
             .semantics { stateDescription = if (checked) "On" else "Off" }
-            .clickable(role = Role.Switch) { onToggle() },
-        contentAlignment = if (checked) Alignment.CenterEnd else Alignment.CenterStart,
+            .groveClick(role = Role.Switch) { onToggle() },
+        contentAlignment = Alignment.CenterStart,
     ) {
         Box(
             modifier = Modifier
                 .padding(2.dp)
+                .offset { IntOffset(knobOffset.roundToPx(), 0) }
                 .size(GroveSize.SwitchKnob)
                 .clip(GroveShapes.Toggle)
                 .background(Color.White),
@@ -131,6 +145,7 @@ fun Keypad(
     modifier: Modifier = Modifier,
 ) {
     val c = GroveTheme.colors
+    val view = LocalView.current
     val rows = listOf(
         listOf('1', '2', '3'),
         listOf('4', '5', '6'),
@@ -150,14 +165,25 @@ fun Keypad(
                     val isBackspace = key == '\u232b'
                     val interactionSource = remember { MutableInteractionSource() }
                     val pressed by interactionSource.collectIsPressedAsState()
+                    val scale by animateFloatAsState(
+                        targetValue = if (pressed) 0.96f else 1f,
+                        animationSpec = GroveSprings.snappy(),
+                        label = "keypadScale",
+                    )
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .clip(RoundedCornerShape(14.dp))
+                            .graphicsLayer {
+                                scaleX = scale
+                                scaleY = scale
+                                alpha = if (pressed) 0.85f else 1f
+                            }
+                            .clip(GroveShapes.Stepper)
                             .then(
                                 if (pressed) Modifier.background(c.bone) else Modifier
                             )
                             .clickable(interactionSource = interactionSource, indication = null, role = Role.Button) {
+                                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                                 when {
                                     isBackspace -> onBackspace()
                                     key == '.' -> onDecimal()
@@ -191,7 +217,7 @@ fun Keypad(
 }
 
 @Composable
-fun Stepper(value: Int, onChange: (Int) -> Unit, modifier: Modifier = Modifier, step: Int = 10, min: Int = 0, currency: String = "USD") {
+fun Stepper(value: Int, onChange: (Int) -> Unit, modifier: Modifier = Modifier, step: Int = 10, min: Int = 0, currency: String = "INR") {
     val c = GroveTheme.colors
     Row(
         modifier = modifier.fillMaxWidth().padding(vertical = GroveSpacing.SM),
@@ -213,15 +239,22 @@ fun Stepper(value: Int, onChange: (Int) -> Unit, modifier: Modifier = Modifier, 
 @Composable
 private fun StepperButton(icon: ImageVector, contentDescription: String, onClick: () -> Unit) {
     val c = GroveTheme.colors
+    // 48dp minimum touch target; the visual pill stays at its original size.
     Box(
         modifier = Modifier
-            .size(GroveSize.SwitchTrackW, GroveSize.SwitchTrackH)
-            .clip(GroveShapes.Stepper)
-            .background(c.bgCard)
-            .border(GroveBorder.Strong, c.borderStrong, GroveShapes.Stepper)
-            .clickable(role = Role.Button) { onClick() },
+            .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+            .groveClick(role = Role.Button, haptic = GroveHaptic.Light) { onClick() },
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, contentDescription = contentDescription, tint = c.fg1, modifier = Modifier.size(22.dp))
+        Box(
+            modifier = Modifier
+                .size(GroveSize.SwitchTrackW, GroveSize.SwitchTrackH)
+                .clip(GroveShapes.Stepper)
+                .background(c.bgCard)
+                .border(GroveBorder.Strong, c.borderStrong, GroveShapes.Stepper),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(icon, contentDescription = contentDescription, tint = c.fg1, modifier = Modifier.size(22.dp))
+        }
     }
 }

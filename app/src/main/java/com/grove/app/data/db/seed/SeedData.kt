@@ -19,7 +19,7 @@ object SeedData {
                 UserProfile(
                     name = "Mae",
                     resetDay = 1,
-                    currencyCode = "USD",
+                    currencyCode = "INR",
                     onboardingCompleted = false,
                 ),
                 createdAt = now,

@@ -11,7 +11,7 @@ import java.util.UUID
 class IncomeRepository(
     private val dao: IncomeDao,
 ) {
-    fun observeAll(): Flow<List<Income>> = dao.observeAll().map { list -> list.map { it.toDomain() } }
+    fun observeAll(): Flow<List<Income>> = dao.observeAll().mapList { it.toDomain() }
 
     suspend fun upsert(income: Income) {
         val now = Instant.now()

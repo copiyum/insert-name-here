@@ -1,15 +1,14 @@
 package com.grove.app.feature.addexpense
 
+import androidx.activity.compose.PredictiveBackHandler
+import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -17,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
@@ -35,12 +35,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -48,25 +52,32 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.grove.app.data.db.CategoryLite
 import com.grove.app.data.model.Expense
-import com.grove.app.designsystem.component.CategoryIcon
+import com.grove.app.designsystem.catalog.CategoryVisuals
 import com.grove.app.designsystem.component.GroveBottomSheet
+import com.grove.app.designsystem.component.GroveHaptic
 import com.grove.app.designsystem.component.Keypad
 import com.grove.app.designsystem.component.MoneyText
 import com.grove.app.designsystem.component.MoneyTextSize
 import com.grove.app.designsystem.component.PrimaryButton
+import com.grove.app.designsystem.component.groveClick
+import com.grove.app.designsystem.component.rememberMoneyInputState
 import com.grove.app.designsystem.format.Currencies
 import com.grove.app.designsystem.format.Money
-import com.grove.app.designsystem.theme.Fraunces
+import com.grove.app.designsystem.theme.GroveShapes
 import com.grove.app.designsystem.theme.GroveSpacing
+import com.grove.app.designsystem.theme.GroveSprings
 import com.grove.app.designsystem.theme.GroveTheme
 import com.grove.app.designsystem.theme.InterTight
+import com.grove.app.designsystem.theme.JetBrainsMono
+import com.grove.app.designsystem.theme.SpaceGrotesk
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -75,34 +86,31 @@ fun AddExpenseSheet(
     categories: List<CategoryLite>,
     currency: String,
     editing: Expense? = null,
-    onSave: (Expense) -> Unit,
+    onSave: (Expense, Rect?) -> Unit,
     onDismiss: () -> Unit,
-    ) {
+) {
     val c = GroveTheme.colors
-    val minorExponent = Currencies.minorUnitExponent(currency)
-    var amount by remember(editing) {
-        mutableStateOf(
-            editing?.let {
-                val d = Money.fromMinor(it.amountMinor, currency)
-                if (minorExponent == 0) d.toLong().toString() else String.format(Locale.US, "%.${minorExponent}f", d)
-            } ?: "",
-        )
-    }
-    val amountNum = amount.toDoubleOrNull() ?: 0.0
-    val amountMinor = Money.toMinor(amountNum, currency)
+    val amountState = rememberMoneyInputState(currency, editing?.amountMinor, editing?.id)
+    val amountMinor = amountState.amountMinor
     var selectedCategoryId by remember(editing) {
         mutableStateOf(editing?.categoryId?.toString() ?: categories.firstOrNull()?.id?.toString())
     }
     var note by remember(editing) { mutableStateOf(editing?.note ?: "") }
-    var isDetailsStep by remember { mutableStateOf(false) }
+    var isDetailsStep by remember(editing) { mutableStateOf(editing != null) }
     var selectedDate by remember(editing) {
         mutableStateOf(editing?.occurredAt?.atZone(ZoneId.systemDefault())?.toLocalDate() ?: LocalDate.now())
     }
     var showDatePicker by remember { mutableStateOf(false) }
+    var saveOriginBounds by remember { mutableStateOf<Rect?>(null) }
+
+    // Predictive back: the sheet shrinks with the gesture, commits to dismiss,
+    // and springs back to full size when the gesture is cancelled.
+    val backProgress = remember { Animatable(0f) }
+    val backScope = rememberCoroutineScope()
 
     fun saveExpense() {
         val now = Instant.now()
-        val catId = selectedCategoryId?.let { UUID.fromString(it) } ?: categories.firstOrNull()?.id ?: return
+        val catId = selectedCategoryId?.let { runCatching { UUID.fromString(it) }.getOrNull() } ?: categories.firstOrNull()?.id ?: return
         val editingDate = editing?.occurredAt?.atZone(ZoneId.systemDefault())?.toLocalDate()
         val occurredAt =
             if (editing != null && selectedDate == editingDate) {
@@ -110,7 +118,7 @@ fun AddExpenseSheet(
             } else {
                 selectedDate.atTime(LocalTime.now()).atZone(ZoneId.systemDefault()).toInstant()
             }
-        onSave(
+        val expense =
             Expense(
                 id = editing?.id ?: UUID.randomUUID(),
                 amountMinor = amountMinor,
@@ -121,15 +129,37 @@ fun AddExpenseSheet(
                 occurredAt = occurredAt,
                 createdAt = editing?.createdAt ?: now,
                 updatedAt = now,
-            ),
+            )
+        onSave(
+            expense,
+            saveOriginBounds,
         )
         onDismiss()
     }
 
+    val backShrink =
+        Modifier.graphicsLayer {
+            val p = backProgress.value
+            val scale = 1f - 0.06f * p
+            scaleX = scale
+            scaleY = scale
+            alpha = 1f - 0.1f * p
+        }
+
     GroveBottomSheet(onDismiss = onDismiss) {
+        // Registered inside the sheet's window so it sees back events before the host.
+        PredictiveBackHandler { progress ->
+            try {
+                progress.collect { event -> backProgress.snapTo(event.progress) }
+                onDismiss()
+            } catch (e: CancellationException) {
+                backScope.launch { backProgress.animateTo(0f, GroveSprings.standard()) }
+            }
+        }
+
         if (!isDetailsStep) {
             Column(
-                modifier = Modifier.fillMaxWidth().padding(bottom = GroveSpacing.MD),
+                modifier = backShrink.fillMaxWidth().padding(bottom = GroveSpacing.MD),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Row(
@@ -151,32 +181,25 @@ fun AddExpenseSheet(
                     )
                     TextButton(
                         onClick = { isDetailsStep = true },
-                        enabled = amountNum > 0,
+                        enabled = amountState.hasAmount && categories.isNotEmpty(),
                     ) {
-                        Text("Next", color = if (amountNum > 0) c.fg1 else c.fg2, fontFamily = InterTight, fontSize = 16.sp)
+                        Text("Next", color = if (amountState.hasAmount && categories.isNotEmpty()) c.fg1 else c.fg2, fontFamily = InterTight, fontSize = 16.sp)
                     }
                 }
 
                 Spacer(Modifier.height(GroveSpacing.XL))
 
                 Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.Center) {
-                    Text(Currencies.current(currency).symbol, fontFamily = Fraunces, fontSize = 32.sp, color = c.fg2, modifier = Modifier.padding(top = 8.dp, end = 4.dp))
-                    MoneyText(amount.ifEmpty { "0" }, size = MoneyTextSize.Hero, color = c.fg1)
+                    Text(Currencies.current(currency).symbol, fontFamily = SpaceGrotesk, fontSize = 32.sp, color = c.fg2, modifier = Modifier.padding(top = 8.dp, end = 4.dp))
+                    MoneyText(amountState.text.ifEmpty { "0" }, size = MoneyTextSize.Hero, color = c.fg1)
                 }
 
                 Spacer(Modifier.height(GroveSpacing.LG))
 
                 Keypad(
-                    onDigit = { digit ->
-                        val fractional = amount.substringAfter(".", "")
-                        if (amount.length < 10 && (!amount.contains(".") || fractional.length < minorExponent)) amount += digit
-                    },
-                    onBackspace = {
-                        if (amount.isNotEmpty()) amount = amount.dropLast(1)
-                    },
-                    onDecimal = {
-                        if (minorExponent > 0 && !amount.contains(".")) amount += if (amount.isEmpty()) "0." else "."
-                    },
+                    onDigit = amountState::appendDigit,
+                    onBackspace = amountState::backspace,
+                    onDecimal = amountState::appendDecimal,
                     modifier = Modifier.padding(horizontal = GroveSpacing.XL),
                 )
 
@@ -184,7 +207,7 @@ fun AddExpenseSheet(
             }
         } else {
             Column(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = GroveSpacing.LG, vertical = GroveSpacing.MD),
+                modifier = backShrink.fillMaxWidth().padding(horizontal = GroveSpacing.LG, vertical = GroveSpacing.MD),
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -197,7 +220,10 @@ fun AddExpenseSheet(
                     Text("Details", fontFamily = InterTight, fontSize = 16.sp, color = c.fg1)
                     TextButton(
                         onClick = { saveExpense() },
-                        modifier = Modifier.offset(x = 8.dp),
+                        modifier =
+                            Modifier
+                                .offset(x = 8.dp)
+                                .onGloballyPositioned { saveOriginBounds = it.boundsInRoot() },
                     ) {
                         Text("Save", color = c.accent, fontFamily = InterTight, fontSize = 16.sp)
                     }
@@ -221,7 +247,7 @@ fun AddExpenseSheet(
                         modifier =
                             Modifier
                                 .clip(RoundedCornerShape(50))
-                                .clickable { isDetailsStep = false }
+                                .groveClick(haptic = GroveHaptic.Light) { isDetailsStep = false }
                                 .padding(horizontal = 12.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center,
@@ -236,7 +262,7 @@ fun AddExpenseSheet(
 
                 Text(
                     "CATEGORY",
-                    fontFamily = InterTight,
+                    fontFamily = JetBrainsMono,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium,
                     color = c.fg3,
@@ -244,35 +270,29 @@ fun AddExpenseSheet(
                 )
                 Spacer(Modifier.height(8.dp))
 
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    categories.chunked(4).forEach { rowCats ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                            rowCats.forEach { cat ->
-                                val isSelected = cat.id.toString() == selectedCategoryId
-                                Box(
-                                    modifier =
-                                        Modifier
-                                            .weight(1f)
-                                            .aspectRatio(1f)
-                                            .clip(RoundedCornerShape(16.dp))
-                                            .background(if (isSelected) c.accentSurface else c.bgCardRaised)
-                                            .border(
-                                                1.dp,
-                                                if (isSelected) c.accent else c.border,
-                                                RoundedCornerShape(16.dp),
-                                            ).clickable(role = Role.Button) { selectedCategoryId = cat.id.toString() },
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        CategoryIcon(iconKey = cat.iconKey, size = 38)
-                                        Spacer(Modifier.height(8.dp))
-                                        Text(text = cat.displayName, fontFamily = InterTight, fontSize = 12.sp, color = c.fg1)
-                                    }
-                                }
-                            }
-                            repeat(4 - rowCats.size) {
-                                Spacer(Modifier.weight(1f))
-                            }
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(categories) { cat ->
+                        val isSelected = cat.id.toString() == selectedCategoryId
+                        val color = CategoryVisuals.color(cat.iconKey)
+                        Row(
+                            modifier =
+                                Modifier
+                                    .clip(GroveShapes.Chip)
+                                    .background(if (isSelected) color.copy(alpha = 0.18f) else c.bgCard)
+                                    .border(1.dp, if (isSelected) color else c.border, GroveShapes.Chip)
+                                    .groveClick(role = Role.Button, haptic = GroveHaptic.Light) { selectedCategoryId = cat.id.toString() }
+                                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Box(modifier = Modifier.size(8.dp).clip(RoundedCornerShape(99.dp)).background(color))
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = cat.displayName,
+                                fontFamily = InterTight,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = if (isSelected) c.fg1 else c.fg2,
+                            )
                         }
                     }
                 }
@@ -281,7 +301,7 @@ fun AddExpenseSheet(
 
                 Text(
                     "NOTE",
-                    fontFamily = InterTight,
+                    fontFamily = JetBrainsMono,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium,
                     color = c.fg3,
@@ -315,7 +335,7 @@ fun AddExpenseSheet(
 
                 Text(
                     "DATE",
-                    fontFamily = InterTight,
+                    fontFamily = JetBrainsMono,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium,
                     color = c.fg3,
@@ -328,7 +348,7 @@ fun AddExpenseSheet(
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(16.dp))
                             .background(c.bgCard)
-                            .clickable(role = Role.Button) { showDatePicker = true }
+                            .groveClick(role = Role.Button) { showDatePicker = true }
                             .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -343,7 +363,10 @@ fun AddExpenseSheet(
                 PrimaryButton(
                     text = "Save expense",
                     onClick = { saveExpense() },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .onGloballyPositioned { saveOriginBounds = it.boundsInRoot() },
                 )
 
                 Spacer(Modifier.height(GroveSpacing.LG))

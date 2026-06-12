@@ -14,17 +14,8 @@ interface BillPaymentDao {
     @Query("SELECT * FROM bill_payments ORDER BY dueAt DESC")
     fun observeAll(): Flow<List<BillPaymentEntity>>
 
-    @Query("SELECT * FROM bill_payments WHERE billId = :billId ORDER BY dueAt DESC")
-    fun observeForBill(billId: UUID): Flow<List<BillPaymentEntity>>
-
     @Query("SELECT * FROM bill_payments WHERE id = :id")
     suspend fun getById(id: UUID): BillPaymentEntity?
-
-    @Query("SELECT * FROM bill_payments WHERE dueAt >= :start AND dueAt < :end ORDER BY dueAt")
-    fun observeDueBetween(
-        start: Instant,
-        end: Instant,
-    ): Flow<List<BillPaymentEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: BillPaymentEntity)

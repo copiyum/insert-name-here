@@ -5,6 +5,7 @@ import com.grove.app.data.db.CategoryBudgetLite
 import com.grove.app.data.db.CategoryLite
 import com.grove.app.data.db.ExpenseLite
 import com.grove.app.data.db.IncomeLite
+import com.grove.app.data.model.CategoryKind
 import com.grove.app.data.model.UserProfile
 import kotlinx.collections.immutable.persistentListOf
 import org.junit.Assert.assertEquals
@@ -12,6 +13,7 @@ import org.junit.Test
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.ZoneId
 import java.time.ZoneOffset
 import java.util.UUID
 
@@ -54,34 +56,66 @@ class BudgetStateTest {
         assertEquals(-4_048, state.safeToSpendTodayMinor)
     }
 
+    @Test
+    fun incomeCategoryEntriesDoNotCountAsSpend() {
+        val food = UUID.randomUUID()
+        val income = UUID.randomUUID()
+        val state =
+            state(
+                today = LocalDateTime.of(2026, 6, 10, 12, 0),
+                resetDay = 1,
+                expenses =
+                    listOf(
+                        expense(food, 5_000, LocalDate.of(2026, 6, 10)),
+                        expense(income, 20_000, LocalDate.of(2026, 6, 10), kind = CategoryKind.income),
+                    ),
+            )
+
+        assertEquals(5_000, state.totalSpentMinor)
+        assertEquals(5_000, state.spentTodayMinor)
+    }
+
     private fun state(
         today: LocalDateTime,
         resetDay: Int,
         budgetMinor: Long = 50_000,
         expenses: List<ExpenseLite> = emptyList(),
         bills: List<BillLite> = emptyList(),
-    ) = BudgetState(
-        today = today,
-        monthBudgetMinor = budgetMinor,
-        homeCurrency = "USD",
-        categories = persistentListOf(CategoryLite(UUID.randomUUID(), "Food", "restaurant")),
-        expenses = persistentListOf(*expenses.toTypedArray()),
-        bills = persistentListOf(*bills.toTypedArray()),
-        incomes = persistentListOf<IncomeLite>(),
-        categoryBudgets = persistentListOf<CategoryBudgetLite>(),
-        user = UserProfile("Mae", resetDay, "USD", true),
-    )
+    ): BudgetState {
+        val period = BudgetPeriod.forDate(today.toLocalDate(), resetDay)
+        val spending = expenses.filter { it.categoryKind != CategoryKind.income }
+        return BudgetState(
+            today = today,
+            monthBudgetMinor = budgetMinor,
+            homeCurrency = "USD",
+            categories = persistentListOf(CategoryLite(UUID.randomUUID(), "Food", "restaurant", CategoryKind.expense)),
+            expenses = persistentListOf(*expenses.toTypedArray()),
+            bills = persistentListOf(*bills.toTypedArray()),
+            incomes = persistentListOf<IncomeLite>(),
+            categoryBudgets = persistentListOf<CategoryBudgetLite>(),
+            user = UserProfile("Mae", resetDay, "USD", true),
+            totalSpentMinor = spending.filter { period.contains(it.occurredAt) }.sumOf { it.amountMinor },
+            spentTodayMinor =
+                spending
+                    .filter { it.occurredAt.atZone(ZoneId.systemDefault()).toLocalDate() == today.toLocalDate() }
+                    .sumOf { it.amountMinor },
+            upcomingBillsMinor = bills.filter { !it.paid }.sumOf { it.amountMinor },
+        )
+    }
 
     private fun expense(
         categoryId: UUID,
         amountMinor: Long,
         date: LocalDate,
+        kind: CategoryKind = CategoryKind.expense,
     ) = ExpenseLite(
         id = UUID.randomUUID(),
         amountMinor = amountMinor,
         currencyCode = "USD",
         categoryId = categoryId,
+        categoryName = "Food",
         iconKey = "restaurant",
+        categoryKind = kind,
         note = "Test",
         occurredAt = date.atTime(LocalTime.NOON).atZone(ZoneOffset.UTC).toInstant(),
     )

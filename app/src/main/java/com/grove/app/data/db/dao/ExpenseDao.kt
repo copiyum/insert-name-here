@@ -1,24 +1,39 @@
 package com.grove.app.data.db.dao
 
 import androidx.room.Dao
+import androidx.room.Embedded
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.grove.app.data.db.entity.ExpenseEntity
+import com.grove.app.data.model.CategoryKind
 import kotlinx.coroutines.flow.Flow
 import java.time.Instant
 import java.util.UUID
 
+/**
+ * Expense row joined with its (active) category. Category fields are null when the
+ * category is archived or missing, so callers can fall back to a generic bucket —
+ * mirroring the old in-memory join against active categories only.
+ */
+data class ExpenseWithCategoryRow(
+    @Embedded val expense: ExpenseEntity,
+    val categoryName: String?,
+    val categoryIconKey: String?,
+    val categoryKind: CategoryKind?,
+)
+
 @Dao
 interface ExpenseDao {
-    @Query("SELECT * FROM expenses ORDER BY occurredAt DESC")
-    fun observeAll(): Flow<List<ExpenseEntity>>
-
-    @Query("SELECT * FROM expenses WHERE occurredAt >= :start AND occurredAt < :end ORDER BY occurredAt DESC")
-    fun observeBetween(
-        start: Instant,
-        end: Instant,
-    ): Flow<List<ExpenseEntity>>
+    @Query(
+        """
+        SELECT e.*, c.displayName AS categoryName, c.iconKey AS categoryIconKey, c.kind AS categoryKind
+        FROM expenses e
+        LEFT JOIN categories c ON c.id = e.categoryId AND c.archivedAt IS NULL
+        ORDER BY e.occurredAt DESC
+        """,
+    )
+    fun observeAllWithCategory(): Flow<List<ExpenseWithCategoryRow>>
 
     @Query("SELECT * FROM expenses WHERE id = :id")
     suspend fun getById(id: UUID): ExpenseEntity?

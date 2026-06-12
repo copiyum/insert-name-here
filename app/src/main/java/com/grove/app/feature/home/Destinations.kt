@@ -9,4 +9,4 @@ enum class Dest(val route: String, val label: String) {
     Budget("budget", "Budget"),
 }
 
-val BottomTabs = listOf(Dest.Home, Dest.History, Dest.Bills, Dest.Reports)
+val BottomTabs = listOf(Dest.Home, Dest.History, Dest.Reports, Dest.Bills)

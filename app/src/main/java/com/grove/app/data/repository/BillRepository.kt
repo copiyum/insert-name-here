@@ -1,6 +1,7 @@
 package com.grove.app.data.repository
 
 import com.grove.app.data.BudgetPeriod
+import com.grove.app.data.withClampedDay
 import com.grove.app.data.db.dao.BillDao
 import com.grove.app.data.db.dao.BillPaymentDao
 import com.grove.app.data.db.entity.BillEntity
@@ -18,16 +19,11 @@ class BillRepository(
     private val billDao: BillDao,
     private val paymentDao: BillPaymentDao,
 ) {
-    fun observeActive(): Flow<List<Bill>> = billDao.observeActive().map { list -> list.map { it.toDomain() } }
+    fun observeActive(): Flow<List<Bill>> = billDao.observeActive().mapList { it.toDomain() }
 
-    fun observeAll(): Flow<List<Bill>> = billDao.observeAll().map { list -> list.map { it.toDomain() } }
+    fun observeAll(): Flow<List<Bill>> = billDao.observeAll().mapList { it.toDomain() }
 
-    fun observePayments(): Flow<List<BillPayment>> = paymentDao.observeAll().map { list -> list.map { it.toDomain() } }
-
-    fun observePaymentsDueBetween(
-        start: Instant,
-        end: Instant,
-    ): Flow<List<BillPayment>> = paymentDao.observeDueBetween(start, end).map { list -> list.map { it.toDomain() } }
+    fun observePayments(): Flow<List<BillPayment>> = paymentDao.observeAll().mapList { it.toDomain() }
 
     suspend fun get(id: UUID): Bill? = billDao.getById(id)?.toDomain()
 
@@ -132,6 +128,3 @@ private fun dueDateInPeriod(
     val second = period.start.plusMonths(1).withClampedDay(normalized)
     return listOf(first, second).firstOrNull { !it.isBefore(period.start) && it.isBefore(period.endExclusive) } ?: first
 }
-
-private fun LocalDate.withClampedDay(day: Int): LocalDate =
-    withDayOfMonth(day.coerceAtMost(lengthOfMonth()))

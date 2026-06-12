@@ -16,20 +16,17 @@ val InterTight = FontFamily(
 )
 
 @OptIn(ExperimentalTextApi::class)
-val Fraunces = FontFamily(
-    fraunces(FontWeight.Normal, 400),
-    fraunces(FontWeight.Medium, 500),
-    fraunces(FontWeight.SemiBold, 560),
+val SpaceGrotesk = FontFamily(
+    Font(R.font.space_grotesk, FontWeight.Normal, variationSettings = FontVariation.Settings(FontVariation.weight(400))),
+    Font(R.font.space_grotesk, FontWeight.Medium, variationSettings = FontVariation.Settings(FontVariation.weight(500))),
+    Font(R.font.space_grotesk, FontWeight.SemiBold, variationSettings = FontVariation.Settings(FontVariation.weight(600))),
+    Font(R.font.space_grotesk, FontWeight.Bold, variationSettings = FontVariation.Settings(FontVariation.weight(700))),
 )
 
 @OptIn(ExperimentalTextApi::class)
-private fun fraunces(weight: FontWeight, axis: Int) = Font(
-    R.font.fraunces,
-    weight,
-    variationSettings = FontVariation.Settings(
-        FontVariation.weight(axis),
-        FontVariation.Setting("opsz", 60f),
-        FontVariation.Setting("SOFT", 30f),
-        FontVariation.Setting("WONK", 0f),
-    ),
+val JetBrainsMono = FontFamily(
+    Font(R.font.jetbrains_mono, FontWeight.Normal, variationSettings = FontVariation.Settings(FontVariation.weight(400))),
+    Font(R.font.jetbrains_mono, FontWeight.Medium, variationSettings = FontVariation.Settings(FontVariation.weight(500))),
+    Font(R.font.jetbrains_mono, FontWeight.SemiBold, variationSettings = FontVariation.Settings(FontVariation.weight(600))),
+    Font(R.font.jetbrains_mono, FontWeight.Bold, variationSettings = FontVariation.Settings(FontVariation.weight(700))),
 )

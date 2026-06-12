@@ -1,5 +1,7 @@
 package com.grove.app.feature.reports
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.LocalOverscrollConfiguration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -8,7 +10,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -16,10 +21,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -37,21 +45,24 @@ import androidx.compose.ui.unit.sp
 import com.grove.app.data.BudgetState
 import com.grove.app.designsystem.catalog.CategoryVisuals
 import com.grove.app.designsystem.component.AppTopBar
+import com.grove.app.designsystem.component.BotanicalEmptyState
 import com.grove.app.designsystem.component.CategoryIcon
 import com.grove.app.designsystem.component.Chip
-import com.grove.app.designsystem.component.EmptyState
 import com.grove.app.designsystem.component.GroveCard
 import com.grove.app.designsystem.component.GroveCardVariant
 import com.grove.app.designsystem.component.MoneyText
 import com.grove.app.designsystem.component.MoneyTextSize
 import com.grove.app.designsystem.component.ProgressBar
 import com.grove.app.designsystem.component.SectionHeader
+import com.grove.app.designsystem.component.rememberFoliageOverscroll
 import com.grove.app.designsystem.component.charts.DonutChart
+import com.grove.app.designsystem.component.charts.DonutSlice
 import com.grove.app.designsystem.component.charts.LineChart
 import com.grove.app.designsystem.component.charts.MonthBar
 import com.grove.app.designsystem.component.charts.MonthBars
 import com.grove.app.designsystem.format.Money
 import com.grove.app.designsystem.theme.GroveShapes
+import com.grove.app.designsystem.theme.GroveSize
 import com.grove.app.designsystem.theme.GroveSpacing
 import com.grove.app.designsystem.theme.GroveTheme
 import com.grove.app.designsystem.theme.GroveType
@@ -59,12 +70,24 @@ import com.grove.app.designsystem.theme.InterTight
 import java.time.temporal.ChronoUnit
 import kotlin.math.abs
 
+private data class CategorySpend(
+    val id: String,
+    val label: String,
+    val iconKey: String,
+    val amount: Double,
+) {
+    val color: Color get() = CategoryVisuals.color(iconKey)
+}
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ReportsScreen(
     state: BudgetState,
     currency: String,
 ) {
     val c = GroveTheme.colors
+    val listState = rememberLazyListState()
+    val sway = rememberFoliageOverscroll()
     var range by rememberSaveable { mutableStateOf("month") }
     var selected by rememberSaveable { mutableStateOf<String?>(null) }
     val monthName =
@@ -76,7 +99,7 @@ fun ReportsScreen(
     val filteredExpenses =
         remember(state.expenses, range, state.period, state.today) {
             val today = state.today.toLocalDate()
-            state.expenses
+            state.spendingExpenses
                 .filter { expense ->
                     val date = expense.occurredAt.atZone(java.time.ZoneId.systemDefault()).toLocalDate()
                     when (range) {
@@ -87,20 +110,32 @@ fun ReportsScreen(
                 }
         }
 
-    val byCategory: List<Pair<String, Double>> =
+    val byCategory: List<CategorySpend> =
         remember(filteredExpenses, currency) {
             filteredExpenses
-                .groupBy { it.iconKey }
-                .map { e -> Pair(e.key, Money.fromMinor(e.value.sumOf { it.amountMinor }, currency)) }
-                .sortedByDescending { it.second }
+                .groupBy { it.categoryId }
+                .map { (_, expenses) ->
+                    val first = expenses.first()
+                    CategorySpend(
+                        id = first.categoryId.toString(),
+                        label = first.categoryName,
+                        iconKey = first.iconKey,
+                        amount = Money.fromMinor(expenses.sumOf { it.amountMinor }, currency),
+                    )
+                }
+                .sortedByDescending { it.amount }
         }
-    val filteredTotal = remember(byCategory) { byCategory.sumOf { it.second } }
+    val filteredTotal = remember(byCategory) { byCategory.sumOf { it.amount } }
+    val donutData =
+        remember(byCategory) {
+            byCategory.map { DonutSlice(it.id, it.label, it.color, it.amount) }
+        }
 
     val dailyData =
         remember(state.expenses, state.period, state.dayOfBudgetPeriod, currency) {
             DoubleArray(state.dayOfBudgetPeriod) { 0.0 }
                 .also { arr ->
-                    state.expenses.forEach { e ->
+                    state.spendingExpenses.forEach { e ->
                         val date = e.occurredAt.atZone(java.time.ZoneId.systemDefault()).toLocalDate()
                         val day = ChronoUnit.DAYS.between(state.period.start, date).toInt()
                         if (day in arr.indices) arr[day] += Money.fromMinor(e.amountMinor, currency)
@@ -109,7 +144,7 @@ fun ReportsScreen(
         }
 
     val months: List<MonthBar> =
-        remember(state.pastMonths, state.totalSpent) {
+        remember(state.pastMonths, state.totalSpent, state.today, currency, monthName) {
             val raw = state.pastMonths.take(4).reversed().map { mt ->
                 MonthBar(
                     mt.monthName.take(3),
@@ -126,11 +161,17 @@ fun ReportsScreen(
     val prevMonthTotal = state.pastMonths
         .firstOrNull { !(it.year == state.today.year && it.month == state.today.monthValue) }
         ?.totalMinor?.let { Money.fromMinor(it, currency) }
-    val momDelta = if (prevMonthTotal != null && prevMonthTotal > 0) {
+    val hasPrevMonth = prevMonthTotal != null && prevMonthTotal > 0
+    val momDelta = if (hasPrevMonth) {
         (state.totalSpent - prevMonthTotal) / prevMonthTotal
     } else 0.0
-
-    LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 120.dp)) {
+    val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    CompositionLocalProvider(LocalOverscrollConfiguration provides null) {
+    LazyColumn(
+        state = listState,
+        modifier = Modifier.fillMaxSize().nestedScroll(sway.connection).then(sway.modifier()),
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = GroveSize.NavClearance + bottomInset),
+    ) {
         item { AppTopBar(title = "Reports", subtitle = "$monthName ${state.today.year}") }
 
         item {
@@ -147,32 +188,30 @@ fun ReportsScreen(
                 Text(if (selected != null) "Tap again to clear" else "Tap a slice to focus", style = GroveType.rowSub, color = c.fg3)
                 Spacer(Modifier.height(GroveSpacing.SM))
                 if (byCategory.isEmpty()) {
-                    EmptyState("No spending yet", subtitle = "Your category breakdown appears after expenses are added.")
+                    BotanicalEmptyState("No growth to chart yet", subtitle = "Spend a little, then watch the patterns.")
                 } else {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(GroveSpacing.SM + 2.dp)) {
-                        DonutChart(data = byCategory, total = filteredTotal, selected = selected, onSelect = {
+                        DonutChart(data = donutData, total = filteredTotal, selected = selected, onSelect = {
                             selected =
                                 if (selected == it) null else it
                         }, modifier = Modifier.size(132.dp), currency = currency)
                         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(GroveSpacing.SM)) {
                             for (entry in byCategory.take(5)) {
-                                val cat = entry.first
-                                val amount = entry.second
-                                val dim = selected != null && selected != cat
+                                val dim = selected != null && selected != entry.id
                                 Row(
                                     modifier =
                                         Modifier
                                             .fillMaxWidth()
                                             .graphicsLayer { alpha = if (dim) 0.4f else 1f }
                                             .clip(RoundedCornerShape(8.dp))
-                                            .clickable { selected = if (selected == cat) null else cat }
+                                            .clickable { selected = if (selected == entry.id) null else entry.id }
                                             .padding(vertical = 2.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
-                                    Box(modifier = Modifier.size(12.dp).clip(RoundedCornerShape(4.dp)).background(CategoryVisuals.color(cat)))
+                                    Box(modifier = Modifier.size(12.dp).clip(RoundedCornerShape(4.dp)).background(entry.color))
                                     Spacer(Modifier.width(10.dp))
                                     Text(
-                                        CategoryVisuals.label(cat),
+                                        entry.label,
                                         fontFamily = InterTight,
                                         fontWeight = FontWeight.Medium,
                                         fontSize = 13.sp,
@@ -182,7 +221,7 @@ fun ReportsScreen(
                                         overflow = TextOverflow.Ellipsis,
                                     )
                                     MoneyText(
-                                        Money.currency(amount, 0, currency),
+                                        Money.currency(entry.amount, 0, currency),
                                         size = MoneyTextSize.Small,
                                         color = c.fg2,
                                     )
@@ -246,12 +285,12 @@ fun ReportsScreen(
                             size = MoneyTextSize.Title,
                             color = c.fg1,
                         )
-                    MomDelta(momDelta, prevMonthName = state.pastMonths
+                    MomDelta(momDelta, hasPrevious = hasPrevMonth, prevMonthName = state.pastMonths
                         .firstOrNull { !(it.year == state.today.year && it.month == state.today.monthValue) }
                         ?.monthName?.take(3) ?: "previous")
                 }
                 Spacer(Modifier.height(GroveSpacing.SM + 2.dp))
-                MonthBars(months)
+                MonthBars(months, currency = currency)
             }
         }
 
@@ -259,15 +298,13 @@ fun ReportsScreen(
 
         item {
             GroveCard(modifier = Modifier.fillMaxWidth(), padding = PaddingValues(horizontal = GroveSpacing.LG)) {
-                val maxAmount: Double = byCategory.firstOrNull()?.second ?: 1.0
-                val top: List<Pair<String, Double>> = byCategory.take(5)
+                val maxAmount: Double = byCategory.firstOrNull()?.amount ?: 1.0
+                val top = byCategory.take(5)
                 if (top.isEmpty()) {
-                    EmptyState("No top categories", subtitle = "Spend data will rank categories here.")
+                    BotanicalEmptyState("Nothing to rank yet", subtitle = "Your top categories will sprout here as you spend.")
                 } else {
                     for ((i, entry) in top.withIndex()) {
-                        val cat = entry.first
-                        val amount = entry.second
-                        val dim = selected != null && selected != cat
+                        val dim = selected != null && selected != entry.id
                         Row(
                             modifier =
                                 Modifier.fillMaxWidth().graphicsLayer { alpha = if (dim) 0.4f else 1f }.padding(
@@ -275,15 +312,15 @@ fun ReportsScreen(
                                 ),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            CategoryIcon(cat)
+                            CategoryIcon(entry.iconKey)
                             Spacer(Modifier.width(GroveSpacing.MD))
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(CategoryVisuals.label(cat), style = GroveType.rowTitle, color = c.fg1)
+                                Text(entry.label, style = GroveType.rowTitle, color = c.fg1)
                                 Spacer(Modifier.height(GroveSpacing.SM))
-                                ProgressBar((amount / maxAmount).toFloat(), CategoryVisuals.color(cat), height = 5)
+                                ProgressBar((entry.amount / maxAmount).toFloat(), entry.color, height = 5)
                             }
                             Spacer(Modifier.width(GroveSpacing.SM + 4.dp))
-                            MoneyText(Money.currency(amount, 0, currency), size = MoneyTextSize.Row, color = c.fg1)
+                            MoneyText(Money.currency(entry.amount, 0, currency), size = MoneyTextSize.Row, color = c.fg1)
                         }
                         if (i < top.size - 1) HorizontalDivider(color = c.border)
                     }
@@ -291,14 +328,15 @@ fun ReportsScreen(
             }
         }
     }
+    }
 }
 
 @Composable
-private fun MomDelta(delta: Double, prevMonthName: String = "Apr") {
+private fun MomDelta(delta: Double, hasPrevious: Boolean, prevMonthName: String = "Apr") {
     val c = GroveTheme.colors
     val down = delta <= 0
-    val bg = if (down) c.successBg else c.dangerBg
-    val fg = if (down) c.success else c.danger
+    val bg = if (!hasPrevious) c.bgMuted else if (down) c.successBg else c.dangerBg
+    val fg = if (!hasPrevious) c.fg3 else if (down) c.success else c.danger
     Box(
         modifier =
             Modifier
@@ -308,7 +346,7 @@ private fun MomDelta(delta: Double, prevMonthName: String = "Apr") {
                 .padding(horizontal = GroveSpacing.SM + 2.dp, vertical = GroveSpacing.XS),
     ) {
         Text(
-            "${if (down) "↓" else "↑"} ${abs(delta * 100).toInt()}% vs $prevMonthName",
+            if (hasPrevious) "${if (down) "↓" else "↑"} ${abs(delta * 100).toInt()}% vs $prevMonthName" else "No $prevMonthName data yet",
             fontFamily = InterTight,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,

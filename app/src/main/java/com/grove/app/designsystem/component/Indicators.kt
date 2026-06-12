@@ -1,15 +1,19 @@
 package com.grove.app.designsystem.component
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -18,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.grove.app.designsystem.theme.GroveBorder
+import com.grove.app.designsystem.theme.GroveSprings
 import com.grove.app.designsystem.theme.GroveTheme
 import com.grove.app.designsystem.theme.GroveSize
 import com.grove.app.designsystem.theme.GroveShapes
@@ -27,18 +32,29 @@ import com.grove.app.designsystem.theme.InterTight
 import com.grove.app.designsystem.theme.SpendTone
 
 @Composable
-fun ProgressBar(pct: Float, color: Color, modifier: Modifier = Modifier, height: Int = 6) {
+fun ProgressBar(
+    pct: Float,
+    color: Color,
+    modifier: Modifier = Modifier,
+    height: Int = 6,
+    animate: Boolean = true,
+) {
+    val animatedPct by animateFloatAsState(
+        targetValue = pct.coerceIn(0f, 1f),
+        animationSpec = if (animate) GroveSprings.standard() else snap(),
+        label = "progressBarPct",
+    )
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = height.dp / 2)
+            .height(height.dp)
             .clip(GroveShapes.Toggle)
             .background(GroveTheme.colors.bgMuted),
     ) {
         Box(
             modifier = Modifier
                 .fillMaxHeight()
-                .fillMaxWidth(pct.coerceIn(0f, 1f))
+                .fillMaxWidth(animatedPct)
                 .clip(GroveShapes.Toggle)
                 .background(color),
         )
@@ -71,11 +87,8 @@ fun StatusPill(label: String, kind: String) {
 
 @Composable
 fun HeroStatusChip(tone: SpendTone) {
-    val (bg, fg) = if (tone.healthy) {
-        GroveTheme.colors.successBg to GroveTheme.colors.success
-    } else {
-        GroveTheme.colors.warnBg to GroveTheme.colors.warn
-    }
+    val fg = tone.color
+    val bg = tone.color.copy(alpha = if (GroveTheme.colors.isDark) 0.15f else 0.12f)
     Row(
         modifier = Modifier
             .clip(GroveShapes.Toggle)

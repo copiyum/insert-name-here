@@ -36,6 +36,14 @@ interface MonthlyBudgetDao {
     @Query("SELECT * FROM monthly_category_budgets WHERE monthlyBudgetId = :monthlyBudgetId")
     suspend fun getCategoryBudgets(monthlyBudgetId: UUID): List<MonthlyCategoryBudgetEntity>
 
+    @Query(
+        "SELECT * FROM monthly_category_budgets WHERE monthlyBudgetId = :monthlyBudgetId AND categoryId = :categoryId LIMIT 1",
+    )
+    suspend fun getCategoryBudget(
+        monthlyBudgetId: UUID,
+        categoryId: UUID,
+    ): MonthlyCategoryBudgetEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertBudget(entity: MonthlyBudgetEntity)
 

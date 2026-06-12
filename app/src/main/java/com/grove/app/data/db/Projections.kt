@@ -1,6 +1,7 @@
 package com.grove.app.data.db
 
 import androidx.compose.runtime.Immutable
+import com.grove.app.data.model.CategoryKind
 import java.time.Instant
 import java.util.UUID
 
@@ -9,6 +10,7 @@ data class CategoryLite(
     val id: UUID,
     val displayName: String,
     val iconKey: String,
+    val kind: CategoryKind,
 )
 
 @Immutable
@@ -17,7 +19,9 @@ data class ExpenseLite(
     val amountMinor: Long,
     val currencyCode: String,
     val categoryId: UUID,
+    val categoryName: String,
     val iconKey: String,
+    val categoryKind: CategoryKind,
     val note: String,
     val occurredAt: Instant,
 )

@@ -15,22 +15,17 @@ import com.grove.app.data.db.dao.IncomeDao
 import com.grove.app.data.db.dao.MonthlyBudgetDao
 import com.grove.app.data.db.dao.NotificationDao
 import com.grove.app.data.db.dao.PaymentMethodDao
-import com.grove.app.data.db.dao.TagDao
 import com.grove.app.data.db.dao.UserProfileDao
 import com.grove.app.data.db.entity.BillEntity
 import com.grove.app.data.db.entity.BillPaymentEntity
 import com.grove.app.data.db.entity.CategoryEntity
 import com.grove.app.data.db.entity.ExpenseEntity
-import com.grove.app.data.db.entity.ExpenseFtsEntity
-import com.grove.app.data.db.entity.ExpenseTagCrossRef
 import com.grove.app.data.db.entity.IncomeEntity
-import com.grove.app.data.db.entity.IncomeTagCrossRef
 import com.grove.app.data.db.entity.MonthlyBudgetEntity
 import com.grove.app.data.db.entity.MonthlyCategoryBudgetEntity
 import com.grove.app.data.db.entity.NotificationSettingsEntity
 import com.grove.app.data.db.entity.PaymentMethodEntity
 import com.grove.app.data.db.entity.ScheduledNotificationEntity
-import com.grove.app.data.db.entity.TagEntity
 import com.grove.app.data.db.entity.UserProfileEntity
 import com.grove.app.data.db.seed.SeedData
 import kotlinx.coroutines.CoroutineScope
@@ -43,20 +38,16 @@ import kotlinx.coroutines.launch
         UserProfileEntity::class,
         CategoryEntity::class,
         ExpenseEntity::class,
-        ExpenseFtsEntity::class,
         BillEntity::class,
         BillPaymentEntity::class,
         IncomeEntity::class,
         MonthlyBudgetEntity::class,
         MonthlyCategoryBudgetEntity::class,
         PaymentMethodEntity::class,
-        TagEntity::class,
-        ExpenseTagCrossRef::class,
-        IncomeTagCrossRef::class,
         NotificationSettingsEntity::class,
         ScheduledNotificationEntity::class,
     ],
-    version = 2,
+    version = 4,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -77,8 +68,6 @@ abstract class GroveDatabase : RoomDatabase() {
 
     abstract fun paymentMethodDao(): PaymentMethodDao
 
-    abstract fun tagDao(): TagDao
-
     abstract fun notificationDao(): NotificationDao
 
     companion object {
@@ -91,7 +80,7 @@ abstract class GroveDatabase : RoomDatabase() {
                         context.applicationContext,
                         GroveDatabase::class.java,
                         "grove.db",
-                    ).addMigrations(MIGRATION_1_2)
+                    ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .addCallback(
                         object : Callback() {
                             override fun onCreate(db: SupportSQLiteDatabase) {
@@ -108,6 +97,26 @@ abstract class GroveDatabase : RoomDatabase() {
                 override fun migrate(db: SupportSQLiteDatabase) {
                     db.execSQL("CREATE INDEX IF NOT EXISTS index_monthly_category_budgets_categoryId ON monthly_category_budgets(categoryId)")
                     db.execSQL("CREATE INDEX IF NOT EXISTS index_scheduled_notifications_relatedBillId ON scheduled_notifications(relatedBillId)")
+                }
+            }
+
+        private val MIGRATION_2_3 =
+            object : Migration(2, 3) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL("DROP TRIGGER IF EXISTS room_fts_content_sync_expenses_fts_BEFORE_UPDATE")
+                    db.execSQL("DROP TRIGGER IF EXISTS room_fts_content_sync_expenses_fts_BEFORE_DELETE")
+                    db.execSQL("DROP TRIGGER IF EXISTS room_fts_content_sync_expenses_fts_AFTER_UPDATE")
+                    db.execSQL("DROP TRIGGER IF EXISTS room_fts_content_sync_expenses_fts_AFTER_INSERT")
+                    db.execSQL("DROP TABLE IF EXISTS expenses_fts")
+                }
+            }
+
+        private val MIGRATION_3_4 =
+            object : Migration(3, 4) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL("DROP TABLE IF EXISTS expense_tags")
+                    db.execSQL("DROP TABLE IF EXISTS income_tags")
+                    db.execSQL("DROP TABLE IF EXISTS tags")
                 }
             }
     }

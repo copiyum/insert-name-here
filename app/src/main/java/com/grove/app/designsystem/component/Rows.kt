@@ -1,7 +1,6 @@
 package com.grove.app.designsystem.component
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -25,6 +24,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.grove.app.data.db.ExpenseLite
+import com.grove.app.data.model.CategoryKind
 import com.grove.app.designsystem.format.Dates
 import com.grove.app.designsystem.format.Money
 import com.grove.app.designsystem.theme.GroveBorder
@@ -42,35 +42,44 @@ fun ExpenseRow(
     expense: ExpenseLite,
     today: LocalDateTime,
     modifier: Modifier = Modifier,
-    currency: String = "USD",
+    currency: String = "INR",
+    sharedElementKey: Any? = null,
 ) {
+    val c = GroveTheme.colors
+    val isIncome = expense.categoryKind == CategoryKind.income
+    val title = expense.note.ifBlank { expense.categoryName }
+    val amount = Money.currencyLong(
+        expense.amountMinor,
+        2,
+        expense.currencyCode.ifEmpty {
+            currency
+        },
+    )
     Row(
         modifier = modifier.fillMaxWidth().padding(vertical = GroveSpacing.MD),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        CategoryIcon(expense.iconKey)
+        CategoryIcon(
+            expense.iconKey,
+            contentDescription = expense.categoryName,
+            modifier = if (sharedElementKey != null) Modifier.groveSharedElement(sharedElementKey) else Modifier,
+        )
         Spacer(Modifier.width(GroveSpacing.MD))
         Column(modifier = Modifier.weight(1f)) {
-            Text(expense.note, style = GroveType.rowTitle, color = GroveTheme.colors.fg1, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(title, style = GroveType.rowTitle, color = c.fg1, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
                 "${Dates.relative(
                     expense.occurredAt.atZone(ZoneId.systemDefault()).toLocalDateTime(),
                     today,
                 )} · ${Dates.time(expense.occurredAt.atZone(ZoneId.systemDefault()).toLocalDateTime())}",
                 style = GroveType.rowSub,
-                color = GroveTheme.colors.fg3,
+                color = c.fg3,
             )
         }
         Text(
-            Money.currencyLong(
-                expense.amountMinor,
-                2,
-                expense.currencyCode.ifEmpty {
-                    currency
-                },
-            ),
+            if (isIncome) "+$amount" else amount,
             style = GroveType.amount,
-            color = GroveTheme.colors.fg1,
+            color = if (isIncome) c.success else c.fg1,
         )
     }
 }
@@ -139,7 +148,7 @@ fun SettingRow(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .then(if (onClick != null) Modifier.clickable(role = Role.Button) { onClick() } else Modifier)
+                .then(if (onClick != null) Modifier.groveClick(role = Role.Button) { onClick() } else Modifier)
                 .padding(vertical = GroveSpacing.MD),
         verticalAlignment = Alignment.CenterVertically,
     ) {

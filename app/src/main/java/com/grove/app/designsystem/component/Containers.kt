@@ -46,15 +46,32 @@ fun GroveCard(
             GroveCardVariant.Muted -> Color.Transparent
             else -> c.border
         }
-    val elevation = if (variant == GroveCardVariant.Elevated) 3.dp else 0.dp
     Surface(
         modifier = modifier,
         shape = GroveShapes.Container,
         color = background,
-        shadowElevation = elevation,
+        shadowElevation = 0.dp,
         border = if (border == Color.Transparent) null else BorderStroke(GroveBorder.Thin, border),
     ) {
         Column(modifier = Modifier.padding(padding), content = content)
+    }
+}
+
+/** Card containing a list of rows with dividers between them (never after the last). */
+@Composable
+fun <T> GroveCardList(
+    items: List<T>,
+    modifier: Modifier = Modifier,
+    padding: PaddingValues = PaddingValues(horizontal = GroveSpacing.LG),
+    itemContent: @Composable (T) -> Unit,
+) {
+    GroveCard(modifier = modifier.fillMaxWidth(), padding = padding) {
+        items.forEachIndexed { index, item ->
+            itemContent(item)
+            if (index < items.size - 1) {
+                androidx.compose.material3.HorizontalDivider(color = GroveTheme.colors.border)
+            }
+        }
     }
 }
 
@@ -67,6 +84,6 @@ fun GroveBottomSheet(onDismiss: () -> Unit, content: @Composable ColumnScope.() 
         containerColor = c.bgCard,
         shape = GroveShapes.SheetTop,
     ) {
-        Column(modifier = Modifier.fillMaxWidth(), content = content)
+        Column(modifier = Modifier.fillMaxWidth().groveFadeSlide(distance = 20.dp, durationMillis = 240), content = content)
     }
 }

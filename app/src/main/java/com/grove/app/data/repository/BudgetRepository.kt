@@ -18,13 +18,13 @@ class BudgetRepository(
         month: Int,
     ): Flow<MonthlyBudget?> = dao.observeForPeriod(year, month).map { it?.toDomain() }
 
-    fun observeAll(): Flow<List<MonthlyBudget>> = dao.observeAll().map { list -> list.map { it.toDomain() } }
+    fun observeAll(): Flow<List<MonthlyBudget>> = dao.observeAll().mapList { it.toDomain() }
 
     fun observeCategoryBudgets(monthlyBudgetId: UUID): Flow<List<MonthlyCategoryBudget>> =
-        dao.observeCategoryBudgets(monthlyBudgetId).map { list -> list.map { it.toDomain() } }
+        dao.observeCategoryBudgets(monthlyBudgetId).mapList { it.toDomain() }
 
     fun observeAllCategoryBudgets(): Flow<List<MonthlyCategoryBudget>> =
-        dao.observeAllCategoryBudgets().map { list -> list.map { it.toDomain() } }
+        dao.observeAllCategoryBudgets().mapList { it.toDomain() }
 
     suspend fun getForPeriod(
         year: Int,
@@ -33,6 +33,11 @@ class BudgetRepository(
 
     suspend fun getCategoryBudgets(monthlyBudgetId: UUID): List<MonthlyCategoryBudget> =
         dao.getCategoryBudgets(monthlyBudgetId).map { it.toDomain() }
+
+    suspend fun getCategoryBudget(
+        monthlyBudgetId: UUID,
+        categoryId: UUID,
+    ): MonthlyCategoryBudget? = dao.getCategoryBudget(monthlyBudgetId, categoryId)?.toDomain()
 
     suspend fun updateCurrencyCode(currencyCode: String) {
         dao.updateCurrencyCode(currencyCode, Instant.now())

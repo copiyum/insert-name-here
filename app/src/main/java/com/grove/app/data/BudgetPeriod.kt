@@ -38,6 +38,3 @@ data class BudgetPeriod(
         }
     }
 }
-
-private fun LocalDate.withClampedDay(day: Int): LocalDate =
-    withDayOfMonth(day.coerceAtMost(lengthOfMonth()))

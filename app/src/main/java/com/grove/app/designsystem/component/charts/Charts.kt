@@ -1,11 +1,13 @@
 package com.grove.app.designsystem.component.charts
 
-import androidx.compose.animation.core.AnimationSpec
-import androidx.compose.animation.core.EaseOutCubic
+import android.view.HapticFeedbackConstants
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,6 +23,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -37,9 +40,12 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -47,14 +53,24 @@ import com.grove.app.designsystem.catalog.CategoryVisuals
 import com.grove.app.designsystem.component.animatedOnce
 import com.grove.app.designsystem.format.Currencies
 import com.grove.app.designsystem.format.Money
+import com.grove.app.designsystem.theme.GroveEase
 import com.grove.app.designsystem.theme.GroveTheme
 import com.grove.app.designsystem.theme.GroveShapes
 import com.grove.app.designsystem.theme.GroveSpacing
-import com.grove.app.designsystem.theme.InterTight
+import com.grove.app.designsystem.theme.JetBrainsMono
+import com.grove.app.designsystem.theme.SpaceGrotesk
+import kotlinx.coroutines.delay
 import kotlin.math.atan2
 
-private val DrawInSpec: AnimationSpec<Float> = tween(520, easing = EaseOutCubic)
-private val BarSpec: AnimationSpec<Float> = tween(360, easing = EaseOutCubic)
+private const val ArcDefaultDurationMillis = 800
+private val BarSpec = GroveEase.slow<Float>()
+
+data class DonutSlice(
+    val id: String,
+    val label: String,
+    val color: Color,
+    val amount: Double,
+)
 
 @Composable
 fun ArcProgress(
@@ -63,10 +79,34 @@ fun ArcProgress(
     colorDeep: Color,
     modifier: Modifier = Modifier,
     stroke: Float = 12f,
+    animationKey: Any? = pct,
+    fromPct: Float? = null,
+    startDelayMillis: Int = 0,
+    durationMillis: Int = ArcDefaultDurationMillis,
+    easing: Easing = GroveEase.Out,
+    progressOverride: Float? = null,
     content: @Composable () -> Unit,
 ) {
     val c = GroveTheme.colors
-    val animPct = animatedOnce(pct, DrawInSpec)
+    var played by remember { mutableStateOf(false) }
+    val animPct = remember { Animatable(if (fromPct != null) fromPct.coerceIn(0f, 1f) else 0f) }
+    val drawPct = progressOverride?.coerceIn(0f, 1f) ?: animPct.value
+
+    LaunchedEffect(pct, animationKey, fromPct, startDelayMillis, durationMillis, easing) {
+        if (progressOverride != null) return@LaunchedEffect
+        if (fromPct != null) {
+            animPct.snapTo(fromPct.coerceIn(0f, 1f))
+        } else if (!played) {
+            animPct.snapTo(0f)
+        }
+        if (startDelayMillis > 0) delay(startDelayMillis.toLong())
+        animPct.animateTo(
+            targetValue = pct.coerceIn(0f, 1f),
+            animationSpec = tween(durationMillis.coerceAtLeast(0), easing = easing),
+        )
+        played = true
+    }
+
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val dim = size.minDimension
@@ -75,11 +115,11 @@ fun ArcProgress(
             val center = Offset(size.width / 2, size.height / 2)
             val topLeft = Offset(center.x - radius, center.y - radius)
             val arcSize = Size(radius * 2, radius * 2)
-            drawArc(c.bone, 135f, 270f, false, topLeft, arcSize, style = Stroke(strokePx, cap = StrokeCap.Round))
-            if (animPct > 0) {
+            drawCircle(c.bgCard, radius = radius, center = center, style = Stroke(strokePx))
+            if (drawPct > 0) {
                 drawArc(
-                    Brush.linearGradient(listOf(color.copy(alpha = 0.85f), colorDeep)),
-                    135f, 270f * animPct, false, topLeft, arcSize, style = Stroke(strokePx, cap = StrokeCap.Round),
+                    Brush.linearGradient(listOf(color, colorDeep)),
+                    -90f, 360f * drawPct, false, topLeft, arcSize, style = Stroke(strokePx, cap = StrokeCap.Round),
                 )
             }
         }
@@ -89,26 +129,37 @@ fun ArcProgress(
 
 @Composable
 fun DonutChart(
-    data: List<Pair<String, Double>>,
+    data: List<DonutSlice>,
     total: Double,
     selected: String?,
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier,
-    currency: String = "USD",
+    currency: String = "INR",
 ) {
     val c = GroveTheme.colors
+    val view = LocalView.current
     if (data.isEmpty() || total <= 0) return
-    val selData = selected?.let { sel -> data.find { it.first == sel } }
+    val selData = selected?.let { sel -> data.find { it.id == sel } }
+    val chartSummary = remember(data, total) {
+        data.sortedByDescending { it.amount }.take(4).joinToString(
+            prefix = "Spending by category: ",
+            separator = ", ",
+        ) { slice -> "${slice.label} ${(slice.amount / total * 100).toInt()} percent" }
+    }
 
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+    Box(modifier = modifier.semantics { contentDescription = chartSummary }, contentAlignment = Alignment.Center) {
         Canvas(
             modifier = Modifier.fillMaxSize().pointerInput(data, total) {
                 detectTapGestures { offset ->
                     val angle = (Math.toDegrees(atan2((offset.y - size.height / 2f).toDouble(), (offset.x - size.width / 2f).toDouble())) + 360 + 90) % 360
                     var acc = 0.0
-                    for ((id, amount) in data) {
-                        val sweep = amount / total * 360.0
-                        if (angle >= acc && angle < acc + sweep) { onSelect(id); break }
+                    for (slice in data) {
+                        val sweep = slice.amount / total * 360.0
+                        if (angle >= acc && angle < acc + sweep) {
+                            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                            onSelect(slice.id)
+                            break
+                        }
                         acc += sweep
                     }
                 }
@@ -122,13 +173,13 @@ fun DonutChart(
             val arcSize = Size(radius * 2, radius * 2)
             drawArc(c.bgMuted, 0f, 360f, false, topLeft, arcSize, style = Stroke(baseStroke))
             var startAngle = -90f
-            data.forEach { (id, amount) ->
-                val sweep = (amount / total * 360f).toFloat()
-                val isSel = selected == id
+            data.forEach { slice ->
+                val sweep = (slice.amount / total * 360f).toFloat()
+                val isSel = selected == slice.id
                 val dimmed = selected != null && !isSel
                 val strokeW = if (isSel) baseStroke + dim * 0.04f else baseStroke
                 drawArc(
-                    CategoryVisuals.color(id).copy(alpha = if (dimmed) 0.28f else 1f),
+                    slice.color.copy(alpha = if (dimmed) 0.28f else 1f),
                     startAngle, sweep, false, topLeft, arcSize, style = Stroke(strokeW),
                 )
                 startAngle += sweep
@@ -136,37 +187,56 @@ fun DonutChart(
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                if (selData != null) CategoryVisuals.label(selData.first) else "SPENT",
-                fontFamily = InterTight, fontWeight = FontWeight.Medium, fontSize = 11.sp,
+                if (selData != null) selData.label else "SPENT",
+                fontFamily = JetBrainsMono, fontWeight = FontWeight.Medium, fontSize = 11.sp,
                 letterSpacing = 0.8.sp, color = c.fg3,
             )
-            Text(Money.currency(selData?.second ?: total, 0, currency), fontFamily = InterTight, fontWeight = FontWeight.SemiBold, fontSize = 22.sp, color = c.fg1)
+            Text(Money.currency(selData?.amount ?: total, 0, currency), fontFamily = SpaceGrotesk, fontWeight = FontWeight.SemiBold, fontSize = 22.sp, color = c.fg1)
             if (selData != null) {
-                Text("${(selData.second / total * 100).toInt()}%", fontFamily = InterTight, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = c.fg3)
+                Text("${(selData.amount / total * 100).toInt()}%", fontFamily = SpaceGrotesk, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = c.fg3)
             }
         }
     }
 }
 
 @Composable
-fun LineChart(data: List<Double>, baseline: Double, modifier: Modifier = Modifier, monthShort: String = "", currency: String = "USD") {
+fun LineChart(data: List<Double>, baseline: Double, modifier: Modifier = Modifier, monthShort: String = "", currency: String = "INR") {
     val c = GroveTheme.colors
     if (data.isEmpty()) return
     val density = LocalDensity.current
+    val view = LocalView.current
     var hover by remember { mutableStateOf<Int?>(null) }
     var widthPx by remember { mutableFloatStateOf(0f) }
+    val chartSummary = remember(data, currency) {
+        val maxIdx = data.indices.maxByOrNull { data[it] } ?: 0
+        "Daily spending this period, highest ${Money.currency(data[maxIdx], 0, currency)} on day ${maxIdx + 1}"
+    }
 
     Box(
-        modifier = modifier.pointerInput(data.size) {
-            widthPx = size.width.toFloat()
-            detectHorizontalScrub(
-                onScrub = { x -> hover = Math.round((x / size.width).coerceIn(0f, 1f) * (data.size - 1)) },
-                onEnd = { hover = null },
-            )
-        },
+        modifier =
+            modifier
+                .semantics { contentDescription = chartSummary }
+                .onSizeChanged { widthPx = it.width.toFloat() }
+                .pointerInput(data.size) {
+                    fun scrub(x: Float) {
+                        val idx = Math.round((x / size.width).coerceIn(0f, 1f) * (data.size - 1))
+                        if (idx != hover) {
+                            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                            hover = idx
+                        }
+                    }
+                    detectDragGestures(
+                        onDragStart = { offset -> scrub(offset.x) },
+                        onDragEnd = { hover = null },
+                        onDragCancel = { hover = null },
+                        onDrag = { change, _ ->
+                            scrub(change.position.x)
+                            change.consume()
+                        },
+                    )
+                },
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            widthPx = size.width
             val maxV = (data.maxOrNull() ?: 0.0).coerceAtLeast(baseline) * 1.1
             val padY = 8f
             val stepX = size.width / (data.size - 1).coerceAtLeast(1)
@@ -178,7 +248,8 @@ fun LineChart(data: List<Double>, baseline: Double, modifier: Modifier = Modifie
             val area = Path().apply {
                 moveTo(pts.first().x, size.height - padY)
                 pts.forEach { lineTo(it.x, it.y) }
-                lineTo(pts.last().x, size.height - padY); close()
+                lineTo(pts.last().x, size.height - padY)
+                close()
             }
             drawPath(area, c.accent.copy(alpha = 0.22f), style = Fill)
             val line = Path().apply { pts.forEachIndexed { i, pt -> if (i == 0) moveTo(pt.x, pt.y) else lineTo(pt.x, pt.y) } }
@@ -203,10 +274,10 @@ fun LineChart(data: List<Double>, baseline: Double, modifier: Modifier = Modifie
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         "$monthShort ${h + 1}".trim().uppercase(),
-                        fontFamily = InterTight, fontSize = 9.5.sp, letterSpacing = 0.4.sp,
+                        fontFamily = JetBrainsMono, fontSize = 9.5.sp, letterSpacing = 0.4.sp,
                         color = c.bgCard.copy(alpha = 0.7f),
                     )
-                    Text(Money.currency(data[h], 2, currency), fontFamily = InterTight, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = c.bgCard)
+                    Text(Money.currency(data[h], 2, currency), fontFamily = SpaceGrotesk, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = c.bgCard)
                 }
             }
         }
@@ -216,10 +287,19 @@ fun LineChart(data: List<Double>, baseline: Double, modifier: Modifier = Modifie
 data class MonthBar(val label: String, val value: Double, val now: Boolean = false)
 
 @Composable
-fun MonthBars(months: List<MonthBar>, modifier: Modifier = Modifier) {
+fun MonthBars(months: List<MonthBar>, modifier: Modifier = Modifier, currency: String = "INR") {
     val c = GroveTheme.colors
     val max = months.maxOf { it.value }.coerceAtLeast(1.0)
-    Row(modifier = modifier.fillMaxWidth().height(120.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Bottom) {
+    val chartSummary = remember(months, currency) {
+        months.joinToString(prefix = "Monthly totals: ", separator = ", ") { mo ->
+            "${mo.label} ${Money.currency(mo.value, 0, currency)}" + if (mo.now) ", current month" else ""
+        }
+    }
+    Row(
+        modifier = modifier.fillMaxWidth().height(120.dp).semantics { contentDescription = chartSummary },
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.Bottom,
+    ) {
         months.forEach { mo ->
             Column(modifier = Modifier.weight(1f).fillMaxHeight(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Bottom) {
                 Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
@@ -234,23 +314,13 @@ fun MonthBars(months: List<MonthBar>, modifier: Modifier = Modifier) {
                 }
                 Text(
                     mo.label,
-                    fontFamily = InterTight,
+                    fontFamily = JetBrainsMono,
                     fontSize = 11.5.sp,
                     fontWeight = if (mo.now) FontWeight.SemiBold else FontWeight.Medium,
                     color = if (mo.now) c.fg1 else c.fg3,
                     modifier = Modifier.padding(top = GroveSpacing.SM),
                 )
             }
-        }
-    }
-}
-
-private suspend fun PointerInputScope.detectHorizontalScrub(onScrub: (Float) -> Unit, onEnd: () -> Unit) {
-    awaitPointerEventScope {
-        while (true) {
-            val event = awaitPointerEvent()
-            val change = event.changes.firstOrNull() ?: continue
-            if (change.pressed) onScrub(change.position.x) else onEnd()
         }
     }
 }

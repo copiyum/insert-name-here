@@ -1,7 +1,9 @@
 package com.grove.app.data.repository
 
+import com.grove.app.data.db.ExpenseLite
 import com.grove.app.data.db.dao.ExpenseDao
 import com.grove.app.data.db.entity.ExpenseEntity
+import com.grove.app.data.model.CategoryKind
 import com.grove.app.data.model.Expense
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -11,12 +13,23 @@ import java.util.UUID
 class ExpenseRepository(
     private val dao: ExpenseDao,
 ) {
-    fun observeAll(): Flow<List<Expense>> = dao.observeAll().map { list -> list.map { it.toDomain() } }
-
-    fun observeBetween(
-        start: Instant,
-        end: Instant,
-    ): Flow<List<Expense>> = dao.observeBetween(start, end).map { list -> list.map { it.toDomain() } }
+    /** Expenses pre-joined with their category in SQL, ready for [ExpenseLite] consumers. */
+    fun observeAllLite(): Flow<List<ExpenseLite>> =
+        dao.observeAllWithCategory().map { rows ->
+            rows.map { row ->
+                ExpenseLite(
+                    id = row.expense.id,
+                    amountMinor = row.expense.amountMinor,
+                    currencyCode = row.expense.currencyCode,
+                    categoryId = row.expense.categoryId,
+                    categoryName = row.categoryName ?: "Other",
+                    iconKey = row.categoryIconKey ?: "more_horiz",
+                    categoryKind = row.categoryKind ?: CategoryKind.expense,
+                    note = row.expense.note,
+                    occurredAt = row.expense.occurredAt,
+                )
+            }
+        }
 
     suspend fun upsert(expense: Expense) {
         val now = Instant.now()

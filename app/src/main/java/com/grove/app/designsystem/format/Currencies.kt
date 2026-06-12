@@ -29,7 +29,7 @@ object Currencies {
 
     private val map = list.associateBy { it.code }
 
-    fun current(code: String): Currency = map[code] ?: list[1]
+    fun current(code: String): Currency = map[code] ?: list[0]
 
 
     fun minorUnitExponent(code: String): Int =

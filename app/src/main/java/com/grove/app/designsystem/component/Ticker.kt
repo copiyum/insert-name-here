@@ -1,0 +1,130 @@
+package com.grove.app.designsystem.component
+
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
+import com.grove.app.designsystem.format.Money
+import com.grove.app.designsystem.format.lerpMinor
+import com.grove.app.designsystem.theme.GroveEase
+import kotlinx.coroutines.delay
+
+/**
+ * Slot-machine text: every character slides vertically when it changes, rolling
+ * up for increases and down for decreases. Characters are keyed by their distance
+ * from the right edge so trailing digits stay put when the value grows a digit.
+ */
+@Composable
+fun TickerText(
+    text: String,
+    style: TextStyle,
+    modifier: Modifier = Modifier,
+    color: Color = Color.Unspecified,
+) {
+    var previousValue by remember { mutableLongStateOf(numericValue(text)) }
+    val currentValue = numericValue(text)
+    val rollingUp = currentValue >= previousValue
+    LaunchedEffect(currentValue) { previousValue = currentValue }
+
+    Row(modifier = modifier) {
+        val chars = text.toList()
+        chars.forEachIndexed { index, ch ->
+            val fromRight = chars.size - index
+            androidx.compose.runtime.key(fromRight) {
+                AnimatedContent(
+                    targetState = ch,
+                    transitionSpec = { tickerTransform(rollingUp, staggerIndex = index) },
+                    label = "tickerChar",
+                ) { target ->
+                    Text(text = target.toString(), style = style, color = color, maxLines = 1)
+                }
+            }
+        }
+    }
+}
+
+private fun tickerTransform(rollingUp: Boolean, staggerIndex: Int): ContentTransform {
+    val enterSpec = tween<androidx.compose.ui.unit.IntOffset>(
+        durationMillis = 360,
+        delayMillis = staggerIndex * 24,
+        easing = GroveEase.Out,
+    )
+    val exitSpec = tween<androidx.compose.ui.unit.IntOffset>(
+        durationMillis = 300,
+        delayMillis = staggerIndex * 24,
+        easing = GroveEase.Out,
+    )
+    return if (rollingUp) {
+        (slideInVertically(enterSpec) { it } + fadeIn(GroveEase.normal())) togetherWith
+            (slideOutVertically(exitSpec) { -it } + fadeOut(GroveEase.fast()))
+    } else {
+        (slideInVertically(enterSpec) { -it } + fadeIn(GroveEase.normal())) togetherWith
+            (slideOutVertically(exitSpec) { it } + fadeOut(GroveEase.fast()))
+    }
+}
+
+private fun numericValue(text: String): Long =
+    text.filter(Char::isDigit).take(17).toLongOrNull() ?: 0L
+
+/**
+ * Money ticker. On first appearance it rolls from [countUpFrom]; afterwards every
+ * value change rolls digit-by-digit. While [progress] drives an external settlement
+ * animation (the spend-transfer overlay) it renders plain interpolated text so the
+ * two systems never fight.
+ */
+@Composable
+fun TickerMoneyText(
+    minor: Long,
+    currency: String,
+    style: TextStyle,
+    modifier: Modifier = Modifier,
+    decimals: Int = 0,
+    color: Color = Color.Unspecified,
+    countUpFrom: Long? = 0L,
+    entryDelayMillis: Long = 180L,
+    fromMinor: Long? = null,
+    progress: Float? = null,
+) {
+    if (progress != null && fromMinor != null) {
+        Text(
+            text = Money.currencyLong(lerpMinor(fromMinor, minor, progress), decimals, currency),
+            style = style,
+            color = color,
+            modifier = modifier,
+            maxLines = 1,
+        )
+        return
+    }
+
+    var shown by remember { mutableLongStateOf(countUpFrom ?: minor) }
+    var entered by remember { mutableStateOf(countUpFrom == null) }
+    LaunchedEffect(minor) {
+        if (!entered) {
+            delay(entryDelayMillis)
+            entered = true
+        }
+        shown = minor
+    }
+    TickerText(
+        text = Money.currencyLong(shown, decimals, currency),
+        style = style,
+        color = color,
+        modifier = modifier,
+    )
+}

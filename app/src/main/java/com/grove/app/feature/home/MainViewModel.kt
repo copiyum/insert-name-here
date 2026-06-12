@@ -5,10 +5,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.grove.app.data.BudgetPeriod
 import com.grove.app.data.BudgetState
+import com.grove.app.data.GroveDefaults
 import com.grove.app.data.UserPreferences
 import com.grove.app.data.UserPreferencesRepository
 import com.grove.app.data.db.BudgetStateReactor
-import com.grove.app.data.db.GroveDatabase
 import com.grove.app.data.model.Bill
 import com.grove.app.data.model.Expense
 import com.grove.app.data.model.MonthlyBudget
@@ -22,11 +22,8 @@ import com.grove.app.data.repository.ExpenseRepository
 import com.grove.app.data.repository.IncomeRepository
 import com.grove.app.data.repository.NotificationRepository
 import com.grove.app.data.repository.UserRepository
-import com.grove.app.data.userPreferencesDataStore
 import com.grove.app.designsystem.format.Money
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -51,19 +48,20 @@ class MainViewModel(
     private val reactor: BudgetStateReactor,
 ) : ViewModel() {
     constructor(application: Application) : this(
-        userRepo = Graph.userRepo(application),
-        categoryRepo = Graph.categoryRepo(application),
-        expenseRepo = Graph.expenseRepo(application),
-        billRepo = Graph.billRepo(application),
-        incomeRepo = Graph.incomeRepo(application),
-        budgetRepo = Graph.budgetRepo(application),
-        notificationRepo = Graph.notificationRepo(application),
-        prefs = Graph.prefsRepo(application),
-        reactor = Graph.reactor(application),
+        userRepo = GroveAppGraph.userRepo(application),
+        categoryRepo = GroveAppGraph.categoryRepo(application),
+        expenseRepo = GroveAppGraph.expenseRepo(application),
+        billRepo = GroveAppGraph.billRepo(application),
+        incomeRepo = GroveAppGraph.incomeRepo(application),
+        budgetRepo = GroveAppGraph.budgetRepo(application),
+        notificationRepo = GroveAppGraph.notificationRepo(application),
+        prefs = GroveAppGraph.prefsRepo(application),
+        reactor = GroveAppGraph.reactor(application),
     )
 
     private val _toast = MutableStateFlow<String?>(null)
     val toast: StateFlow<String?> = _toast.asStateFlow()
+    private var toastJob: Job? = null
 
     val state: StateFlow<BudgetState> = reactor.state
 
@@ -74,7 +72,7 @@ class MainViewModel(
     val currency: StateFlow<String> =
         state
             .map { it.homeCurrency }
-            .stateIn(viewModelScope, SharingStarted.Eagerly, "USD")
+            .stateIn(viewModelScope, SharingStarted.Eagerly, GroveDefaults.DEFAULT_CURRENCY)
 
     val darkOverride: StateFlow<Boolean?> =
         preferences
@@ -84,29 +82,47 @@ class MainViewModel(
     val notificationSettings: StateFlow<NotificationSettings> =
         notificationRepo
             .observeSettings()
-            .map { it ?: NotificationSettings(true, 480, true, 3) }
-            .stateIn(viewModelScope, SharingStarted.Eagerly, NotificationSettings(true, 480, true, 3))
+            .map { it ?: GroveDefaults.DEFAULT_NOTIFICATION_SETTINGS }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, GroveDefaults.DEFAULT_NOTIFICATION_SETTINGS)
+
+    val soundsEnabled: StateFlow<Boolean> =
+        preferences
+            .map { it.soundsEnabled }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, true)
 
     fun toggleDark(current: Boolean) {
         viewModelScope.launch { prefs.updateDarkMode(if (current) "light" else "dark") }
     }
 
+    fun toggleSounds(enabled: Boolean) {
+        viewModelScope.launch { prefs.updateSounds(enabled) }
+    }
+
     fun saveExpense(expense: Expense) {
         viewModelScope.launch {
             val existed = state.value.expenses.any { it.id == expense.id }
-            expenseRepo.upsert(expense)
-            val display = Money.currencyLong(expense.amountMinor, 2, currency.value)
-            toast("${if (existed) "Updated" else "Saved"} · $display")
+            runCatching { expenseRepo.upsert(expense) }
+                .onSuccess {
+                    val display = Money.currencyLong(expense.amountMinor, 2, currency.value)
+                    toast("${if (existed) "Updated" else "Saved"} · $display")
+                }.onFailure { toast("Hmm, that didn't save — try again") }
         }
     }
 
-    fun deleteExpense(id: UUID) = viewModelScope.launch { expenseRepo.delete(id) }
+    fun deleteExpense(id: UUID) = viewModelScope.launch {
+        runCatching { expenseRepo.delete(id) }
+            .onFailure { toast("That one wouldn't budge — try again") }
+    }
 
-    fun deleteBill(id: UUID) = viewModelScope.launch { billRepo.delete(id) }
+    fun deleteBill(id: UUID) = viewModelScope.launch {
+        runCatching { billRepo.delete(id) }
+            .onFailure { toast("That one wouldn't budge — try again") }
+    }
 
     fun addBill(bill: Bill) = viewModelScope.launch {
-        billRepo.upsert(bill)
-        toast("Bill added · ${bill.name}")
+        runCatching { billRepo.upsert(bill) }
+            .onSuccess { toast("Bill added · ${bill.name}") }
+            .onFailure { toast("Hmm, that didn't save — try again") }
     }
 
     fun toggleBill(id: UUID) {
@@ -120,19 +136,21 @@ class MainViewModel(
         viewModelScope.launch {
             val minor = Money.toMinor(value, currency.value)
             val period = state.value.period
-            val existing = budgetRepo.getForPeriod(period.start.year, period.start.monthValue)
-            val now = Instant.now()
-            val budget =
-                MonthlyBudget(
-                    id = existing?.id ?: UUID.randomUUID(),
-                    periodYear = period.start.year,
-                    periodMonth = period.start.monthValue,
-                    totalMinor = minor,
-                    currencyCode = currency.value,
-                    createdAt = existing?.createdAt ?: now,
-                    updatedAt = now,
-                )
-            budgetRepo.upsert(budget, emptyList())
+            runCatching {
+                val existing = budgetRepo.getForPeriod(period.start.year, period.start.monthValue)
+                val now = Instant.now()
+                val budget =
+                    MonthlyBudget(
+                        id = existing?.id ?: UUID.randomUUID(),
+                        periodYear = period.start.year,
+                        periodMonth = period.start.monthValue,
+                        totalMinor = minor,
+                        currencyCode = currency.value,
+                        createdAt = existing?.createdAt ?: now,
+                        updatedAt = now,
+                    )
+                budgetRepo.upsert(budget, emptyList())
+            }.onFailure { toast("Hmm, that didn't save — try again") }
         }
     }
 
@@ -144,28 +162,27 @@ class MainViewModel(
             val categoryId = runCatching { UUID.fromString(id) }.getOrNull() ?: return@launch
             val period = state.value.period
             val now = Instant.now()
-            val budget =
-                budgetRepo.getForPeriod(period.start.year, period.start.monthValue) ?: MonthlyBudget(
-                    id = UUID.randomUUID(),
-                    periodYear = period.start.year,
-                    periodMonth = period.start.monthValue,
-                    totalMinor = state.value.monthBudgetMinor,
-                    currencyCode = currency.value,
-                    createdAt = now,
-                    updatedAt = now,
-                )
-            val existing =
-                budgetRepo
-                    .getCategoryBudgets(budget.id)
-                    .firstOrNull { it.categoryId == categoryId }
-            val categoryBudget =
-                MonthlyCategoryBudget(
-                    id = existing?.id ?: UUID.randomUUID(),
-                    monthlyBudgetId = budget.id,
-                    categoryId = categoryId,
-                    amountMinor = Money.toMinor(value, currency.value),
-                )
-            budgetRepo.upsert(budget, listOf(categoryBudget))
+            runCatching {
+                val budget =
+                    budgetRepo.getForPeriod(period.start.year, period.start.monthValue) ?: MonthlyBudget(
+                        id = UUID.randomUUID(),
+                        periodYear = period.start.year,
+                        periodMonth = period.start.monthValue,
+                        totalMinor = state.value.monthBudgetMinor,
+                        currencyCode = currency.value,
+                        createdAt = now,
+                        updatedAt = now,
+                    )
+                val existing = budgetRepo.getCategoryBudget(budget.id, categoryId)
+                val categoryBudget =
+                    MonthlyCategoryBudget(
+                        id = existing?.id ?: UUID.randomUUID(),
+                        monthlyBudgetId = budget.id,
+                        categoryId = categoryId,
+                        amountMinor = Money.toMinor(value, currency.value),
+                    )
+                budgetRepo.upsert(budget, listOf(categoryBudget))
+            }.onFailure { toast("Hmm, that didn't save — try again") }
         }
     }
 
@@ -176,15 +193,15 @@ class MainViewModel(
         viewModelScope.launch {
             val current =
                 userRepo.get() ?: UserProfile(
-                    name = "Mae",
+                    name = GroveDefaults.DEFAULT_USER_NAME,
                     resetDay = resetDay,
-                    currencyCode = "USD",
+                    currencyCode = GroveDefaults.DEFAULT_CURRENCY,
                     onboardingCompleted = false,
                 )
             val minor = Money.toMinor(monthBudget, current.currencyCode)
             userRepo.upsert(
                 current.copy(
-                    name = "Mae",
+                    name = current.name.ifBlank { GroveDefaults.DEFAULT_USER_NAME },
                     resetDay = resetDay,
                     onboardingCompleted = true,
                     onboardingCompletedAt = Instant.now(),
@@ -192,14 +209,15 @@ class MainViewModel(
             )
             val today = LocalDate.now()
             val period = BudgetPeriod.forDate(today, resetDay)
+            val existingBudget = budgetRepo.getForPeriod(period.start.year, period.start.monthValue)
             budgetRepo.upsert(
                 MonthlyBudget(
-                    id = UUID.randomUUID(),
+                    id = existingBudget?.id ?: UUID.randomUUID(),
                     periodYear = period.start.year,
                     periodMonth = period.start.monthValue,
                     totalMinor = minor,
                     currencyCode = current.currencyCode,
-                    createdAt = Instant.now(),
+                    createdAt = existingBudget?.createdAt ?: Instant.now(),
                     updatedAt = Instant.now(),
                 ),
                 emptyList(),
@@ -207,23 +225,16 @@ class MainViewModel(
         }
     }
 
-    fun skipOnboarding() {
-        viewModelScope.launch {
-            val current = userRepo.get() ?: return@launch
-            userRepo.upsert(current.copy(onboardingCompleted = true, onboardingCompletedAt = Instant.now()))
-        }
-    }
-
     fun updateDailySafeSpend(enabled: Boolean) {
         viewModelScope.launch {
-            val current = notificationRepo.getSettings() ?: NotificationSettings(true, 480, true, 3)
+            val current = notificationRepo.getSettings() ?: GroveDefaults.DEFAULT_NOTIFICATION_SETTINGS
             notificationRepo.upsertSettings(current.copy(dailySafeSpendEnabled = enabled))
         }
     }
 
     fun updateBillAlerts(enabled: Boolean) {
         viewModelScope.launch {
-            val current = notificationRepo.getSettings() ?: NotificationSettings(true, 480, true, 3)
+            val current = notificationRepo.getSettings() ?: GroveDefaults.DEFAULT_NOTIFICATION_SETTINGS
             notificationRepo.upsertSettings(current.copy(billAlertsEnabled = enabled))
         }
     }
@@ -232,9 +243,9 @@ class MainViewModel(
         viewModelScope.launch {
             val current =
                 userRepo.get() ?: UserProfile(
-                    name = "Mae",
+                    name = GroveDefaults.DEFAULT_USER_NAME,
                     resetDay = 1,
-                    currencyCode = "USD",
+                    currencyCode = GroveDefaults.DEFAULT_CURRENCY,
                     onboardingCompleted = false,
                 )
             expenseRepo.updateCurrencyCode(code)
@@ -248,7 +259,7 @@ class MainViewModel(
     fun updateUserName(name: String) {
         viewModelScope.launch {
             val current = userRepo.get() ?: return@launch
-            val trimmed = name.trim().take(30)
+            val trimmed = name.trim().take(GroveDefaults.MAX_USER_NAME_LENGTH)
             if (trimmed.isNotEmpty()) {
                 userRepo.upsert(current.copy(name = trimmed))
             }
@@ -258,7 +269,7 @@ class MainViewModel(
     fun updateResetDay(day: Int) {
         viewModelScope.launch {
             val current = userRepo.get() ?: return@launch
-            userRepo.upsert(current.copy(resetDay = day.coerceIn(1, 31)))
+            userRepo.upsert(current.copy(resetDay = day.coerceIn(1, 28)))
         }
     }
 
@@ -270,51 +281,11 @@ class MainViewModel(
     }
 
     private fun toast(message: String) {
+        toastJob?.cancel()
         _toast.value = message
-        viewModelScope.launch {
-            delay(1800)
+        toastJob = viewModelScope.launch {
+            delay(GroveDefaults.TOAST_DURATION_MS)
             _toast.value = null
         }
     }
-}
-
-
-object Graph {
-    @Volatile private var db: GroveDatabase? = null
-
-    @Volatile private var reactor: BudgetStateReactor? = null
-
-    private fun db(application: Application): GroveDatabase =
-        db ?: synchronized(this) {
-            db ?: GroveDatabase.build(application).also { db = it }
-        }
-
-    fun userRepo(application: Application) = UserRepository(db(application).userProfileDao())
-
-    fun categoryRepo(application: Application) = CategoryRepository(db(application).categoryDao())
-
-    fun expenseRepo(application: Application) = ExpenseRepository(db(application).expenseDao())
-
-    fun billRepo(application: Application) = BillRepository(db(application).billDao(), db(application).billPaymentDao())
-
-    fun incomeRepo(application: Application) = IncomeRepository(db(application).incomeDao())
-
-    fun budgetRepo(application: Application) = BudgetRepository(db(application).monthlyBudgetDao())
-
-    fun notificationRepo(application: Application) = NotificationRepository(db(application).notificationDao())
-
-    fun prefsRepo(application: Application) = UserPreferencesRepository(application.userPreferencesDataStore)
-
-    fun reactor(application: Application): BudgetStateReactor =
-        reactor ?: synchronized(this) {
-            reactor ?: BudgetStateReactor(
-                scope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
-                userRepo = userRepo(application),
-                categoryRepo = categoryRepo(application),
-                expenseRepo = expenseRepo(application),
-                billRepo = billRepo(application),
-                incomeRepo = incomeRepo(application),
-                budgetRepo = budgetRepo(application),
-            ).also { reactor = it }
-        }
 }
