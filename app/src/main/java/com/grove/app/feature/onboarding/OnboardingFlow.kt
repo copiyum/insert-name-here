@@ -170,7 +170,7 @@ private fun StepResetDay(resetDay: Int, onResetDay: (Int) -> Unit) {
                         .border(1.5.dp, if (on) c.accent else c.border, RoundedCornerShape(16.dp)).clickable { onResetDay(d) }.padding(horizontal = 18.dp, vertical = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(3.dp),
                 ) {
-                    Text(ordinal(d), fontFamily = Fraunces, fontWeight = FontWeight.Medium, fontSize = 18.sp, letterSpacing = (-0.2).sp, color = c.fg1)
+                    Text(ordinal(d), fontFamily = Fraunces, fontWeight = FontWeight.Medium, fontSize = 18.sp, color = c.fg1)
                     Text(label, fontFamily = InterTight, fontSize = 12.5.sp, color = c.fg3)
                 }
             }
@@ -189,7 +189,7 @@ private fun StepSummary(userName: String, budget: Int, resetDay: Int, currency: 
         OnbSub("Here's your plan. You can change anything from the Budget tab whenever you like.")
         Spacer(Modifier.height(24.dp))
         Column(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(c.bgCard).border(1.dp, c.border, RoundedCornerShape(16.dp)).padding(horizontal = 18.dp)) {
-        val symbol = Currencies.current(currency).symbol
+            val symbol = Currencies.current(currency).symbol
             SummaryRow("Monthly budget", "$symbol${"%,d".format(budget)}", divider = false)
             SummaryRow("Resets", "${ordinal(resetDay)} of each month", divider = true)
             SummaryRow("Safe to spend / day", "~$symbol${Math.round(budget / 30.0)}", divider = true)
@@ -224,7 +224,7 @@ private fun OnbKicker(text: String) {
 
 @Composable
 private fun OnbTitle(text: String) {
-    Text(text, fontFamily = Fraunces, fontWeight = FontWeight.Normal, fontSize = 30.sp, letterSpacing = (-0.75).sp, lineHeight = 33.sp, color = GroveTheme.colors.fg1)
+    Text(text, fontFamily = Fraunces, fontWeight = FontWeight.Normal, fontSize = 30.sp, lineHeight = 33.sp, color = GroveTheme.colors.fg1)
 }
 
 @Composable

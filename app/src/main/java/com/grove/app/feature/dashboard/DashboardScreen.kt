@@ -33,17 +33,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.grove.app.data.BudgetState
 import com.grove.app.designsystem.component.AppTopBar
+import com.grove.app.designsystem.component.EmptyState
 import com.grove.app.designsystem.component.ExpenseRow
 import com.grove.app.designsystem.component.GroveCard
+import com.grove.app.designsystem.component.GroveCardVariant
 import com.grove.app.designsystem.component.HeroStatusChip
 import com.grove.app.designsystem.component.IconCircleButton
-import com.grove.app.designsystem.component.LeafGlyph
+import com.grove.app.designsystem.component.MetricBlock
+import com.grove.app.designsystem.component.MoneyText
+import com.grove.app.designsystem.component.MoneyTextSize
 import com.grove.app.designsystem.component.SectionHeader
-import com.grove.app.designsystem.component.animatedOnce
 import com.grove.app.designsystem.component.charts.ArcProgress
-import com.grove.app.designsystem.format.Currencies
 import com.grove.app.designsystem.format.Money
-import com.grove.app.designsystem.theme.Fraunces
 import com.grove.app.designsystem.theme.GroveSpacing
 import com.grove.app.designsystem.theme.GroveTheme
 import com.grove.app.designsystem.theme.GroveType
@@ -55,7 +56,6 @@ fun DashboardScreen(
     state: BudgetState,
     currency: String,
     onNavigate: (String) -> Unit,
-    onAddExpense: () -> Unit = {},
 ) {
     val c = GroveTheme.colors
     val monthName = remember(state.today) { state.today.format(DateTimeFormatter.ofPattern("MMMM")) }
@@ -66,13 +66,11 @@ fun DashboardScreen(
     val pctSpent = if (safePerDay > 0) (spentToday / safePerDay).toFloat().coerceIn(0f, 1f) else 0f
     val tone = when {
         state.monthBudgetMinor == 0L -> SpendTone(c.accent, c.accentDeep, "On track", healthy = true)
-        over -> SpendTone(c.clay, Color(0xFF8F6A4C), "Over budget", healthy = false)
-        spentToday > safePerDay * 0.85 -> SpendTone(c.claySoft, c.clay, "Spending fast", healthy = false)
+        over -> SpendTone(c.danger, c.danger, "Over budget", healthy = false)
+        spentToday > safePerDay * 0.85 -> SpendTone(c.warn, c.warn, "Spending fast", healthy = false)
         else -> SpendTone(c.accent, c.accentDeep, "On track", healthy = true)
     }
     val recent = remember(state.expenses) { state.expenses.sortedByDescending { it.occurredAt }.take(4) }
-    val safeDollars = safe.toInt()
-    val safeCents = ((safe - safeDollars) * 100).toInt().toString().padStart(2, '0')
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -89,20 +87,11 @@ fun DashboardScreen(
         item {
             GroveCard(
                 modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
-                padding = PaddingValues(top = 28.dp, bottom = 24.dp, start = 20.dp, end = 20.dp),
+                padding = PaddingValues(top = 24.dp, bottom = 22.dp, start = 20.dp, end = 20.dp),
+                variant = GroveCardVariant.Elevated,
             ) {
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    Box(modifier = Modifier.matchParentSize()) {
-                        LeafGlyph(120, tone.color, 0.05f, modifier = Modifier.align(Alignment.TopStart).offset(x = (-20).dp, y = (-20).dp))
-                        LeafGlyph(
-                            140,
-                            tone.deep,
-                            0.04f,
-                            rotation = 140f,
-                            modifier = Modifier.align(Alignment.BottomEnd).offset(x = 30.dp, y = 40.dp),
-                        )
-                    }
-                    ArcProgress(pctSpent, tone.color, tone.deep, modifier = Modifier.size(244.dp)) {
+                    ArcProgress(pctSpent, tone.color, tone.deep, modifier = Modifier.size(218.dp), stroke = 10f) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
                                 "SAFE TO SPEND TODAY",
@@ -110,23 +99,7 @@ fun DashboardScreen(
                                 color = c.fg3,
                             )
                             Spacer(Modifier.height(GroveSpacing.SM))
-                            Row(verticalAlignment = Alignment.Top) {
-                                Text(Currencies.current(currency).symbol, fontFamily = Fraunces, fontSize = 26.sp, color = c.fg2, modifier = Modifier.padding(top = 6.dp))
-                                Text(
-                                    safeDollars.toString(),
-                                    fontFamily = Fraunces,
-                                    fontSize = 56.sp,
-                                    letterSpacing = (-1.5).sp,
-                                    color = c.fg1,
-                                )
-                                Text(
-                                    ".$safeCents",
-                                    fontFamily = Fraunces,
-                                    fontSize = 26.sp,
-                                    color = c.fg2,
-                                    modifier = Modifier.padding(top = 6.dp),
-                                )
-                            }
+                            MoneyText(Money.currencyLong(state.safeToSpendTodayMinor, 2, currency), size = MoneyTextSize.Hero, color = c.fg1)
                             Spacer(Modifier.height(2.dp))
                             Row {
                                 Text(
@@ -149,9 +122,9 @@ fun DashboardScreen(
                 HorizontalDivider(color = c.border)
                 Spacer(Modifier.height(GroveSpacing.SM + 6.dp))
                 Row(modifier = Modifier.fillMaxWidth()) {
-                    HeroStat("SPENT", Money.currency(state.totalSpent, 0, currency), muted = false, modifier = Modifier.weight(1f))
+                    HeroStat("TODAY", Money.currency(state.spentToday, 0, currency), muted = false, modifier = Modifier.weight(1f))
                     Box(modifier = Modifier.width(1.dp).height(36.dp).background(c.border))
-                    HeroStat("BUDGET", Money.currency(state.monthBudget, 0, currency), muted = true, modifier = Modifier.weight(1f))
+                    HeroStat("BUDGET LEFT", Money.currency(state.remaining, 0, currency), muted = true, modifier = Modifier.weight(1f))
                 }
             }
         }
@@ -198,9 +171,13 @@ fun DashboardScreen(
 
         item {
             GroveCard(modifier = Modifier.fillMaxWidth(), padding = PaddingValues(horizontal = GroveSpacing.LG)) {
-                recent.forEachIndexed { i, expense ->
-                    ExpenseRow(expense, state.today, currency)
-                    if (i < recent.size - 1) HorizontalDivider(color = c.border)
+                if (recent.isEmpty()) {
+                    EmptyState("No expenses yet", subtitle = "Add your first spend to start tracking today.")
+                } else {
+                    recent.forEachIndexed { i, expense ->
+                        ExpenseRow(expense, state.today, currency = currency)
+                        if (i < recent.size - 1) HorizontalDivider(color = c.border)
+                    }
                 }
             }
         }
@@ -216,17 +193,7 @@ private fun HeroStat(
 ) {
     val c = GroveTheme.colors
     Column(modifier = modifier.padding(horizontal = 14.dp)) {
-        Text(label, style = GroveType.capLabel, color = c.fg3)
-        Spacer(Modifier.height(3.dp))
-        Text(
-            value,
-            style =
-                GroveType.rowTitle.copy(
-                    fontSize = 17.sp,
-                    fontWeight = if (muted) FontWeight.Medium else FontWeight.SemiBold,
-                    color = if (muted) c.fg2 else c.fg1,
-                ),
-        )
+        MetricBlock(label, value, valueColor = if (muted) c.fg2 else c.fg1)
     }
 }
 
@@ -239,7 +206,7 @@ private fun CalloutCard(
     modifier: Modifier = Modifier,
 ) {
     val c = GroveTheme.colors
-    GroveCard(modifier = modifier.clickable(onClick = onClick), padding = PaddingValues(GroveSpacing.SM)) {
+    GroveCard(modifier = modifier.clickable(onClick = onClick), padding = PaddingValues(GroveSpacing.SM), variant = GroveCardVariant.Default) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -249,7 +216,7 @@ private fun CalloutCard(
             Icon(Icons.Default.ChevronRight, contentDescription = null, tint = c.fg3, modifier = Modifier.size(14.dp))
         }
         Spacer(Modifier.height(GroveSpacing.SM))
-        Text(value, style = GroveType.rowTitle.copy(fontSize = 18.sp), color = c.fg1)
+        MoneyText(value, size = MoneyTextSize.Row, color = c.fg1)
         Spacer(Modifier.height(2.dp))
         Text(subtitle, style = GroveType.rowSub, color = c.fg3)
     }

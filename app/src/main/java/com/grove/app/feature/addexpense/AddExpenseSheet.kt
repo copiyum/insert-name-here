@@ -23,11 +23,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -38,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -47,6 +51,8 @@ import com.grove.app.data.model.Expense
 import com.grove.app.designsystem.component.CategoryIcon
 import com.grove.app.designsystem.component.GroveBottomSheet
 import com.grove.app.designsystem.component.Keypad
+import com.grove.app.designsystem.component.MoneyText
+import com.grove.app.designsystem.component.MoneyTextSize
 import com.grove.app.designsystem.component.PrimaryButton
 import com.grove.app.designsystem.format.Currencies
 import com.grove.app.designsystem.format.Money
@@ -56,6 +62,9 @@ import com.grove.app.designsystem.theme.GroveTheme
 import com.grove.app.designsystem.theme.InterTight
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
+import java.time.ZoneId
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.UUID
@@ -68,38 +77,48 @@ fun AddExpenseSheet(
     editing: Expense? = null,
     onSave: (Expense) -> Unit,
     onDismiss: () -> Unit,
-) {
+    ) {
     val c = GroveTheme.colors
+    val minorExponent = Currencies.minorUnitExponent(currency)
     var amount by remember(editing) {
         mutableStateOf(
             editing?.let {
-                val exp = Currencies.minorUnitExponent(currency)
-                val d = it.amountMinor.toDouble() / Math.pow(10.0, exp.toDouble())
-                if (exp == 0) d.toLong().toString() else String.format(Locale.US, "%.${exp}f", d)
+                val d = Money.fromMinor(it.amountMinor, currency)
+                if (minorExponent == 0) d.toLong().toString() else String.format(Locale.US, "%.${minorExponent}f", d)
             } ?: "",
         )
     }
     val amountNum = amount.toDoubleOrNull() ?: 0.0
+    val amountMinor = Money.toMinor(amountNum, currency)
     var selectedCategoryId by remember(editing) {
         mutableStateOf(editing?.categoryId?.toString() ?: categories.firstOrNull()?.id?.toString())
     }
     var note by remember(editing) { mutableStateOf(editing?.note ?: "") }
     var isDetailsStep by remember { mutableStateOf(false) }
+    var selectedDate by remember(editing) {
+        mutableStateOf(editing?.occurredAt?.atZone(ZoneId.systemDefault())?.toLocalDate() ?: LocalDate.now())
+    }
+    var showDatePicker by remember { mutableStateOf(false) }
 
     fun saveExpense() {
         val now = Instant.now()
-        val exp = Currencies.minorUnitExponent(currency)
-        val minor = (amountNum * Math.pow(10.0, exp.toDouble())).toLong()
         val catId = selectedCategoryId?.let { UUID.fromString(it) } ?: categories.firstOrNull()?.id ?: return
+        val editingDate = editing?.occurredAt?.atZone(ZoneId.systemDefault())?.toLocalDate()
+        val occurredAt =
+            if (editing != null && selectedDate == editingDate) {
+                editing.occurredAt
+            } else {
+                selectedDate.atTime(LocalTime.now()).atZone(ZoneId.systemDefault()).toInstant()
+            }
         onSave(
             Expense(
                 id = editing?.id ?: UUID.randomUUID(),
-                amountMinor = minor,
+                amountMinor = amountMinor,
                 currencyCode = currency,
                 categoryId = catId,
                 paymentMethodId = editing?.paymentMethodId,
                 note = note,
-                occurredAt = editing?.occurredAt ?: now,
+                occurredAt = occurredAt,
                 createdAt = editing?.createdAt ?: now,
                 updatedAt = now,
             ),
@@ -142,20 +161,21 @@ fun AddExpenseSheet(
 
                 Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.Center) {
                     Text(Currencies.current(currency).symbol, fontFamily = Fraunces, fontSize = 32.sp, color = c.fg2, modifier = Modifier.padding(top = 8.dp, end = 4.dp))
-                    Text(amount.ifEmpty { "0" }, fontFamily = Fraunces, fontSize = 64.sp, letterSpacing = (-2).sp, color = c.fg1)
+                    MoneyText(amount.ifEmpty { "0" }, size = MoneyTextSize.Hero, color = c.fg1)
                 }
 
                 Spacer(Modifier.height(GroveSpacing.LG))
 
                 Keypad(
                     onDigit = { digit ->
-                        if (amount.length < 10) amount += digit
+                        val fractional = amount.substringAfter(".", "")
+                        if (amount.length < 10 && (!amount.contains(".") || fractional.length < minorExponent)) amount += digit
                     },
                     onBackspace = {
                         if (amount.isNotEmpty()) amount = amount.dropLast(1)
                     },
                     onDecimal = {
-                        if (!amount.contains(".")) amount += if (amount.isEmpty()) "0." else "."
+                        if (minorExponent > 0 && !amount.contains(".")) amount += if (amount.isEmpty()) "0." else "."
                     },
                     modifier = Modifier.padding(horizontal = GroveSpacing.XL),
                 )
@@ -186,22 +206,14 @@ fun AddExpenseSheet(
                 Spacer(Modifier.height(GroveSpacing.XL))
 
                 Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
+                    MoneyText(
                         text =
                             Money.currencyLong(
-                                editing?.amountMinor ?: (
-                                    amountNum *
-                                        Math.pow(
-                                            10.0,
-                                            Currencies.minorUnitExponent(currency).toDouble(),
-                                        )
-                                ).toLong(),
+                                amountMinor,
                                 2,
                                 currency,
                             ),
-                        fontFamily = Fraunces,
-                        fontSize = 48.sp,
-                        letterSpacing = (-1).sp,
+                        size = MoneyTextSize.Display,
                         color = c.fg1,
                     )
                     Spacer(Modifier.height(8.dp))
@@ -243,12 +255,12 @@ fun AddExpenseSheet(
                                             .weight(1f)
                                             .aspectRatio(1f)
                                             .clip(RoundedCornerShape(16.dp))
-                                            .background(c.bgCard)
+                                            .background(if (isSelected) c.accentSurface else c.bgCardRaised)
                                             .border(
-                                                if (isSelected) 1.dp else 0.dp,
-                                                if (isSelected) c.fg1 else Color.Transparent,
+                                                1.dp,
+                                                if (isSelected) c.accent else c.border,
                                                 RoundedCornerShape(16.dp),
-                                            ).clickable { selectedCategoryId = cat.id.toString() },
+                                            ).clickable(role = Role.Button) { selectedCategoryId = cat.id.toString() },
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -316,13 +328,13 @@ fun AddExpenseSheet(
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(16.dp))
                             .background(c.bgCard)
+                            .clickable(role = Role.Button) { showDatePicker = true }
                             .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(Icons.Outlined.CalendarToday, contentDescription = null, tint = c.fg1, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(12.dp))
-                    val todayFmt = LocalDate.now().format(DateTimeFormatter.ofPattern("MMM d"))
-                    Text("Today, $todayFmt", fontFamily = InterTight, fontSize = 16.sp, color = c.fg1)
+                    Text(selectedDate.format(DateTimeFormatter.ofPattern("MMM d, yyyy")), fontFamily = InterTight, fontSize = 16.sp, color = c.fg1)
                 }
 
                 Spacer(Modifier.height(GroveSpacing.XL))
@@ -336,6 +348,35 @@ fun AddExpenseSheet(
 
                 Spacer(Modifier.height(GroveSpacing.LG))
             }
+        }
+    }
+
+    if (showDatePicker) {
+        val datePickerState =
+            rememberDatePickerState(
+                initialSelectedDateMillis = selectedDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
+            )
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let {
+                            selectedDate = Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate()
+                        }
+                        showDatePicker = false
+                    },
+                ) {
+                    Text("Done", fontFamily = InterTight, color = c.accent)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("Cancel", fontFamily = InterTight, color = c.fg2)
+                }
+            },
+        ) {
+            DatePicker(state = datePickerState)
         }
     }
 }

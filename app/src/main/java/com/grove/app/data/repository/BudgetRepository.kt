@@ -23,11 +23,27 @@ class BudgetRepository(
     fun observeCategoryBudgets(monthlyBudgetId: UUID): Flow<List<MonthlyCategoryBudget>> =
         dao.observeCategoryBudgets(monthlyBudgetId).map { list -> list.map { it.toDomain() } }
 
+    fun observeAllCategoryBudgets(): Flow<List<MonthlyCategoryBudget>> =
+        dao.observeAllCategoryBudgets().map { list -> list.map { it.toDomain() } }
+
+    suspend fun getForPeriod(
+        year: Int,
+        month: Int,
+    ): MonthlyBudget? = dao.getForPeriod(year, month)?.toDomain()
+
+    suspend fun getCategoryBudgets(monthlyBudgetId: UUID): List<MonthlyCategoryBudget> =
+        dao.getCategoryBudgets(monthlyBudgetId).map { it.toDomain() }
+
+    suspend fun updateCurrencyCode(currencyCode: String) {
+        dao.updateCurrencyCode(currencyCode, Instant.now())
+    }
+
     suspend fun upsert(
         budget: MonthlyBudget,
         categoryBudgets: List<MonthlyCategoryBudget>,
     ) {
         val now = Instant.now()
+        val existing = dao.getForPeriod(budget.periodYear, budget.periodMonth)
         dao.upsertBudget(
             MonthlyBudgetEntity(
                 id = budget.id,
@@ -35,7 +51,7 @@ class BudgetRepository(
                 periodMonth = budget.periodMonth,
                 totalMinor = budget.totalMinor,
                 currencyCode = budget.currencyCode,
-                createdAt = now,
+                createdAt = existing?.createdAt ?: budget.createdAt,
                 updatedAt = now,
             ),
         )

@@ -14,6 +14,9 @@ interface NotificationDao {
     @Query("SELECT * FROM notification_settings WHERE id = 1")
     fun observeSettings(): Flow<NotificationSettingsEntity?>
 
+    @Query("SELECT * FROM notification_settings WHERE id = 1")
+    suspend fun getSettings(): NotificationSettingsEntity?
+
     @Query("SELECT * FROM scheduled_notifications WHERE firedAt IS NULL ORDER BY triggerAt")
     fun observePending(): Flow<List<ScheduledNotificationEntity>>
 

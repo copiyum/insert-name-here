@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<!-- saved from url=(0048)file:///Users/sarang.sudhir/Downloads/Grove.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><style>
+    .sc-placeholder{background:rgba(255,255,255,.3);border:1px solid rgba(0,0,0,.5);
+      border-radius:2px;box-sizing:border-box;overflow:hidden}
+    @keyframes sc-shine{0%{background-position:100% 50%}100%{background-position:0% 50%}}
+    @keyframes sc-veil-pulse{0%,100%{opacity:.4}50%{opacity:1}}
+    html.sc-dc-streaming .sc-placeholder,
+    html.sc-dc-streaming .sc-interp.sc-missing{position:relative;
+      background:color-mix(in srgb,currentColor 5%,transparent);
+      border-color:transparent}
+    html.sc-dc-streaming .sc-placeholder::before,
+    html.sc-dc-streaming .sc-interp.sc-missing::before{content:'';
+      position:absolute;inset:0;pointer-events:none;
+      background:linear-gradient(90deg,rgba(217,119,87,0) 25%,rgba(247,225,211,.95) 37%,rgba(217,119,87,0) 63%);
+      background-size:400% 100%;animation:sc-shine .73s ease infinite}
+    html.sc-dc-streaming::after{content:'';position:fixed;inset:0;
+      z-index:2147483646;pointer-events:none;
+      box-shadow:inset 0 0 90px rgba(217,119,87,.16),inset 0 0 22px rgba(217,119,87,.1);
+      animation:sc-veil-pulse 1.36s ease-in-out infinite}
+    .sc-placeholder-error{padding:4px 8px;font:11px/1.4 ui-monospace,monospace;
+      color:rgba(0,0,0,.7);word-break:break-word}
+    .sc-interp.sc-missing{display:inline-block;width:2em;height:1em;overflow:hidden;
+      vertical-align:text-bottom;background:rgba(255,255,255,.3);border:1px solid rgba(0,0,0,.5);
+      border-radius:2px;box-sizing:border-box;color:transparent;
+      user-select:none}
+    .sc-interp.sc-unresolved{font-family:ui-monospace,monospace;font-size:.85em;
+      color:rgba(0,0,0,.5);background:rgba(0,0,0,.05);border-radius:3px;
+      padding:0 3px}
+    .sc-host.sc-has-error{position:relative}
+    .sc-logic-error{position:absolute;top:8px;left:8px;z-index:2147483647;max-width:60ch;
+      padding:6px 10px;background:#b00020;color:#fff;font:12px/1.4 ui-monospace,monospace;
+      border-radius:4px;white-space:pre-wrap;pointer-events:none}
+    /* Mirrors PRINT_BASELINE_CSS in apps/web deck-stage-export.ts — keep both
+       in sync until dc-runtime regains a build step. */
+    @media print {
+      @page { margin: 0.5cm; }
+      html, body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      section, article, figure, table { break-inside: avoid; }
+      *, *::before, *::after {
+        animation-delay: -99s !important; animation-duration: .001s !important;
+        animation-iteration-count: 1 !important; animation-fill-mode: both !important;
+        animation-play-state: running !important; transition-duration: 0s !important;
+      }
+    }
+  </style><script>window.__resources = {};</script>
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="blob:null/466e0649-b21a-40bb-a12e-190f55a33f17"></script>
+<style>x-dc{display:none!important}</style><script src="./Grove_files/react.production.min.js" integrity="sha384-DGyLxAyjq0f9SPpVevD6IgztCFlnMF6oW/XQGmfe+IsZ8TqEiDrcHkMLKI6fiB/Z" crossorigin="anonymous"></script><script src="./Grove_files/react-dom.production.min.js" integrity="sha384-gTGxhz21lVGYNMcdJOyq01Edg0jhn/c22nsx0kyqP0TxaV5WVdsSH1fSDUf5YJj1" crossorigin="anonymous"></script><link rel="preconnect" href="https://fonts.googleapis.com/" data-dc-tpl="1"><link rel="preconnect" href="https://fonts.gstatic.com/" data-dc-tpl="2"><style data-dc-tpl="3">/* cyrillic-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("blob:null/9510d394-a72c-4ae5-a477-b080e5e601f8") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("blob:null/57c16277-9b66-4ab1-98b0-9a9556630186") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("blob:null/8e02b136-3f0e-48df-a721-f73069d5a5d6") format('woff2');
+  unicode-range: U+1F00-1FFF;
+}
+/* greek */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("blob:null/9628c1c6-9b82-40b1-9989-ab13f41ceb9d") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("blob:null/723cac7a-65a0-439c-86c9-025b6782ef09") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("blob:null/ade363e1-6952-4d61-b691-fbdc6166839f") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("blob:null/2830dede-d550-479f-a9ea-56c5ff21d244") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("blob:null/9510d394-a72c-4ae5-a477-b080e5e601f8") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("blob:null/57c16277-9b66-4ab1-98b0-9a9556630186") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("blob:null/8e02b136-3f0e-48df-a721-f73069d5a5d6") format('woff2');
+  unicode-range: U+1F00-1FFF;
+}
+/* greek */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("blob:null/9628c1c6-9b82-40b1-9989-ab13f41ceb9d") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("blob:null/723cac7a-65a0-439c-86c9-025b6782ef09") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("blob:null/ade363e1-6952-4d61-b691-fbdc6166839f") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("blob:null/2830dede-d550-479f-a9ea-56c5ff21d244") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("blob:null/9510d394-a72c-4ae5-a477-b080e5e601f8") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("blob:null/57c16277-9b66-4ab1-98b0-9a9556630186") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("blob:null/8e02b136-3f0e-48df-a721-f73069d5a5d6") format('woff2');
+  unicode-range: U+1F00-1FFF;
+}
+/* greek */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("blob:null/9628c1c6-9b82-40b1-9989-ab13f41ceb9d") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("blob:null/723cac7a-65a0-439c-86c9-025b6782ef09") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("blob:null/ade363e1-6952-4d61-b691-fbdc6166839f") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("blob:null/2830dede-d550-479f-a9ea-56c5ff21d244") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("blob:null/81479b11-9ee1-402d-baa9-d52b92c56033") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("blob:null/4abc1bdb-4637-4d51-ab1b-4fca07567913") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("blob:null/8d2b2fe9-ed85-4a95-9d7b-6c71eb8412be") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("blob:null/05d60e87-3afe-4b8a-a997-4a95142b32b6") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("blob:null/65319617-c802-41ab-bbdd-dde2171330a8") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("blob:null/85621ffe-73eb-4478-a606-c68afd0d9f80") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("blob:null/81479b11-9ee1-402d-baa9-d52b92c56033") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("blob:null/4abc1bdb-4637-4d51-ab1b-4fca07567913") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("blob:null/8d2b2fe9-ed85-4a95-9d7b-6c71eb8412be") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("blob:null/05d60e87-3afe-4b8a-a997-4a95142b32b6") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("blob:null/65319617-c802-41ab-bbdd-dde2171330a8") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("blob:null/85621ffe-73eb-4478-a606-c68afd0d9f80") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("blob:null/8b40d8f8-2f39-4b5e-9692-07096dafe1fb") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("blob:null/3285b00a-5532-4349-a0da-181a22695ed0") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("blob:null/a601cdaf-d2a0-4519-93e4-871fe00999a6") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("blob:null/8b40d8f8-2f39-4b5e-9692-07096dafe1fb") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("blob:null/3285b00a-5532-4349-a0da-181a22695ed0") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("blob:null/a601cdaf-d2a0-4519-93e4-871fe00999a6") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("blob:null/8b40d8f8-2f39-4b5e-9692-07096dafe1fb") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("blob:null/3285b00a-5532-4349-a0da-181a22695ed0") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("blob:null/a601cdaf-d2a0-4519-93e4-871fe00999a6") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+</style><style data-dc-tpl="4">
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body { background: #2a2a2e; font-family: 'Inter', system-ui, sans-serif; }
+  .grove-root {
+    --canvas:#010102; --s1:#0f1011; --s2:#141516; --s3:#18191a; --s4:#191a1b;
+    --ink:#f7f8f8; --ink-muted:#d0d6e0; --ink-subtle:#8a8f98; --ink-tert:#62666d;
+    --hair:#23252a; --hair-strong:#34343a;
+    --cta:oklch(0.56 0.11 156); --on-cta:#ffffff; --accent:oklch(0.56 0.11 156); --accent-hover:oklch(0.64 0.12 156);
+    --success:#27a644; --warn:oklch(0.78 0.13 75); --error:#ef5350;
+    --navbg:rgba(10,11,13,0.72); --sheetbg:#141516; --shadow:rgba(0,0,0,0.5);
+    --ctaRadius:12px;
+  }
+  .grove-root[data-theme="light"] {
+    --canvas:#ffffff; --s1:#f4f3ef; --s2:#edfce9; --s3:#f1f5ff; --s4:#eeece7;
+    --ink:#212121; --ink-muted:#616161; --ink-subtle:#93939f; --ink-tert:#75758a;
+    --hair:#e5e3dd; --hair-strong:#d9d9dd;
+    --cta:#17171c; --on-cta:#ffffff; --accent:oklch(0.5 0.12 156); --accent-hover:oklch(0.44 0.12 156);
+    --success:#27a644; --warn:oklch(0.62 0.15 60); --error:#b30000;
+    --navbg:rgba(255,255,255,0.78); --sheetbg:#ffffff; --shadow:rgba(0,0,0,0.12);
+    --ctaRadius:9999px;
+  }
+  .grove-scroll::-webkit-scrollbar { width: 0; height: 0; }
+  @keyframes gv-slide-up { from { transform: translateY(12px); } to { transform: translateY(0); } }
+  @keyframes gv-fade { from { transform: translateY(6px); } to { transform: translateY(0); } }
+  @keyframes gv-sheet-in { from { transform: translateY(20px); } to { transform: translateY(0); } }
+  @keyframes gv-pop { 0% { transform: scale(0.92); } 60% { transform: scale(1.02); } 100% { transform: scale(1); } }
+  @keyframes gv-toast-in { from { transform: translate(-50%, 14px); } to { transform: translate(-50%, 0); } }
+  .gv-tap:active { transform: scale(0.96); opacity: 0.85; }
+  .gv-stagger > * { animation: gv-slide-up 0.42s cubic-bezier(0.22,1,0.36,1) backwards; }
+  .gv-stagger > *:nth-child(1){animation-delay:.02s} .gv-stagger > *:nth-child(2){animation-delay:.06s}
+  .gv-stagger > *:nth-child(3){animation-delay:.10s} .gv-stagger > *:nth-child(4){animation-delay:.14s}
+  .gv-stagger > *:nth-child(5){animation-delay:.18s} .gv-stagger > *:nth-child(6){animation-delay:.22s}
+  .gv-stagger > *:nth-child(7){animation-delay:.26s} .gv-stagger > *:nth-child(8){animation-delay:.30s}
+</style></head>
+<body>
+
+<div id="dc-root"><div class="sc-host" data-sc-name="Grove"><div data-dc-tpl="5" class="grove-root" data-theme="dark" style="position: relative; width: 100%; max-width: 440px; height: 100vh; margin: 0px auto; overflow: hidden; background: var(--canvas); color: var(--ink); display: flex; flex-direction: column; font-family: Inter, system-ui, sans-serif; box-shadow: rgba(0, 0, 0, 0.4) 0px 0px 60px; --accent: oklch(0.56 0.11 156); --accent-hover: oklch(0.64 0.12 156); --cta: oklch(0.56 0.11 156);">
+
+  
+  
+
+  
+  
+    <div data-dc-tpl="68" class="grove-scroll" style="flex: 1 1 0%; overflow: hidden auto; padding-bottom: 108px;">
+
+      
+      
+        <div data-dc-tpl="70" style="padding: 18px 20px 0px;">
+          
+          <div data-dc-tpl="71" style="display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 22px;">
+            <div data-dc-tpl="72">
+              <div data-dc-tpl="73" style="font-family: &quot;Space Grotesk&quot;, sans-serif; font-size: 26px; font-weight: 500; letter-spacing: -0.6px;"><span class="sc-interp">Hi, there</span></div>
+              <div data-dc-tpl="74" style="font-size: 13.5px; color: var(--ink-subtle); margin-top: 3px;"><span class="sc-interp">June 12 · 19 days left</span></div>
+            </div>
+            <button data-dc-tpl="75" class="gv-tap" style="width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--hair); background: var(--s1); color: var(--ink-muted); display: flex; align-items: center; justify-content: center; cursor: pointer;">
+              <svg data-dc-tpl="76" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle data-dc-tpl="77" cx="12" cy="12" r="3"></circle><path data-dc-tpl="78" d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            </button>
+          </div>
+
+          
+          <div data-dc-tpl="79" style="display: inline-flex; gap: 3px; padding: 3px; background: var(--s1); border: 1px solid var(--hair); border-radius: 99px; margin-bottom: 18px;">
+            
+              <button data-dc-tpl="81" class="gv-tap" style="border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; cursor: pointer; font-style: inherit; font-variant: inherit; font-weight: 500; font-stretch: inherit; font-size: 12.5px; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; padding: 6px 13px; border-radius: 99px; background: var(--ink); color: var(--canvas);"><span class="sc-interp">Ring</span></button>
+            
+              <button data-dc-tpl="81" class="gv-tap" style="border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; cursor: pointer; font-style: inherit; font-variant: inherit; font-weight: 500; font-stretch: inherit; font-size: 12.5px; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; padding: 6px 13px; border-radius: 99px; background: transparent; color: var(--ink-subtle);"><span class="sc-interp">Focus</span></button>
+            
+              <button data-dc-tpl="81" class="gv-tap" style="border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; cursor: pointer; font-style: inherit; font-variant: inherit; font-weight: 500; font-stretch: inherit; font-size: 12.5px; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; padding: 6px 13px; border-radius: 99px; background: transparent; color: var(--ink-subtle);"><span class="sc-interp">Grid</span></button>
+            
+          </div>
+
+          
+          
+            <div data-dc-tpl="83" style="display: flex; flex-direction: column; align-items: center; padding: 8px 0px 6px; animation: 0.4s ease 0s 1 normal none running gv-fade;">
+              <div data-dc-tpl="84" style="position: relative; width: 248px; height: 248px;">
+                <div data-dc-tpl="85" style="position: absolute; inset: 0px;"><svg viewBox="0 0 248 248" width="100%" height="100%"><circle cx="124" cy="124" r="104" fill="none" stroke="var(--s1)" stroke-width="18"></circle><circle cx="124" cy="124" r="104" fill="none" stroke="var(--success)" stroke-width="18" stroke-linecap="round" stroke-dasharray="653.451271946677 653.451271946677" stroke-dashoffset="653.451271946677" transform="rotate(-90 124 124)" style="transition: stroke-dashoffset 0.8s cubic-bezier(0.22, 1, 0.36, 1);"></circle></svg></div>
+                <div data-dc-tpl="86" style="position: absolute; inset: 0px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
+                  <div data-dc-tpl="87" style="font-family: &quot;JetBrains Mono&quot;, monospace; font-size: 11px; letter-spacing: 1.4px; color: var(--ink-subtle);">SAFE TO SPEND TODAY</div>
+                  <div data-dc-tpl="88" style="font-family: &quot;Space Grotesk&quot;, sans-serif; font-size: 48px; font-weight: 600; letter-spacing: -1.6px; margin-top: 6px; line-height: 1;">₹1,842</div>
+                  <div data-dc-tpl="89" style="font-size: 13px; color: var(--ink-subtle); margin-top: 8px;"><span class="sc-interp">₹35,000 left · 19d</span></div>
+                </div>
+              </div>
+              <div data-dc-tpl="90" style="display: inline-flex; align-items: center; gap: 7px; margin-top: 14px; padding: 6px 14px; border-radius: 99px; background: color-mix(in srgb, var(--success) 15%, transparent); color: var(--success); font-size: 13px; font-weight: 500;">
+                <span data-dc-tpl="91" style="width: 7px; height: 7px; border-radius: 50%; background: var(--success);"></span><span class="sc-interp">On track</span>
+              </div>
+            </div>
+          
+
+          
+          
+
+          
+          
+
+          
+          <div data-dc-tpl="113" class="gv-stagger" style="display: grid; grid-template-columns: 1fr 1fr; gap: 11px; margin-top: 18px;">
+            
+              <div data-dc-tpl="115" style="background: var(--s1); border: 1px solid var(--hair); border-radius: 16px; padding: 15px 16px;">
+                <div data-dc-tpl="116" style="font-family: &quot;JetBrains Mono&quot;, monospace; font-size: 10.5px; letter-spacing: 0.8px; color: var(--ink-subtle);"><span class="sc-interp">TODAY</span></div>
+                <div data-dc-tpl="117" style="font-family: &quot;Space Grotesk&quot;, sans-serif; font-size: 23px; font-weight: 600; letter-spacing: -0.6px; margin-top: 8px; color: var(--ink);"><span class="sc-interp">₹0</span></div>
+                <div data-dc-tpl="118" style="font-size: 11.5px; color: var(--ink-tert); margin-top: 3px;"><span class="sc-interp">spent today</span></div>
+              </div>
+            
+              <div data-dc-tpl="115" style="background: var(--s1); border: 1px solid var(--hair); border-radius: 16px; padding: 15px 16px;">
+                <div data-dc-tpl="116" style="font-family: &quot;JetBrains Mono&quot;, monospace; font-size: 10.5px; letter-spacing: 0.8px; color: var(--ink-subtle);"><span class="sc-interp">BUDGET LEFT</span></div>
+                <div data-dc-tpl="117" style="font-family: &quot;Space Grotesk&quot;, sans-serif; font-size: 23px; font-weight: 600; letter-spacing: -0.6px; margin-top: 8px; color: var(--ink);"><span class="sc-interp">₹35,000</span></div>
+                <div data-dc-tpl="118" style="font-size: 11.5px; color: var(--ink-tert); margin-top: 3px;"><span class="sc-interp">this period</span></div>
+              </div>
+            
+              <div data-dc-tpl="115" style="background: var(--s1); border: 1px solid var(--hair); border-radius: 16px; padding: 15px 16px;">
+                <div data-dc-tpl="116" style="font-family: &quot;JetBrains Mono&quot;, monospace; font-size: 10.5px; letter-spacing: 0.8px; color: var(--ink-subtle);"><span class="sc-interp">BILLS DUE</span></div>
+                <div data-dc-tpl="117" style="font-family: &quot;Space Grotesk&quot;, sans-serif; font-size: 23px; font-weight: 600; letter-spacing: -0.6px; margin-top: 8px; color: var(--ink);"><span class="sc-interp">₹0</span></div>
+                <div data-dc-tpl="118" style="font-size: 11.5px; color: var(--ink-tert); margin-top: 3px;"><span class="sc-interp">0 upcoming</span></div>
+              </div>
+            
+              <div data-dc-tpl="115" style="background: var(--s1); border: 1px solid var(--hair); border-radius: 16px; padding: 15px 16px;">
+                <div data-dc-tpl="116" style="font-family: &quot;JetBrains Mono&quot;, monospace; font-size: 10.5px; letter-spacing: 0.8px; color: var(--ink-subtle);"><span class="sc-interp">DAILY AVG</span></div>
+                <div data-dc-tpl="117" style="font-family: &quot;Space Grotesk&quot;, sans-serif; font-size: 23px; font-weight: 600; letter-spacing: -0.6px; margin-top: 8px; color: var(--ink);"><span class="sc-interp">₹0</span></div>
+                <div data-dc-tpl="118" style="font-size: 11.5px; color: var(--ink-tert); margin-top: 3px;"><span class="sc-interp">over 12 days</span></div>
+              </div>
+            
+          </div>
+
+          
+          <div data-dc-tpl="119" style="display: flex; align-items: center; justify-content: space-between; margin: 26px 0px 12px;">
+            <div data-dc-tpl="120" style="font-family: &quot;JetBrains Mono&quot;, monospace; font-size: 11px; letter-spacing: 1.2px; color: var(--ink-subtle);">RECENT</div>
+            <button data-dc-tpl="121" class="gv-tap" style="background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; color: var(--accent); font-style: inherit; font-variant: inherit; font-weight: 500; font-stretch: inherit; font-size: 13px; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; cursor: pointer;">See all</button>
+          </div>
+          
+          
+            <div data-dc-tpl="133" style="text-align: center; padding: 36px 20px; border: 1px dashed var(--hair-strong); border-radius: 18px;">
+              <div data-dc-tpl="134" style="font-size: 16px; font-weight: 600; color: var(--ink);">No expenses yet</div>
+              <div data-dc-tpl="135" style="font-size: 14px; color: var(--ink-subtle); margin-top: 6px;">Add your first spend to start tracking today.</div>
+            </div>
+          
+        </div>
+      
+      
+      
+
+      
+      
+
+      
+      
+
+      
+      
+
+      
+      
+
+      
+      
+      
+    </div>
+
+    
+    
+      <div data-dc-tpl="392" style="position: absolute; left: 0px; right: 0px; bottom: 0px; padding: 8px 14px calc(8px + env(safe-area-inset-bottom)); display: flex; align-items: center; justify-content: space-around; background: var(--navbg); backdrop-filter: saturate(180%) blur(20px); border-top: 1px solid var(--hair);">
+        
+          <button data-dc-tpl="394" class="gv-tap" style="flex: 1 1 0%; background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 0px; color: var(--accent);">
+            <svg data-dc-tpl="395" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path data-dc-tpl="396" d="M3 10.5 12 3l9 7.5M5 9v11h14V9"></path></svg>
+            <span data-dc-tpl="397" style="font-size: 10.5px; font-weight: 600;"><span class="sc-interp">Home</span></span>
+          </button>
+        
+          <button data-dc-tpl="394" class="gv-tap" style="flex: 1 1 0%; background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 0px; color: var(--ink-subtle);">
+            <svg data-dc-tpl="395" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path data-dc-tpl="396" d="M12 7v5l3 2M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z"></path></svg>
+            <span data-dc-tpl="397" style="font-size: 10.5px; font-weight: 500;"><span class="sc-interp">History</span></span>
+          </button>
+        
+        <button data-dc-tpl="398" class="gv-tap" style="flex: 0 0 auto; width: 56px; height: 56px; margin: 0px 4px; border-radius: 50%; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; background: var(--accent); color: rgb(255, 255, 255); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: rgba(0, 0, 0, 0.32) 0px 8px 20px; transform: translateY(-6px);">
+          <svg data-dc-tpl="399" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path data-dc-tpl="400" d="M12 5v14M5 12h14"></path></svg>
+        </button>
+        
+          <button data-dc-tpl="402" class="gv-tap" style="flex: 1 1 0%; background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 0px; color: var(--ink-subtle);">
+            <svg data-dc-tpl="403" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path data-dc-tpl="404" d="M3 21h18M7 21V11M12 21V5M17 21v-8"></path></svg>
+            <span data-dc-tpl="405" style="font-size: 10.5px; font-weight: 500;"><span class="sc-interp">Reports</span></span>
+          </button>
+        
+          <button data-dc-tpl="402" class="gv-tap" style="flex: 1 1 0%; background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 0px; color: var(--ink-subtle);">
+            <svg data-dc-tpl="403" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path data-dc-tpl="404" d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6"></path></svg>
+            <span data-dc-tpl="405" style="font-size: 10.5px; font-weight: 500;"><span class="sc-interp">Bills</span></span>
+          </button>
+        
+      </div>
+    
+  
+
+  
+  
+
+  
+  
+
+  </div></div></div>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:440,&quot;height&quot;:880},&quot;accent&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Forest&quot;,&quot;Teal&quot;,&quot;Ocean&quot;,&quot;Coral&quot;,&quot;Amber&quot;,&quot;Lavender&quot;],&quot;default&quot;:&quot;Forest&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const CURRENCIES = {
+  INR:{code:'INR',symbol:'₹',name:'Indian Rupee',locale:'en-IN',dec:2,ex:'₹1,234.56'},
+  USD:{code:'USD',symbol:'$',name:'US Dollar',locale:'en-US',dec:2,ex:'$1,234.56'},
+  EUR:{code:'EUR',symbol:'€',name:'Euro',locale:'de-DE',dec:2,ex:'€1 234,56'},
+  GBP:{code:'GBP',symbol:'£',name:'British Pound',locale:'en-GB',dec:2,ex:'£1,234.56'},
+  JPY:{code:'JPY',symbol:'¥',name:'Japanese Yen',locale:'ja-JP',dec:0,ex:'¥123,456'},
+  CAD:{code:'CAD',symbol:'C$',name:'Canadian Dollar',locale:'en-CA',dec:2,ex:'C$1,234.56'},
+  AUD:{code:'AUD',symbol:'A$',name:'Australian Dollar',locale:'en-AU',dec:2,ex:'A$1,234.56'},
+  CHF:{code:'CHF',symbol:'CHF',name:'Swiss Franc',locale:'de-CH',dec:2,ex:"CHF 1'234.56"},
+  CNY:{code:'CNY',symbol:'¥',name:'Chinese Yuan',locale:'zh-CN',dec:2,ex:'¥1,234.56'},
+  KRW:{code:'KRW',symbol:'₩',name:'South Korean Won',locale:'ko-KR',dec:0,ex:'₩123,456'},
+  SGD:{code:'SGD',symbol:'S$',name:'Singapore Dollar',locale:'en-SG',dec:2,ex:'S$1,234.56'},
+  HKD:{code:'HKD',symbol:'HK$',name:'Hong Kong Dollar',locale:'en-HK',dec:2,ex:'HK$1,234.56'},
+  BRL:{code:'BRL',symbol:'R$',name:'Brazilian Real',locale:'pt-BR',dec:2,ex:'R$ 1.234,56'},
+  MXN:{code:'MXN',symbol:'MX$',name:'Mexican Peso',locale:'es-MX',dec:2,ex:'MX$1,234.56'},
+  ZAR:{code:'ZAR',symbol:'R',name:'South African Rand',locale:'en-ZA',dec:2,ex:'R 1,234.56'},
+};
+const CATS = ['Food','Transport','Bills','Shopping','Health','Entertainment','Other','Income'];
+const CATCOLOR = {
+  Food:'oklch(0.72 0.14 28)', Transport:'oklch(0.72 0.12 235)', Bills:'oklch(0.68 0.14 295)',
+  Shopping:'oklch(0.72 0.14 340)', Health:'oklch(0.74 0.12 165)', Entertainment:'oklch(0.78 0.13 70)',
+  Other:'oklch(0.66 0.035 280)', Income:'oklch(0.74 0.14 150)'
+};
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MONF = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const WD = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const OB_PRESETS = [20000,35000,50000,75000];
+const KEY = 'grove_state_v2';
+const ACCENTS = {
+  Forest:{c:'oklch(0.56 0.11 156)', h:'oklch(0.64 0.12 156)', cl:'oklch(0.5 0.12 156)', hl:'oklch(0.44 0.12 156)'},
+  Teal:{c:'oklch(0.58 0.10 198)', h:'oklch(0.66 0.11 198)', cl:'oklch(0.52 0.11 205)', hl:'oklch(0.46 0.11 205)'},
+  Ocean:{c:'oklch(0.55 0.13 248)', h:'oklch(0.63 0.14 248)', cl:'oklch(0.5 0.14 250)', hl:'oklch(0.44 0.14 250)'},
+  Coral:{c:'oklch(0.64 0.15 33)', h:'oklch(0.70 0.15 33)', cl:'oklch(0.58 0.16 33)', hl:'oklch(0.52 0.16 33)'},
+  Amber:{c:'oklch(0.64 0.12 72)', h:'oklch(0.72 0.13 72)', cl:'oklch(0.56 0.12 70)', hl:'oklch(0.5 0.12 70)'},
+  Lavender:{c:'#5e6ad2', h:'#828fff', cl:'#5e6ad2', hl:'#4a55b8'},
+};
+
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    let saved = {};
+    try { const r = localStorage.getItem(KEY); if(r) saved = JSON.parse(r); } catch(e){}
+    this.state = Object.assign({
+      route:'onboarding', theme:'dark', onboarded:false, homeVariant:'ring',
+      user:{name:''}, currency:'INR', resetDay:1, budget:0, catLimits:{},
+      expenses:[], bills:[], prefs:{dailyNudge:true, billAlerts:true},
+      obStep:0, obBudget:35000, obReset:1,
+      keypad:'0', editId:null, draftCat:'Food', draftNote:'', draftDate:null, addStage:'amount',
+      histSearch:'', histFilter:'All', repRange:'month', slice:null, paceSel:null,
+      sheet:null, sheetDraft:{}, swipeId:null, flash:null,
+    }, saved);
+    // restore theme on root happens via attr; transient resets:
+    this.state.sheet = null; this.state.flash = null; this.state.swipeId = null;
+    this.state.editId = null; this.state.addStage='amount'; this.state.keypad='0';
+    this.state.route = this.state.onboarded ? 'home' : 'onboarding';
+    // count-up component (stable ref)
+    this.HeroNum = (p)=>{
+      const [d,setD] = React.useState(p.value);
+      const prev = React.useRef(p.value);
+      React.useEffect(()=>{
+        const from=prev.current, to=p.value; prev.current=to;
+        if(from===to){ setD(to); return; }
+        const t0=performance.now(), dur=650; let raf;
+        const tick=(t)=>{ const k=Math.min(1,(t-t0)/dur); const e=1-Math.pow(1-k,3); setD(from+(to-from)*e); if(k<1) raf=requestAnimationFrame(tick); };
+        raf=requestAnimationFrame(tick); return ()=>cancelAnimationFrame(raf);
+      },[p.value]);
+      return p.fmt(d);
+    };
+    this._rootRef = (el)=>{ if(el){ this._root=el; this.applyAccent(); } };
+  }
+
+  applyAccent(){
+    const root=this._root; if(!root) return;
+    const a=ACCENTS[this.props.accent]||ACCENTS.Forest;
+    const dark=this.state.theme==='dark';
+    root.style.setProperty('--accent', dark?a.c:a.cl);
+    root.style.setProperty('--accent-hover', dark?a.h:a.hl);
+    if(dark) root.style.setProperty('--cta', a.c); else root.style.removeProperty('--cta');
+  }
+  componentDidUpdate(){ this.applyAccent(); }
+
+  persist(){
+    const s=this.state;
+    const o={ theme:s.theme, onboarded:s.onboarded, homeVariant:s.homeVariant, user:s.user,
+      currency:s.currency, resetDay:s.resetDay, budget:s.budget, catLimits:s.catLimits,
+      expenses:s.expenses, bills:s.bills, prefs:s.prefs };
+    try{ localStorage.setItem(KEY, JSON.stringify(o)); }catch(e){}
+  }
+  set(patch, cb){ this.setState(patch, ()=>{ this.persist(); if(cb)cb(); }); }
+  toast(msg){ this.setState({flash:msg}); clearTimeout(this._tt); this._tt=setTimeout(()=>this.setState({flash:null}),1900); }
+
+  // ---------- formatting ----------
+  cur(){ return CURRENCIES[this.state.currency] || CURRENCIES.INR; }
+  fmt(n, whole){ const c=this.cur(); const d = whole?0:c.dec;
+    try{ return new Intl.NumberFormat(c.locale,{style:'currency',currency:c.code,minimumFractionDigits:d,maximumFractionDigits:d}).format(n||0); }
+    catch(e){ return c.symbol+(n||0).toFixed(d); } }
+  fmt0(n){ return this.fmt(n,true); }
+  ordinal(n){ const s=['th','st','nd','rd'], v=n%100; return n+(s[(v-20)%10]||s[v]||s[0]); }
+
+  // ---------- dates ----------
+  dayStart(d){ const x=new Date(d); x.setHours(0,0,0,0); return x.getTime(); }
+  period(){
+    const rd=this.state.resetDay||1; const now=new Date();
+    let start=new Date(now.getFullYear(),now.getMonth(),Math.min(rd,28));
+    if(now.getDate()<rd) start=new Date(now.getFullYear(),now.getMonth()-1,Math.min(rd,28));
+    const end=new Date(start.getFullYear(),start.getMonth()+1,Math.min(rd,28));
+    const md=86400000;
+    const total=Math.round((this.dayStart(end)-this.dayStart(start))/md);
+    const elapsed=Math.floor((this.dayStart(now)-this.dayStart(start))/md)+1;
+    const left=Math.max(1, total-elapsed+1);
+    return {start,end,total,elapsed,left};
+  }
+  relDay(ds){ const d=new Date(ds); const diff=Math.round((this.dayStart(new Date())-this.dayStart(d))/86400000);
+    if(diff===0) return 'Today'; if(diff===1) return 'Yesterday';
+    if(diff>1 && diff<7) return WD[d.getDay()];
+    return MON[d.getMonth()]+' '+d.getDate(); }
+  timeStr(ds){ const d=new Date(ds); let h=d.getHours(); const m=d.getMinutes(); const ap=h>=12?'PM':'AM'; h=h%12||12; return h+':'+String(m).padStart(2,'0')+' '+ap; }
+  mdy(ds){ const d=new Date(ds); return MON[d.getMonth()]+' '+d.getDate()+', '+d.getFullYear(); }
+  md(ds){ const d=new Date(ds); return MON[d.getMonth()]+' '+d.getDate(); }
+
+  // ---------- derived ----------
+  derived(){
+    const s=this.state, P=this.period();
+    const inP=(ds)=>{ const t=this.dayStart(new Date(ds)); return t>=this.dayStart(P.start) && t<this.dayStart(P.end); };
+    const exp=s.expenses;
+    const spend=exp.filter(e=>e.category!=='Income');
+    const spentP=spend.filter(e=>inP(e.date)).reduce((a,e)=>a+e.amount,0);
+    const todayT=this.dayStart(new Date());
+    const spentToday=spend.filter(e=>this.dayStart(new Date(e.date))===todayT).reduce((a,e)=>a+e.amount,0);
+    const unpaidBills=s.bills.filter(b=>!b.paid);
+    const unpaidTotal=unpaidBills.reduce((a,b)=>a+b.amount,0);
+    const paidTotal=s.bills.filter(b=>b.paid).reduce((a,b)=>a+b.amount,0);
+    const billsTotal=s.bills.reduce((a,b)=>a+b.amount,0);
+    const budgetLeft=s.budget-spentP;
+    const available=s.budget-unpaidTotal;
+    const safeToday=Math.max(0,Math.round((available-spentP)/P.left));
+    const safePerDay=Math.max(0,Math.round(available/P.total));
+    const dailyAvg=P.elapsed>0?spentP/P.elapsed:0;
+    let status='On track';
+    if(budgetLeft-unpaidTotal<0) status='Over budget';
+    else if(dailyAvg>safePerDay*1.12 && safePerDay>0) status='Spending fast';
+    const spentPct=s.budget>0?Math.min(1,spentP/s.budget):0;
+    return {P,spentP,spentToday,unpaidBills,unpaidTotal,paidTotal,billsTotal,budgetLeft,available,safeToday,safePerDay,dailyAvg,status,spentPct,inP};
+  }
+  statusColors(status){
+    if(status==='Over budget') return {c:'var(--error)', bg:'color-mix(in srgb, var(--error) 14%, transparent)'};
+    if(status==='Spending fast') return {c:'var(--warn)', bg:'color-mix(in srgb, var(--warn) 16%, transparent)'};
+    return {c:'var(--success)', bg:'color-mix(in srgb, var(--success) 15%, transparent)'};
+  }
+
+  // ---------- charts ----------
+  ringChart(pct, color){
+    const h=React.createElement, r=104, c=124, sw=18, circ=2*Math.PI*r;
+    const len=pct*circ;
+    return h('svg',{viewBox:'0 0 248 248', width:'100%', height:'100%'},
+      h('circle',{cx:c,cy:c,r:r,fill:'none',stroke:'var(--s1)',strokeWidth:sw}),
+      h('circle',{cx:c,cy:c,r:r,fill:'none',stroke:color,strokeWidth:sw,strokeLinecap:'round',
+        strokeDasharray:circ+' '+circ, strokeDashoffset:circ-len, transform:'rotate(-90 '+c+' '+c+')',
+        style:{transition:'stroke-dashoffset .8s cubic-bezier(0.22,1,0.36,1)'}})
+    );
+  }
+  pieChart(data, total){
+    const h=React.createElement, r=70, c=90, sw=24, circ=2*Math.PI*r;
+    let off=0; const segs=[];
+    data.forEach(d=>{
+      const len=total?d.amount/total*circ:0;
+      segs.push(h('circle',{key:d.cat,cx:c,cy:c,r:r,fill:'none',stroke:d.color,
+        strokeWidth:d.active?sw+7:sw, strokeDasharray:Math.max(0,len-1.5)+' '+(circ-Math.max(0,len-1.5)),
+        strokeDashoffset:-off, transform:'rotate(-90 '+c+' '+c+')',
+        style:{transition:'stroke-width .25s, opacity .25s', cursor:'pointer', opacity:(this.state.slice&&!d.active)?0.3:1},
+        onClick:d.onClick}));
+      off+=len;
+    });
+    return h('svg',{viewBox:'0 0 180 180', width:'100%', height:'100%'}, segs);
+  }
+  paceChart(days, maxv, safe, safeMax){
+    const h=React.createElement, W=320, H=132, pb=18, pt=10, n=days.length;
+    const gap=n>20?2:4; const bw=Math.max(3,(W-(n-1)*gap)/n);
+    const sc=(maxv>0?(H-pb-pt)/maxv:0);
+    const safeY=H-pb-safe*sc;
+    const bars=days.map((d,i)=>{
+      const x=i*(bw+gap); const bh=Math.max(d.amount>0?2:0,d.amount*sc); const y=H-pb-bh;
+      return h('g',{key:i,onClick:d.onClick,style:{cursor:'pointer'}},
+        h('rect',{x:x-1,y:pt,width:bw+2,height:H-pb-pt,fill:'transparent'}),
+        h('rect',{x:x,y:y,width:bw,height:bh,rx:Math.min(2,bw/2),fill:d.active?'var(--accent-hover)':(d.over?'var(--warn)':'var(--accent)'),style:{transition:'height .4s'}}));
+    });
+    return h('svg',{viewBox:'0 0 '+W+' '+H, width:'100%', height:'100%'},
+      safe>0&&safe<=safeMax? h('line',{x1:0,y1:safeY,x2:W,y2:safeY,stroke:'var(--ink-subtle)',strokeWidth:1,strokeDasharray:'4 4'}):null,
+      bars
+    );
+  }
+  momChart(months){
+    const h=React.createElement, W=320, H=120, pb=22, pt=8;
+    const max=Math.max(1,...months.map(m=>m.total));
+    const n=months.length; const gap=14; const bw=(W-(n-1)*gap)/n;
+    const sc=(H-pb-pt)/max;
+    return h('svg',{viewBox:'0 0 '+W+' '+H, width:'100%', height:'100%'},
+      months.map((m,i)=>{ const x=i*(bw+gap); const bh=Math.max(m.total>0?3:0,m.total*sc); const y=H-pb-bh;
+        return h('g',{key:i},
+          h('rect',{x:x,y:y,width:bw,height:bh,rx:5,fill:m.current?'var(--accent)':'var(--s4)',stroke:m.current?'none':'var(--hair-strong)',strokeWidth:1,style:{transition:'height .4s'}}),
+          h('text',{x:x+bw/2,y:H-7,textAnchor:'middle',fontSize:10,fill:m.current?'var(--ink-muted)':'var(--ink-tert)',fontFamily:'JetBrains Mono, monospace'},m.label)
+        );
+      })
+    );
+  }
+
+  // ---------- nav / routing ----------
+  go(route){ this.setState({route, slice:null, swipeId:null}); }
+
+  // ---------- onboarding ----------
+  obNext(){ const n=this.state.obStep+1; this.setState({obStep:n}); }
+  obBack(){ this.setState({obStep:Math.max(0,this.state.obStep-1)}); }
+  obSkip(){ this.set({onboarded:true, budget:this.state.obBudget||35000, resetDay:this.state.obReset||1, route:'home'}); }
+  obFinish(){ this.set({onboarded:true, budget:this.state.obBudget, resetDay:this.state.obReset, route:'home'}, ()=>this.toast('Welcome to Grove')); }
+
+  // ---------- add/edit ----------
+  openAdd(){ this.setState({route:'add', addStage:'amount', keypad:'0', editId:null, draftCat:'Food', draftNote:'', draftDate:new Date().toISOString()}); }
+  closeAdd(){ this.setState({route:this._returnRoute||'home', editId:null}); this._returnRoute=null; }
+  press(k){ let v=this.state.keypad;
+    if(k==='⌫'){ v=v.length<=1?'0':v.slice(0,-1); }
+    else if(k==='.'){ if(!v.includes('.')) v=v+'.'; }
+    else { if(v==='0') v=k; else { const dec=v.split('.')[1]; if(dec&&dec.length>=2) return; if(v.replace('.','').length>=9) return; v=v+k; } }
+    this.setState({keypad:v});
+  }
+  amount(){ return parseFloat(this.state.keypad)||0; }
+  addNext(){ if(this.amount()<=0) return; this.setState({addStage:'details'}); }
+  addBack(){ this.setState({addStage:'amount'}); }
+  editExpense(id){ const e=this.state.expenses.find(x=>x.id===id); if(!e) return;
+    this._returnRoute=this.state.route;
+    this.setState({route:'add', addStage:'details', editId:id, keypad:String(e.amount), draftCat:e.category, draftNote:e.note||'', draftDate:e.date, swipeId:null}); }
+  saveExpense(){ const amt=this.amount(); if(amt<=0) return;
+    const s=this.state; let exp=s.expenses.slice();
+    if(s.editId){ exp=exp.map(e=>e.id===s.editId?Object.assign({},e,{amount:amt,category:s.draftCat,note:s.draftNote,date:s.draftDate}):e); }
+    else { exp.unshift({id:'e'+Date.now()+Math.random().toString(36).slice(2,6), amount:amt, category:s.draftCat, note:s.draftNote, date:s.draftDate||new Date().toISOString()}); }
+    this.set({expenses:exp, route:s.editId?(this._returnRoute||'home'):'home', editId:null}, ()=>this.toast((s.editId?'Updated · ':'Saved · ')+this.fmt0(amt)));
+    this._returnRoute=null;
+  }
+  deleteExpense(id){ this.set({expenses:this.state.expenses.filter(e=>e.id!==id), swipeId:null}, ()=>this.toast('Deleted')); }
+
+  // ---------- bills ----------
+  billStatus(b){ if(b.paid) return {label:'Paid', color:'var(--success)'};
+    const P=this.period(); const due=new Date(P.start.getFullYear(),P.start.getMonth(),Math.min(b.dueDay,28));
+    if(this.dayStart(due)<this.dayStart(P.start)) due.setMonth(due.getMonth()+1);
+    const diff=Math.round((this.dayStart(due)-this.dayStart(new Date()))/86400000);
+    if(diff<0) return {label:'Overdue', color:'var(--error)', due};
+    if(diff<=3) return {label:'Due soon', color:'var(--warn)', due};
+    return {label:'Upcoming', color:'var(--ink-subtle)', due}; }
+  billDue(b){ const P=this.period(); const due=new Date(P.start.getFullYear(),P.start.getMonth(),Math.min(b.dueDay,28));
+    if(this.dayStart(due)<this.dayStart(P.start)) due.setMonth(due.getMonth()+1); return this.md(due.toISOString()); }
+  toggleBill(id){ this.set({bills:this.state.bills.map(b=>b.id===id?Object.assign({},b,{paid:!b.paid}):b)}); }
+  deleteBill(id){ this.set({bills:this.state.bills.filter(b=>b.id!==id), swipeId:null}, ()=>this.toast('Deleted')); }
+  saveBill(){ const d=this.state.sheetDraft; const name=(d.name||'').trim(); const amt=parseFloat(d.amount)||0; const day=Math.min(28,Math.max(1,parseInt(d.dueDay)||1));
+    if(!name||amt<=0) return;
+    const bills=this.state.bills.concat([{id:'b'+Date.now(), name, amount:amt, dueDay:day, paid:false}]);
+    this.set({bills, sheet:null}, ()=>this.toast('Bill added · '+name)); }
+
+  // ---------- sheets ----------
+  openSheet(type, draft){ this.setState({sheet:type, sheetDraft:draft||{}, swipeId:null}); }
+  closeSheet(){ this.setState({sheet:null}); }
+  setDraft(patch){ this.setState({sheetDraft:Object.assign({},this.state.sheetDraft,patch)}); }
+  saveMonthlyBudget(){ const v=Math.max(0,Math.round(this.state.sheetDraft.val||0)); this.set({budget:v, sheet:null}, ()=>this.toast('Updated · '+this.fmt0(v))); }
+  saveCategoryBudget(){ const d=this.state.sheetDraft; const lim=Object.assign({},this.state.catLimits); lim[d.cat]=Math.max(0,Math.round(d.val||0));
+    this.set({catLimits:lim, sheet:null}, ()=>this.toast('Updated · '+d.cat)); }
+  saveName(){ const n=(this.state.sheetDraft.name||'').trim(); this.set({user:{name:n}, sheet:null}, ()=>this.toast('Updated')); }
+  saveResetDay(){ const v=Math.min(28,Math.max(1,parseInt(this.state.sheetDraft.day)||1)); this.set({resetDay:v, sheet:null}, ()=>this.toast('Updated')); }
+  setCurrency(code){ this.set({currency:code, sheet:null, route:'settings'}, ()=>this.toast('Updated')); }
+
+  // ---------- settings ----------
+  toggleTheme(){ this.set({theme:this.state.theme==='dark'?'light':'dark'}); }
+  togglePref(k){ const p=Object.assign({},this.state.prefs); p[k]=!p[k]; this.set({prefs:p}); }
+  replayOnboarding(){ this.setState({route:'onboarding', obStep:0, obBudget:this.state.budget||35000, obReset:this.state.resetDay||1}); }
+
+  componentDidMount(){
+    this._onDown=(e)=>{
+      const row=e.target.closest('[data-swipe-row]');
+      if(!row){ if(this.state.swipeId) this.setState({swipeId:null}); return; }
+      if(e.target.closest('[data-swipe-action]')) return;
+      const fg=row.querySelector('[data-swipe-fg]');
+      this._drag={id:row.getAttribute('data-id'), x:e.clientX, y:e.clientY, fg, max:+row.getAttribute('data-swipe-max')||80, started:false, moved:false, cur:0, lock:null};
+    };
+    this._onMove=(e)=>{ const d=this._drag; if(!d) return;
+      const dx=e.clientX-d.x, dy=e.clientY-d.y;
+      if(d.lock===null){ if(Math.abs(dx)>8||Math.abs(dy)>8) d.lock=Math.abs(dx)>Math.abs(dy)?'x':'y'; }
+      if(d.lock!=='x') return;
+      d.started=true; d.moved=true;
+      const base=(this.state.swipeId===d.id)?-d.max:0;
+      let tx=Math.max(-d.max-12,Math.min(8,base+dx)); d.cur=tx;
+      if(d.fg){ d.fg.style.transition='none'; d.fg.style.transform='translateX('+tx+'px)'; }
+    };
+    this._onUp=()=>{ const d=this._drag; this._drag=null; if(!d) return;
+      if(d.fg) d.fg.style.transition='';
+      if(!d.moved) return;
+      const open=d.cur<-d.max/2;
+      if(d.fg) d.fg.style.transform='';
+      this.setState({swipeId:open?d.id:null});
+    };
+    document.addEventListener('pointerdown',this._onDown);
+    document.addEventListener('pointermove',this._onMove);
+    document.addEventListener('pointerup',this._onUp);
+    this.applyAccent();
+  }
+  componentWillUnmount(){ document.removeEventListener('pointerdown',this._onDown); document.removeEventListener('pointermove',this._onMove); document.removeEventListener('pointerup',this._onUp); clearTimeout(this._tt); }
+
+  renderVals(){
+    const s=this.state, D=this.derived(), P=D.P, c=this.cur();
+    const route=s.route;
+    const isOnboarding=route==='onboarding', isAdd=route==='add';
+    const inApp=s.onboarded && !isOnboarding && !isAdd;
+    const isHome=route==='home', isHistory=route==='history', isBills=route==='bills',
+          isReports=route==='reports', isBudget=route==='budget', isSettings=route==='settings', isCurrency=route==='currency';
+    const sc=this.statusColors(D.status);
+
+    // onboarding
+    const obStep=s.obStep;
+    const obPresets=OB_PRESETS.map(v=>({ label:this.fmt0(v), bg:s.obBudget===v?'var(--accent)':'var(--s1)', fg:s.obBudget===v?'#fff':'var(--ink)', bd:s.obBudget===v?'var(--accent)':'var(--hair)', onClick:()=>this.setState({obBudget:v}) }));
+    const obResetOpts=[{day:'1',title:'1st',sub:'Start of month',val:1},{day:'15',title:'15th',sub:'Mid-month',val:15}].map(o=>({...o, bg:s.obReset===o.val?'var(--s2)':'var(--s1)', bd:s.obReset===o.val?'var(--accent)':'var(--hair)', iconbg:s.obReset===o.val?'var(--accent)':'var(--s4)', iconfg:s.obReset===o.val?'#fff':'var(--ink-muted)', onClick:()=>this.setState({obReset:o.val}) }));
+    const obSafe=Math.max(0,Math.round(s.obBudget/30));
+    const obDots=[0,1,2,3].map(i=>({ w:i===obStep?'22px':'7px', color:i===obStep?'var(--accent)':'var(--hair-strong)' }));
+
+    // nav
+    const mkNav=(key,label,icon)=>({label,icon,weight:route===key?'600':'500',color:route===key?'var(--accent)':'var(--ink-subtle)',onClick:()=>this.go(key)});
+    const navLeft=[ mkNav('home','Home','M3 10.5 12 3l9 7.5M5 9v11h14V9'), mkNav('history','History','M12 7v5l3 2M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z') ];
+    const navRight=[ mkNav('reports','Reports','M3 21h18M7 21V11M12 21V5M17 21v-8'), mkNav('bills','Bills','M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6') ];
+
+    // home
+    const greeting='Hi, '+(s.user.name||'there');
+    const dateLine=MONF[new Date().getMonth()]+' '+new Date().getDate()+' · '+P.left+' days left';
+    const homeVariants=[{k:'ring',label:'Ring'},{k:'hero',label:'Focus'},{k:'grid',label:'Grid'}].map(v=>({label:v.label, bg:s.homeVariant===v.k?'var(--ink)':'transparent', fg:s.homeVariant===v.k?'var(--canvas)':'var(--ink-subtle)', onClick:()=>this.set({homeVariant:v.k})}));
+    const homeRing=s.homeVariant==='ring', homeHero=s.homeVariant==='hero', homeGrid=s.homeVariant==='grid';
+    const statTiles=[
+      {label:'TODAY', value:this.fmt0(D.spentToday), sub:'spent today', color:'var(--ink)'},
+      {label:'BUDGET LEFT', value:this.fmt0(D.budgetLeft), sub:'this period', color:D.budgetLeft<0?'var(--error)':'var(--ink)'},
+      {label:'BILLS DUE', value:this.fmt0(D.unpaidTotal), sub:D.unpaidBills.length+' upcoming', color:'var(--ink)'},
+      {label:'DAILY AVG', value:this.fmt0(D.dailyAvg), sub:'over '+P.elapsed+' days', color:'var(--ink)'},
+    ];
+    const recentRows=s.expenses.slice(0,4).map(e=>({ title:e.category, meta:(e.note?e.note+' · ':'')+this.relDay(e.date)+' · '+this.timeStr(e.date), amount:(e.category==='Income'?'+':'')+this.fmt(e.amount), amtColor:e.category==='Income'?'var(--success)':'var(--ink)', dot:CATCOLOR[e.category], onClick:()=>this.editExpense(e.id) }));
+
+    const out={
+      theme:s.theme, rootRef:this._rootRef, isOnboarding, isAdd, inApp, isHome, isHistory, isBills, isReports, isBudget, isSettings, isCurrency,
+      showNav: inApp && !isCurrency,
+      curSymbol:c.symbol,
+      goSettings:()=>this.go('settings'), goHistory:()=>this.go('history'), openAdd:()=>this.openAdd(),
+      navLeft, navRight,
+      // onboarding
+      obStep0:obStep===0, obStep1:obStep===1, obStep2:obStep===2, obStep3:obStep===3,
+      obCanBack:obStep>0, obShowDots:obStep>=0,
+      obNext:()=>this.obNext(), obBack:()=>this.obBack(), obSkip:()=>this.obSkip(), obFinish:()=>this.obFinish(),
+      obPresets, obResetOpts, obDots, obBudgetDisplay:new Intl.NumberFormat(c.locale).format(s.obBudget),
+      obSummaryTitle: s.user.name?("You're all set, "+s.user.name):"You're all set",
+      obSumBudget:this.fmt0(s.obBudget), obSumReset:this.ordinal(s.obReset)+' of each month', obSumSafe:'~'+this.fmt0(obSafe),
+      // home
+      greeting, dateLine, homeVariants, homeRing, homeHero, homeGrid,
+      ringEl:this.ringChart(D.spentPct, sc.c), safeEl:React.createElement(this.HeroNum,{value:D.safeToday, fmt:(x)=>this.fmt0(x)}),
+      remainingLine:this.fmt0(D.budgetLeft)+' left · '+P.left+'d',
+      statusLabel:D.status, statusColor:sc.c, statusBg:sc.bg, spentPctW:Math.round(D.spentPct*100)+'%',
+      statTiles, recentRows, hasExpenses:s.expenses.length>0, noExpenses:s.expenses.length===0,
+      // add
+      addTitle:s.editId?'Edit expense':'New expense', addAmountStage:s.addStage==='amount', addDetailsStage:s.addStage==='details',
+      keypadDisplay: s.keypad, keypadColor:this.amount()>0?'var(--ink)':'var(--ink-tert)',
+      keypad:['1','2','3','4','5','6','7','8','9','.','0','⌫'].map(k=>({label:k, onClick:()=>this.press(k)})),
+      addNext:()=>this.addNext(), addBack:()=>this.addBack(), addNextOpacity:this.amount()>0?1:0.4,
+      closeAdd:()=>this.closeAdd(), saveExpense:()=>this.saveExpense(),
+      catChips:CATS.map(cat=>({ label:cat, dot:CATCOLOR[cat], onClick:()=>this.setState({draftCat:cat}),
+        bg:s.draftCat===cat?'color-mix(in srgb,'+CATCOLOR[cat]+' 18%, transparent)':'var(--s1)',
+        fg:s.draftCat===cat?'var(--ink)':'var(--ink-muted)', bd:s.draftCat===cat?CATCOLOR[cat]:'var(--hair)' })),
+      draftNote:s.draftNote, onNoteInput:(e)=>this.setState({draftNote:e.target.value}),
+      draftDateLabel:s.draftDate?this.mdy(s.draftDate):this.mdy(new Date().toISOString()),
+      openDatePicker:()=>this.openSheet('date',{sel:s.draftDate||new Date().toISOString(), view:s.draftDate||new Date().toISOString()}),
+      flash:s.flash,
+    };
+    Object.assign(out, this.renderScreens(D));
+    return out;
+  }
+  buildCalendar(viewISO){ const v=new Date(viewISO); const y=v.getFullYear(), m=v.getMonth();
+    const startDow=new Date(y,m,1).getDay(); const dim=new Date(y,m+1,0).getDate();
+    const cells=[]; for(let i=0;i<startDow;i++) cells.push(null);
+    for(let d=1;d<=dim;d++) cells.push(new Date(y,m,d)); return {y,m,cells}; }
+
+  renderScreens(D){
+    const s=this.state, P=D.P, c=this.cur(), out={};
+
+    // ===== HISTORY =====
+    let list=s.expenses.slice().sort((a,b)=>new Date(b.date)-new Date(a.date));
+    const q=s.histSearch.trim().toLowerCase(), f=s.histFilter;
+    const filt=list.filter(e=>{
+      if(q && !((e.note||'').toLowerCase().includes(q) || e.category.toLowerCase().includes(q))) return false;
+      if(f==='All') return true;
+      if(f==='This week'){ return (this.dayStart(new Date())-this.dayStart(new Date(e.date)))/86400000 < 7; }
+      return e.category===f;
+    });
+    const groups=[], gmap={};
+    filt.forEach(e=>{ const key=this.dayStart(new Date(e.date));
+      if(!gmap[key]){ gmap[key]={label:this.relDay(e.date), total:0, rows:[]}; groups.push(gmap[key]); }
+      if(e.category!=='Income') gmap[key].total+=e.amount;
+      gmap[key].rows.push({ id:e.id, title:(e.note||e.category), meta:this.timeStr(e.date)+' · '+e.category,
+        amount:(e.category==='Income'?'+':'')+this.fmt(e.amount), amtColor:e.category==='Income'?'var(--success)':'var(--ink)',
+        dot:CATCOLOR[e.category], tx:(s.swipeId===e.id?-140:0),
+        onTap:()=>{ if(s.swipeId===e.id) this.setState({swipeId:null}); else this.editExpense(e.id); },
+        onEdit:()=>this.editExpense(e.id), onDelete:()=>this.deleteExpense(e.id) });
+    });
+    groups.forEach(g=>g.totalFmt=this.fmt(g.total));
+    out.histGroups=groups;
+    out.histFilters=['All','This week'].concat(CATS).map(name=>({ label:name,
+      onClick:()=>this.setState({histFilter:name, swipeId:null}),
+      bg:f===name?'var(--ink)':'var(--s1)', fg:f===name?'var(--canvas)':'var(--ink-muted)', bd:f===name?'var(--ink)':'var(--hair)' }));
+    out.histSearch=s.histSearch; out.onHistSearch=(e)=>this.setState({histSearch:e.target.value, swipeId:null});
+    out.histCount=s.expenses.length+' '+(s.expenses.length===1?'entry':'entries');
+    out.histHasResults=filt.length>0; out.histEmpty=filt.length===0;
+    out.histEmptySub=q?'Try a shorter search.':'Try a different category filter.';
+
+    // ===== BILLS =====
+    const monLabel=MON[new Date().getMonth()];
+    out.billsMonthLabel=monLabel+' BILLS';
+    out.billsUnpaid=D.unpaidBills.length+' unpaid';
+    out.billsRecurringTotal=this.fmt0(D.billsTotal);
+    out.billsPaidTotal=this.fmt0(D.paidTotal)+' paid';
+    out.billsRemainingTotal=this.fmt0(D.unpaidTotal)+' remaining';
+    out.billsPaidPctW=(D.billsTotal>0?Math.round(D.paidTotal/D.billsTotal*100):0)+'%';
+    const sortedBills=s.bills.slice().sort((a,b)=>a.dueDay-b.dueDay);
+    out.billRows=sortedBills.map(b=>{ const st=this.billStatus(b);
+      return { id:b.id, name:b.name, dueLabel:'Due '+this.billDue(b), statusLabel:st.label, statusColor:st.color,
+        amount:this.fmt0(b.amount), paid:b.paid, tx:(s.swipeId===b.id?-80:0),
+        check:b.paid?'var(--success)':'transparent', checkBd:b.paid?'var(--success)':'var(--hair-strong)', tickColor:b.paid?'#fff':'transparent',
+        nameStyle:b.paid?'line-through':'none', nameColor:b.paid?'var(--ink-subtle)':'var(--ink)',
+        onTap:()=>{ if(s.swipeId===b.id) this.setState({swipeId:null}); else this.toggleBill(b.id); },
+        onDelete:()=>this.deleteBill(b.id) };
+    });
+    out.billsHas=s.bills.length>0; out.billsEmpty=s.bills.length===0;
+    out.openAddBill=()=>this.openSheet('addbill',{name:'',amount:'',dueDay:'15'});
+
+    // ===== REPORTS =====
+    const rangeFilter=(e)=>{ const diff=(this.dayStart(new Date())-this.dayStart(new Date(e.date)))/86400000;
+      if(s.repRange==='week') return diff<7;
+      if(s.repRange==='3months') return diff<90;
+      return D.inP(e.date); };
+    const rspend=s.expenses.filter(e=>e.category!=='Income' && rangeFilter(e));
+    const catTot={}; rspend.forEach(e=>catTot[e.category]=(catTot[e.category]||0)+e.amount);
+    const totalSpent=rspend.reduce((a,e)=>a+e.amount,0);
+    const catList=Object.keys(catTot).map(cat=>({cat, amount:catTot[cat], color:CATCOLOR[cat]})).sort((a,b)=>b.amount-a.amount);
+    const pieData=catList.map(d=>({cat:d.cat, amount:d.amount, color:d.color, active:s.slice===d.cat, onClick:()=>this.setState({slice:s.slice===d.cat?null:d.cat})}));
+    out.repHasData=totalSpent>0; out.repEmpty=totalSpent===0;
+    out.pieEl=this.pieChart(pieData, totalSpent);
+    out.repSpentTotal=this.fmt0(totalSpent);
+    out.repMonthLabel=MONF[new Date().getMonth()]+' '+new Date().getFullYear();
+    out.repRanges=[{k:'week',l:'This week'},{k:'month',l:'This month'},{k:'3months',l:'3 months'}].map(r=>({label:r.l, onClick:()=>this.setState({repRange:r.k, slice:null}), bg:s.repRange===r.k?'var(--ink)':'var(--s1)', fg:s.repRange===r.k?'var(--canvas)':'var(--ink-muted)', bd:s.repRange===r.k?'var(--ink)':'var(--hair)'}));
+    const sel=s.slice?catList.find(d=>d.cat===s.slice):null;
+    out.repHasSlice=!!sel; out.repNoSlice=!sel;
+    out.repSliceName=sel?sel.cat:''; out.repSliceAmt=sel?this.fmt0(sel.amount):''; out.repSlicePct=sel?Math.round(sel.amount/totalSpent*100)+'%':'';
+    out.repSliceColor=sel?sel.color:'var(--ink)';
+    out.repBreakdown=catList.map(d=>({cat:d.cat, color:d.color, amount:this.fmt0(d.amount), pct:Math.round(d.amount/totalSpent*100)+'%', barW:Math.round(d.amount/totalSpent*100)+'%'}));
+    // pace
+    const days=[]; let maxv=0;
+    for(let i=0;i<P.elapsed;i++){ const dd=new Date(P.start); dd.setDate(dd.getDate()+i);
+      const tot=s.expenses.filter(e=>e.category!=='Income' && this.dayStart(new Date(e.date))===this.dayStart(dd)).reduce((a,e)=>a+e.amount,0);
+      maxv=Math.max(maxv,tot); days.push({d:new Date(dd), amount:tot}); }
+    maxv=Math.max(maxv, D.safePerDay*1.2, 1);
+    const paceDays=days.map((x,i)=>({amount:x.amount, over:x.amount>D.safePerDay && D.safePerDay>0, active:s.paceSel===i, onClick:()=>this.setState({paceSel:s.paceSel===i?null:i})}));
+    out.paceEl=this.paceChart(paceDays, maxv, D.safePerDay, maxv);
+    out.repAvgDay=this.fmt0(D.dailyAvg); out.repSafeDay=this.fmt0(D.safePerDay);
+    const ps=s.paceSel!=null?days[s.paceSel]:null;
+    out.paceTip=ps?(this.md(ps.d.toISOString())+' · '+this.fmt(ps.amount)):'';
+    out.paceHasTip=!!ps;
+    // MoM
+    const byMonth={}; s.expenses.filter(e=>e.category!=='Income').forEach(e=>{ const d=new Date(e.date); byMonth[d.getFullYear()+'-'+d.getMonth()]=(byMonth[d.getFullYear()+'-'+d.getMonth()]||0)+e.amount; });
+    const pStart=P.start; const moms=[];
+    for(let i=5;i>=0;i--){ const d=new Date(pStart.getFullYear(),pStart.getMonth()-i,1); moms.push({label:MON[d.getMonth()], total:byMonth[d.getFullYear()+'-'+d.getMonth()]||0, current:i===0, idx:d.getMonth()}); }
+    out.momEl=this.momChart(moms);
+    const curT=moms[5].total, prevT=moms[4].total, prevM=MON[moms[4].idx];
+    out.momCurrent=this.fmt0(curT);
+    if(prevT>0){ const pc=Math.round((curT-prevT)/prevT*100); out.momPctLabel=(curT<=prevT?'↓ ':'↑ ')+Math.abs(pc)+'% vs '+prevM; out.momColor=curT<=prevT?'var(--success)':'var(--warn)'; }
+    else { out.momPctLabel='No '+prevM+' data yet'; out.momColor='var(--ink-subtle)'; }
+    out.topCats=catList.slice(0,5).map(d=>({cat:d.cat, color:d.color, amount:this.fmt0(d.amount)}));
+    out.topHas=catList.length>0;
+
+    // ===== BUDGET =====
+    out.budMonthly=this.fmt0(s.budget);
+    const allocated=CATS.filter(x=>x!=='Income').reduce((a,cat)=>a+(s.catLimits[cat]||0),0);
+    out.budAllocated=this.fmt0(allocated)+' allocated'; out.budFree=this.fmt0(Math.max(0,s.budget-allocated))+' free';
+    out.budCats=CATS.filter(x=>x!=='Income').map(cat=>{ const lim=s.catLimits[cat]||0;
+      const spent=s.expenses.filter(e=>e.category===cat && D.inP(e.date)).reduce((a,e)=>a+e.amount,0);
+      return { cat, color:CATCOLOR[cat], label:this.fmt0(spent)+' / '+(lim>0?this.fmt0(lim):'—'),
+        barW:lim>0?Math.min(100,Math.round(spent/lim*100))+'%':'0%', over:lim>0&&spent>lim,
+        onClick:()=>this.openSheet('category',{cat, val:lim}) };
+    });
+    out.budRecurring=s.bills.slice().sort((a,b)=>a.dueDay-b.dueDay).map(b=>({name:b.name, day:'Day '+b.dueDay, amount:this.fmt0(b.amount)}));
+    out.budRecHas=s.bills.length>0; out.budRecEmpty=s.bills.length===0;
+    out.openEditBudget=()=>this.openSheet('budget',{val:s.budget});
+
+    // ===== SETTINGS =====
+    out.userInitial=(s.user.name||'G').trim().charAt(0).toUpperCase()||'G';
+    out.userName=s.user.name||'Add your name';
+    out.settingsSub=c.code+' · Resets on the '+this.ordinal(s.resetDay);
+    out.darkOn=s.theme==='dark'; out.dailyOn=s.prefs.dailyNudge; out.billAlertOn=s.prefs.billAlerts;
+    out.darkToggle=()=>this.toggleTheme(); out.dailyToggle=()=>this.togglePref('dailyNudge'); out.billToggle=()=>this.togglePref('billAlerts');
+    out.darkKnob=s.theme==='dark'?'translateX(20px)':'translateX(0)'; out.darkTrack=s.theme==='dark'?'var(--accent)':'var(--hair-strong)';
+    out.dailyKnob=s.prefs.dailyNudge?'translateX(20px)':'translateX(0)'; out.dailyTrack=s.prefs.dailyNudge?'var(--accent)':'var(--hair-strong)';
+    out.billKnob=s.prefs.billAlerts?'translateX(20px)':'translateX(0)'; out.billTrack=s.prefs.billAlerts?'var(--accent)':'var(--hair-strong)';
+    out.resetDayLabel=this.ordinal(s.resetDay)+' of month';
+    out.currencyName=c.name; out.currencyLine=c.symbol+' '+c.code;
+    out.goBudget=()=>this.go('budget'); out.goCurrency=()=>this.go('currency');
+    out.openResetSheet=()=>this.openSheet('reset',{day:String(s.resetDay)});
+    out.openNameSheet=()=>this.openSheet('name',{name:s.user.name});
+    out.replay=()=>this.replayOnboarding();
+
+    // ===== CURRENCY =====
+    out.currencyList=Object.keys(CURRENCIES).map(code=>{ const cc=CURRENCIES[code];
+      return { code:cc.code, name:cc.name, ex:cc.ex, active:s.currency===code,
+        bg:s.currency===code?'var(--s2)':'transparent', bd:s.currency===code?'var(--accent)':'var(--hair)',
+        check:s.currency===code?1:0, onClick:()=>this.setCurrency(code) }; });
+    out.goSettingsBack=()=>this.go('settings');
+
+    // ===== SHEETS =====
+    out.sheetOpen=!!s.sheet; out.closeSheet=()=>this.closeSheet();
+    out.sheetIsDate=s.sheet==='date'; out.sheetIsBill=s.sheet==='addbill'; out.sheetIsBudget=s.sheet==='budget';
+    out.sheetIsCat=s.sheet==='category'; out.sheetIsName=s.sheet==='name'; out.sheetIsReset=s.sheet==='reset';
+    const sd=s.sheetDraft;
+    // date picker
+    if(s.sheet==='date'){ const cal=this.buildCalendar(sd.view||new Date().toISOString());
+      out.calMonthLabel=MONF[cal.m]+' '+cal.y;
+      out.calDays=cal.cells.map((d,i)=>{ if(!d) return {empty:true, key:'e'+i};
+        const isSel=sd.sel && this.dayStart(d)===this.dayStart(new Date(sd.sel));
+        const isToday=this.dayStart(d)===this.dayStart(new Date());
+        const future=this.dayStart(d)>this.dayStart(new Date());
+        return { empty:false, key:'d'+i, day:d.getDate(),
+          bg:isSel?'var(--accent)':'transparent', fg:isSel?'#fff':(future?'var(--ink-tert)':'var(--ink)'),
+          bd:isToday&&!isSel?'var(--hair-strong)':'transparent', fw:isSel?'600':(isToday?'600':'400'),
+          onClick:future?(()=>{}):(()=>this.setDraft({sel:d.toISOString()})) };
+      });
+      out.calPrev=()=>{ const v=new Date(sd.view||new Date()); v.setMonth(v.getMonth()-1); this.setDraft({view:v.toISOString()}); };
+      out.calNext=()=>{ const v=new Date(sd.view||new Date()); v.setMonth(v.getMonth()+1); this.setDraft({view:v.toISOString()}); };
+      out.dateDone=()=>{ this.setState({draftDate:sd.sel}); this.closeSheet(); };
+      out.calWeekdays=['S','M','T','W','T','F','S'];
+    }
+    // add bill
+    out.billName=sd.name||''; out.billAmount=sd.amount||''; out.billDueDay=sd.dueDay||'';
+    out.onBillName=(e)=>this.setDraft({name:e.target.value}); out.onBillAmount=(e)=>this.setDraft({amount:e.target.value.replace(/[^0-9.]/g,'')}); out.onBillDue=(e)=>this.setDraft({dueDay:e.target.value.replace(/[^0-9]/g,'')});
+    out.saveBill=()=>this.saveBill();
+    out.sheetCurSymbol=c.symbol;
+    // monthly budget stepper
+    out.budgetVal=this.fmt0(sd.val||0);
+    out.budgetInc=()=>this.setDraft({val:(sd.val||0)+1000}); out.budgetDec=()=>this.setDraft({val:Math.max(0,(sd.val||0)-1000)});
+    out.budgetPresets=[1000,2500,5000].map(p=>({label:'+'+new Intl.NumberFormat(c.locale).format(p), onClick:()=>this.setDraft({val:(sd.val||0)+p})}));
+    out.saveBudget=()=>this.saveMonthlyBudget();
+    // category budget stepper
+    out.catSheetName=(sd.cat||'')+' budget'; out.catVal=this.fmt0(sd.val||0);
+    out.catInc=()=>this.setDraft({val:(sd.val||0)+500}); out.catDec=()=>this.setDraft({val:Math.max(0,(sd.val||0)-500)});
+    out.catPresets=[500,1000,2500].map(p=>({label:'+'+new Intl.NumberFormat(c.locale).format(p), onClick:()=>this.setDraft({val:(sd.val||0)+p})}));
+    out.saveCat=()=>this.saveCategoryBudget();
+    // name / reset
+    out.nameVal=sd.name||''; out.onNameInput=(e)=>this.setDraft({name:e.target.value}); out.saveName=()=>this.saveName();
+    out.resetVal=sd.day||''; out.onResetInput=(e)=>this.setDraft({day:e.target.value.replace(/[^0-9]/g,'')}); out.saveReset=()=>this.saveResetDay();
+
+    return out;
+  }
+}
+</script>
+
+
+</body></html>

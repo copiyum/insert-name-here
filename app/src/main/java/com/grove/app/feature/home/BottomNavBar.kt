@@ -29,15 +29,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.BlurredEdgeTreatment
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shadow
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -78,8 +73,8 @@ fun BottomNavBar(
             modifier = Modifier.fillMaxWidth(),
             shape = GroveShapes.Nav,
             color = c.navBg,
-            shadowElevation = 14.dp,
-            border = BorderStroke(1.dp, if (c.isDark) Color(0x0FFFFFFF) else c.borderStrong),
+            shadowElevation = 10.dp,
+            border = BorderStroke(1.dp, if (c.isDark) Color(0x1FFFFFFF) else c.borderStrong),
         ) {
             BoxWithConstraints(
                 modifier = Modifier
@@ -113,28 +108,13 @@ fun BottomNavBar(
                     }
                 }
 
-                Box(modifier = Modifier.matchParentSize()) {
-                    val glow = c.accent.copy(alpha = if (c.isDark) 0.15f else 0.25f)
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.CenterStart)
-                            .offset(x = pillOffset, y = 5.dp)
-                            .width(slotWidth)
-                            .height(itemHeight)
-                            .blur(16.dp, BlurredEdgeTreatment.Unbounded)
-                            .clip(pillShape)
-                            .background(glow),
-                    )
-                }
-
                 Box(
                     modifier = Modifier
-                        .offset(x = pillOffset)
+                        .offset { IntOffset(pillOffset.roundToPx(), 0) }
                         .width(slotWidth)
                         .height(itemHeight)
-                        .graphicsLayer { alpha = if (c.isDark) 0.24f else 1f }
                         .clip(pillShape)
-                        .background(if (c.isDark) lerp(c.accent, Color.White, 0.22f) else c.accent),
+                        .background(c.accent),
                 )
 
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -148,15 +128,17 @@ fun BottomNavBar(
                                     modifier = Modifier
                                         .size(GroveSize.AddButton)
                                         .clip(GroveShapes.Chip)
-                                        .border(GroveBorder.AddButton, c.accent, GroveShapes.Chip)
+                                        .background(c.accent)
+                                        .border(GroveBorder.Thin, c.accentDeep, GroveShapes.Chip)
                                         .clickable(
                                             interactionSource = remember { MutableInteractionSource() },
                                             indication = null,
+                                            role = Role.Button,
                                             onClick = onAdd,
                                         ),
                                     contentAlignment = Alignment.Center,
                                 ) {
-                                    Icon(Icons.Filled.Add, contentDescription = "Add expense", tint = c.accent, modifier = Modifier.size(24.dp))
+                                    Icon(Icons.Filled.Add, contentDescription = "Add expense", tint = c.fgOnFern, modifier = Modifier.size(24.dp))
                                 }
                             }
                         } else {
@@ -167,9 +149,6 @@ fun BottomNavBar(
                                 animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
                                 label = "navText",
                             )
-                            val style = if (isActive && c.isDark) {
-                                TextStyle(shadow = Shadow(Color(0xFFB9D0B5), blurRadius = 14f))
-                            } else TextStyle.Default
                             Box(
                                 modifier = Modifier
                                     .width(slotWidth)
@@ -178,41 +157,21 @@ fun BottomNavBar(
                                     .clickable(
                                         interactionSource = remember { MutableInteractionSource() },
                                         indication = null,
+                                        role = Role.Tab,
                                     ) { onChange(tab.route) },
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Text(
                                     tab.label,
-                                    style = style,
                                     fontFamily = InterTight,
                                     fontSize = 12.5.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    letterSpacing = (-0.125).sp,
                                     color = textColor,
                                 )
                             }
                         }
                     }
                 }
-
-                val sheenCenter = ((pillOffset + slotWidth / 2).value / maxWidth.value).coerceIn(0f, 1f)
-                val sheenAlpha = if (c.isDark) 0.45f else 0.40f
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .offset(y = 5.dp)
-                        .fillMaxWidth()
-                        .height(1.5.dp)
-                        .background(
-                            Brush.horizontalGradient(
-                                0f to Color.Transparent,
-                                (sheenCenter - 0.10f).coerceIn(0.0001f, 0.9998f) to Color.Transparent,
-                                sheenCenter.coerceIn(0.0002f, 0.9999f) to c.accent.copy(alpha = sheenAlpha),
-                                (sheenCenter + 0.10f).coerceIn(0.0003f, 1f) to Color.Transparent,
-                                1f to Color.Transparent,
-                            ),
-                        ),
-                )
 
                 if (c.isDark) {
                     Box(

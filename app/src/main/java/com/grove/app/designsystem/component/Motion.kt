@@ -13,7 +13,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 
 @Composable
-fun animatedOnce(target: Float, spec: AnimationSpec<Float> = tween(1000, easing = EaseOutCubic)): Float {
+fun animatedOnce(target: Float, spec: AnimationSpec<Float> = tween(520, easing = EaseOutCubic)): Float {
     var played by rememberSaveable { mutableStateOf(false) }
     val anim = remember { Animatable(if (played) target else 0f) }
     LaunchedEffect(target) {

@@ -5,6 +5,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.grove.app.data.db.dao.BillDao
 import com.grove.app.data.db.dao.BillPaymentDao
@@ -55,7 +56,7 @@ import kotlinx.coroutines.launch
         NotificationSettingsEntity::class,
         ScheduledNotificationEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -90,16 +91,24 @@ abstract class GroveDatabase : RoomDatabase() {
                         context.applicationContext,
                         GroveDatabase::class.java,
                         "grove.db",
-                    ).addCallback(
+                    ).addMigrations(MIGRATION_1_2)
+                    .addCallback(
                         object : Callback() {
                             override fun onCreate(db: SupportSQLiteDatabase) {
                                 super.onCreate(db)
                                 scope.launch { SeedData.seed(instance) }
                             }
                         },
-                    ).fallbackToDestructiveMigration()
-                    .build()
+                    ).build()
             return instance
         }
+
+        private val MIGRATION_1_2 =
+            object : Migration(1, 2) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL("CREATE INDEX IF NOT EXISTS index_monthly_category_budgets_categoryId ON monthly_category_budgets(categoryId)")
+                    db.execSQL("CREATE INDEX IF NOT EXISTS index_scheduled_notifications_relatedBillId ON scheduled_notifications(relatedBillId)")
+                }
+            }
     }
 }

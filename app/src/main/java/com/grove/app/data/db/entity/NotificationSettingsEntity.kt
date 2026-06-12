@@ -24,6 +24,20 @@ data class NotificationSettingsEntity(
         )
 
     companion object {
+        fun fromDomain(
+            settings: NotificationSettings,
+            createdAt: Instant,
+            updatedAt: Instant,
+        ) = NotificationSettingsEntity(
+            id = 1,
+            dailySafeSpendEnabled = settings.dailySafeSpendEnabled,
+            dailySafeSpendTimeMinutes = settings.dailySafeSpendTimeMinutes,
+            billAlertsEnabled = settings.billAlertsEnabled,
+            billAlertsDaysBefore = settings.billAlertsDaysBefore,
+            createdAt = createdAt,
+            updatedAt = updatedAt,
+        )
+
         fun defaults() =
             NotificationSettings(
                 dailySafeSpendEnabled = true,

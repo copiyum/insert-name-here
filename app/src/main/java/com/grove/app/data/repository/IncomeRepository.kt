@@ -15,6 +15,7 @@ class IncomeRepository(
 
     suspend fun upsert(income: Income) {
         val now = Instant.now()
+        val existing = dao.getById(income.id)
         dao.upsert(
             IncomeEntity(
                 id = income.id,
@@ -27,11 +28,15 @@ class IncomeRepository(
                 recurrenceFrequency = income.recurrenceFrequency,
                 nextExpectedAt = income.nextExpectedAt,
                 note = income.note,
-                createdAt = now,
+                createdAt = existing?.createdAt ?: income.createdAt,
                 updatedAt = now,
             ),
         )
     }
 
     suspend fun delete(id: UUID) = dao.delete(id)
+
+    suspend fun updateCurrencyCode(currencyCode: String) {
+        dao.updateCurrencyCode(currencyCode, Instant.now())
+    }
 }

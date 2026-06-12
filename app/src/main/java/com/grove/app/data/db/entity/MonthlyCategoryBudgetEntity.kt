@@ -23,7 +23,10 @@ import java.util.UUID
             onDelete = ForeignKey.RESTRICT,
         ),
     ],
-    indices = [Index(value = ["monthlyBudgetId", "categoryId"], unique = true)],
+    indices = [
+        Index(value = ["monthlyBudgetId", "categoryId"], unique = true),
+        Index("categoryId"),
+    ],
 )
 data class MonthlyCategoryBudgetEntity(
     @PrimaryKey val id: UUID,

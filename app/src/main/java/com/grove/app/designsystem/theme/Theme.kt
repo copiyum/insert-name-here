@@ -45,8 +45,8 @@ data class SpendTone(
 fun toneOf(pace: SpendPace): SpendTone {
     val c = GroveTheme.colors
     return when (pace) {
-        SpendPace.Over -> SpendTone(c.clay, Color(0xFF8F6A4C), "Over budget", healthy = false)
-        SpendPace.Tight -> SpendTone(c.claySoft, c.clay, "Spending fast", healthy = false)
+        SpendPace.Over -> SpendTone(c.danger, c.danger, "Over budget", healthy = false)
+        SpendPace.Tight -> SpendTone(c.warn, c.warn, "Spending fast", healthy = false)
         SpendPace.Healthy -> SpendTone(c.accent, c.accentDeep, "On track", healthy = true)
     }
 }

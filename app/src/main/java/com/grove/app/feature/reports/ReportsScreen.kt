@@ -39,7 +39,11 @@ import com.grove.app.designsystem.catalog.CategoryVisuals
 import com.grove.app.designsystem.component.AppTopBar
 import com.grove.app.designsystem.component.CategoryIcon
 import com.grove.app.designsystem.component.Chip
+import com.grove.app.designsystem.component.EmptyState
 import com.grove.app.designsystem.component.GroveCard
+import com.grove.app.designsystem.component.GroveCardVariant
+import com.grove.app.designsystem.component.MoneyText
+import com.grove.app.designsystem.component.MoneyTextSize
 import com.grove.app.designsystem.component.ProgressBar
 import com.grove.app.designsystem.component.SectionHeader
 import com.grove.app.designsystem.component.charts.DonutChart
@@ -52,6 +56,7 @@ import com.grove.app.designsystem.theme.GroveSpacing
 import com.grove.app.designsystem.theme.GroveTheme
 import com.grove.app.designsystem.theme.GroveType
 import com.grove.app.designsystem.theme.InterTight
+import java.time.temporal.ChronoUnit
 import kotlin.math.abs
 
 @Composable
@@ -68,21 +73,37 @@ fun ReportsScreen(
             .lowercase()
             .replaceFirstChar { it.uppercase() }
 
-    val byCategory: List<Pair<String, Double>> =
-        remember(state.expenses) {
+    val filteredExpenses =
+        remember(state.expenses, range, state.period, state.today) {
+            val today = state.today.toLocalDate()
             state.expenses
-                .groupBy { it.iconKey }
-                .map { e -> Pair(e.key, e.value.sumOf { it.amountMinor } / 100.0) }
-                .sortedByDescending { it.second }
+                .filter { expense ->
+                    val date = expense.occurredAt.atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+                    when (range) {
+                        "week" -> !date.isBefore(today.minusDays(6)) && !date.isAfter(today)
+                        "3m" -> !date.isBefore(today.minusMonths(3)) && !date.isAfter(today)
+                        else -> state.period.contains(expense.occurredAt)
+                    }
+                }
         }
 
+    val byCategory: List<Pair<String, Double>> =
+        remember(filteredExpenses, currency) {
+            filteredExpenses
+                .groupBy { it.iconKey }
+                .map { e -> Pair(e.key, Money.fromMinor(e.value.sumOf { it.amountMinor }, currency)) }
+                .sortedByDescending { it.second }
+        }
+    val filteredTotal = remember(byCategory) { byCategory.sumOf { it.second } }
+
     val dailyData =
-        remember(state.expenses, state.dayOfMonth) {
-            DoubleArray(state.dayOfMonth) { 0.0 }
+        remember(state.expenses, state.period, state.dayOfBudgetPeriod, currency) {
+            DoubleArray(state.dayOfBudgetPeriod) { 0.0 }
                 .also { arr ->
                     state.expenses.forEach { e ->
-                        val day = e.occurredAt.atZone(java.time.ZoneId.systemDefault()).dayOfMonth - 1
-                        if (day in 0 until state.dayOfMonth) arr[day] += e.amountMinor / 100.0
+                        val date = e.occurredAt.atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+                        val day = ChronoUnit.DAYS.between(state.period.start, date).toInt()
+                        if (day in arr.indices) arr[day] += Money.fromMinor(e.amountMinor, currency)
                     }
                 }.toList()
         }
@@ -92,7 +113,7 @@ fun ReportsScreen(
             val raw = state.pastMonths.take(4).reversed().map { mt ->
                 MonthBar(
                     mt.monthName.take(3),
-                    mt.totalMinor.toDouble() / Math.pow(10.0, com.grove.app.designsystem.format.Currencies.minorUnitExponent(currency).toDouble()),
+                    Money.fromMinor(mt.totalMinor, currency),
                     mt.year == state.today.year && mt.month == state.today.monthValue,
                 )
             }
@@ -104,13 +125,13 @@ fun ReportsScreen(
         }
     val prevMonthTotal = state.pastMonths
         .firstOrNull { !(it.year == state.today.year && it.month == state.today.monthValue) }
-        ?.totalMinor?.toDouble()?.let { it / Math.pow(10.0, com.grove.app.designsystem.format.Currencies.minorUnitExponent(currency).toDouble()) }
+        ?.totalMinor?.let { Money.fromMinor(it, currency) }
     val momDelta = if (prevMonthTotal != null && prevMonthTotal > 0) {
         (state.totalSpent - prevMonthTotal) / prevMonthTotal
     } else 0.0
 
     LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 120.dp)) {
-        item { AppTopBar(title = "Reports", subtitle = "$monthName 2026") }
+        item { AppTopBar(title = "Reports", subtitle = "$monthName ${state.today.year}") }
 
         item {
             LazyRow(modifier = Modifier.padding(bottom = GroveSpacing.SM), horizontalArrangement = Arrangement.spacedBy(GroveSpacing.SM)) {
@@ -121,49 +142,51 @@ fun ReportsScreen(
         }
 
         item {
-            GroveCard(modifier = Modifier.fillMaxWidth()) {
+            GroveCard(modifier = Modifier.fillMaxWidth(), variant = GroveCardVariant.Elevated) {
                 Text("Where it went", style = GroveType.rowTitle, fontWeight = FontWeight.Medium, color = c.fg1)
                 Text(if (selected != null) "Tap again to clear" else "Tap a slice to focus", style = GroveType.rowSub, color = c.fg3)
                 Spacer(Modifier.height(GroveSpacing.SM))
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(GroveSpacing.SM + 2.dp)) {
-                    DonutChart(data = byCategory, total = state.totalSpent, selected = selected, onSelect = {
-                        selected =
-                            if (selected == it) null else it
-                    }, modifier = Modifier.size(132.dp), currency = currency)
-                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(GroveSpacing.SM)) {
-                        for (entry in byCategory.take(5)) {
-                            val cat = entry.first
-                            val amount = entry.second
-                            val dim = selected != null && selected != cat
-                            Row(
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .graphicsLayer { alpha = if (dim) 0.4f else 1f }
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .clickable { selected = if (selected == cat) null else cat }
-                                        .padding(vertical = 2.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Box(modifier = Modifier.size(12.dp).clip(RoundedCornerShape(4.dp)).background(CategoryVisuals.color(cat)))
-                                Spacer(Modifier.width(10.dp))
-                                Text(
-                                    CategoryVisuals.label(cat),
-                                    fontFamily = InterTight,
-                                    fontWeight = FontWeight.Medium,
-                                    fontSize = 13.sp,
-                                    color = c.fg1,
-                                    modifier = Modifier.weight(1f),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                                Text(
-                                    Money.currency(amount, 0, currency),
-                                    fontFamily = InterTight,
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = c.fg2,
-                                )
+                if (byCategory.isEmpty()) {
+                    EmptyState("No spending yet", subtitle = "Your category breakdown appears after expenses are added.")
+                } else {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(GroveSpacing.SM + 2.dp)) {
+                        DonutChart(data = byCategory, total = filteredTotal, selected = selected, onSelect = {
+                            selected =
+                                if (selected == it) null else it
+                        }, modifier = Modifier.size(132.dp), currency = currency)
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(GroveSpacing.SM)) {
+                            for (entry in byCategory.take(5)) {
+                                val cat = entry.first
+                                val amount = entry.second
+                                val dim = selected != null && selected != cat
+                                Row(
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .graphicsLayer { alpha = if (dim) 0.4f else 1f }
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .clickable { selected = if (selected == cat) null else cat }
+                                            .padding(vertical = 2.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Box(modifier = Modifier.size(12.dp).clip(RoundedCornerShape(4.dp)).background(CategoryVisuals.color(cat)))
+                                    Spacer(Modifier.width(10.dp))
+                                    Text(
+                                        CategoryVisuals.label(cat),
+                                        fontFamily = InterTight,
+                                        fontWeight = FontWeight.Medium,
+                                        fontSize = 13.sp,
+                                        color = c.fg1,
+                                        modifier = Modifier.weight(1f),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                    MoneyText(
+                                        Money.currency(amount, 0, currency),
+                                        size = MoneyTextSize.Small,
+                                        color = c.fg2,
+                                    )
+                                }
                             }
                         }
                     }
@@ -178,17 +201,17 @@ fun ReportsScreen(
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Column {
                         Text("AVG / DAY", style = GroveType.capLabel, color = c.fg3)
-                        Text(
+                        MoneyText(
                             Money.currency(state.totalSpent / state.daysSinceFirstExpense, 0, currency),
-                            style = GroveType.rowTitle.copy(fontSize = 24.sp),
+                            size = MoneyTextSize.Title,
                             color = c.fg1,
                         )
                     }
                     Column(horizontalAlignment = Alignment.End) {
                         Text("SAFE / DAY", style = GroveType.capLabel, color = c.fg3)
-                        Text(
+                        MoneyText(
                             Money.currency(state.safePerDay, 0, currency),
-                            style = GroveType.rowTitle.copy(fontSize = 24.sp),
+                            size = MoneyTextSize.Title,
                             color = c.accentDeep,
                         )
                     }
@@ -196,7 +219,7 @@ fun ReportsScreen(
                 Spacer(Modifier.height(GroveSpacing.SM))
                 LineChart(
                     dailyData,
-                    baseline = state.monthBudget / state.daysInMonth,
+                    baseline = state.monthBudget / state.period.days,
                     monthShort = monthName.take(3),
                     modifier = Modifier.fillMaxWidth().height(130.dp),
                     currency = currency,
@@ -218,14 +241,14 @@ fun ReportsScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Bottom,
                 ) {
-                    Text(
-                        Money.currency(state.totalSpent, 0, currency),
-                        style = GroveType.rowTitle.copy(fontSize = 24.sp, letterSpacing = (-0.5).sp),
-                        color = c.fg1,
-                    )
+                        MoneyText(
+                            Money.currency(state.totalSpent, 0, currency),
+                            size = MoneyTextSize.Title,
+                            color = c.fg1,
+                        )
                     MomDelta(momDelta, prevMonthName = state.pastMonths
                         .firstOrNull { !(it.year == state.today.year && it.month == state.today.monthValue) }
-                        ?.monthName?.take(3) ?: "Apr")
+                        ?.monthName?.take(3) ?: "previous")
                 }
                 Spacer(Modifier.height(GroveSpacing.SM + 2.dp))
                 MonthBars(months)
@@ -238,28 +261,32 @@ fun ReportsScreen(
             GroveCard(modifier = Modifier.fillMaxWidth(), padding = PaddingValues(horizontal = GroveSpacing.LG)) {
                 val maxAmount: Double = byCategory.firstOrNull()?.second ?: 1.0
                 val top: List<Pair<String, Double>> = byCategory.take(5)
-                for ((i, entry) in top.withIndex()) {
-                    val cat = entry.first
-                    val amount = entry.second
-                    val dim = selected != null && selected != cat
-                    Row(
-                        modifier =
-                            Modifier.fillMaxWidth().graphicsLayer { alpha = if (dim) 0.4f else 1f }.padding(
-                                vertical = GroveSpacing.MD,
-                            ),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        CategoryIcon(cat)
-                        Spacer(Modifier.width(GroveSpacing.MD))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(CategoryVisuals.label(cat), style = GroveType.rowTitle, color = c.fg1)
-                            Spacer(Modifier.height(GroveSpacing.SM))
-                            ProgressBar((amount / maxAmount).toFloat(), CategoryVisuals.color(cat), height = 5)
+                if (top.isEmpty()) {
+                    EmptyState("No top categories", subtitle = "Spend data will rank categories here.")
+                } else {
+                    for ((i, entry) in top.withIndex()) {
+                        val cat = entry.first
+                        val amount = entry.second
+                        val dim = selected != null && selected != cat
+                        Row(
+                            modifier =
+                                Modifier.fillMaxWidth().graphicsLayer { alpha = if (dim) 0.4f else 1f }.padding(
+                                    vertical = GroveSpacing.MD,
+                                ),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            CategoryIcon(cat)
+                            Spacer(Modifier.width(GroveSpacing.MD))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(CategoryVisuals.label(cat), style = GroveType.rowTitle, color = c.fg1)
+                                Spacer(Modifier.height(GroveSpacing.SM))
+                                ProgressBar((amount / maxAmount).toFloat(), CategoryVisuals.color(cat), height = 5)
+                            }
+                            Spacer(Modifier.width(GroveSpacing.SM + 4.dp))
+                            MoneyText(Money.currency(amount, 0, currency), size = MoneyTextSize.Row, color = c.fg1)
                         }
-                        Spacer(Modifier.width(GroveSpacing.SM + 4.dp))
-                        Text(Money.currency(amount, 0, currency), style = GroveType.amount, color = c.fg1)
+                        if (i < top.size - 1) HorizontalDivider(color = c.border)
                     }
-                    if (i < top.size - 1) HorizontalDivider(color = c.border)
                 }
             }
         }
@@ -270,8 +297,8 @@ fun ReportsScreen(
 private fun MomDelta(delta: Double, prevMonthName: String = "Apr") {
     val c = GroveTheme.colors
     val down = delta <= 0
-    val bg = if (down) c.accent.copy(alpha = 0.14f) else c.clayBg
-    val fg = if (down) (if (c.isDark) c.accentSoft else c.accentDeep) else c.clay
+    val bg = if (down) c.successBg else c.dangerBg
+    val fg = if (down) c.success else c.danger
     Box(
         modifier =
             Modifier

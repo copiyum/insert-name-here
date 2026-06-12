@@ -48,10 +48,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.grove.app.data.BudgetState
+import com.grove.app.data.model.NotificationSettings
 import com.grove.app.designsystem.component.AppTopBar
 import com.grove.app.designsystem.component.FieldLabel
 import com.grove.app.designsystem.component.GroveBottomSheet
 import com.grove.app.designsystem.component.GroveCard
+import com.grove.app.designsystem.component.GroveCardVariant
 import com.grove.app.designsystem.component.GroveTextField
 import com.grove.app.designsystem.component.PrimaryButton
 import com.grove.app.designsystem.component.SettingRow
@@ -71,20 +73,20 @@ fun SettingsScreen(
     state: BudgetState,
     currency: String,
     dark: Boolean,
-    debugDate: String = "",
-    debugDateOffset: Int = 0,
+    notificationSettings: NotificationSettings,
     onToggleDark: () -> Unit,
     onReplayOnboarding: () -> Unit,
     onOpenBudget: () -> Unit,
     onUpdateCurrency: (String) -> Unit,
     onUpdateName: (String) -> Unit,
-    onShiftDebugDate: (Int) -> Unit = {},
+    onUpdateResetDay: (Int) -> Unit,
+    onUpdateDailySafeSpend: (Boolean) -> Unit,
+    onUpdateBillAlerts: (Boolean) -> Unit,
 ) {
     val c = GroveTheme.colors
-    var reminders by rememberSaveable { mutableStateOf(true) }
-    var billAlerts by rememberSaveable { mutableStateOf(true) }
     var showCurrencyPicker by rememberSaveable { mutableStateOf(false) }
     var showEditName by rememberSaveable { mutableStateOf(false) }
+    var showResetDay by rememberSaveable { mutableStateOf(false) }
     val resetOrdinal = ordinal(state.user?.resetDay ?: 1)
     val currentCurrency = Currencies.current(currency)
 
@@ -92,7 +94,11 @@ fun SettingsScreen(
         item { AppTopBar(title = "Settings") }
 
         item {
-            GroveCard(modifier = Modifier.fillMaxWidth().clickable { showEditName = true }, padding = PaddingValues(GroveSpacing.SM + 2.dp)) {
+            GroveCard(
+                modifier = Modifier.fillMaxWidth().clickable { showEditName = true },
+                padding = PaddingValues(GroveSpacing.SM + 2.dp),
+                variant = GroveCardVariant.Elevated,
+            ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(modifier = Modifier.size(56.dp).clip(CircleShape).background(c.accent), contentAlignment = Alignment.Center) {
                         Text(
@@ -126,12 +132,13 @@ fun SettingsScreen(
                     onToggleDark,
                 )
                 HorizontalDivider(color = c.border)
-                SwitchRow(Icons.Outlined.NotificationsNone, "Daily safe-to-spend", "Gentle nudge each morning at 8am", reminders) {
-                    reminders =
-                        !reminders
+                SwitchRow(Icons.Outlined.NotificationsNone, "Daily safe-to-spend", "Gentle nudge each morning at 8am", notificationSettings.dailySafeSpendEnabled) {
+                    onUpdateDailySafeSpend(!notificationSettings.dailySafeSpendEnabled)
                 }
                 HorizontalDivider(color = c.border)
-                SwitchRow(Icons.Outlined.Receipt, "Bill due alerts", "3 days before each bill", billAlerts) { billAlerts = !billAlerts }
+                SwitchRow(Icons.Outlined.Receipt, "Bill due alerts", "3 days before each bill", notificationSettings.billAlertsEnabled) {
+                    onUpdateBillAlerts(!notificationSettings.billAlertsEnabled)
+                }
             }
         }
 
@@ -150,6 +157,7 @@ fun SettingsScreen(
                     "Reset day",
                     subtitle = "When your budget resets",
                     value = "$resetOrdinal of month",
+                    onClick = { showResetDay = true },
                 )
                 HorizontalDivider(color = c.border)
                 SettingRow(Icons.Outlined.AttachMoney, "Currency", subtitle = currentCurrency.name, value = "${currentCurrency.symbol} ${currentCurrency.code}", onClick = {
@@ -163,48 +171,6 @@ fun SettingsScreen(
         item {
             GroveCard(modifier = Modifier.fillMaxWidth(), padding = PaddingValues(horizontal = GroveSpacing.LG)) {
                 SettingRow(Icons.Outlined.Spa, "Replay onboarding", subtitle = "Walk through setup again", onClick = onReplayOnboarding)
-            }
-        }
-
-        item { SectionLabel("DEBUG") }
-        item {
-            GroveCard(modifier = Modifier.fillMaxWidth(), padding = PaddingValues(horizontal = GroveSpacing.LG)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = GroveSpacing.SM),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(GroveSpacing.SM),
-                ) {
-                    Box(
-                        modifier = Modifier.size(40.dp).clip(GroveShapes.Toggle).background(c.bgCard).border(1.dp, c.border, GroveShapes.Toggle).clickable {
-                            onShiftDebugDate(-1)
-                        },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text("−", fontFamily = InterTight, fontSize = 18.sp, fontWeight = FontWeight.Medium, color = c.fg1)
-                    }
-                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("Debug date", style = GroveType.capLabel, color = c.fg3)
-                        Text(if (debugDateOffset == 0) "Today ($debugDate)" else "$debugDate (${
-                            if (debugDateOffset > 0) "+" else ""
-                        }${debugDateOffset}d)", fontFamily = InterTight, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = c.fg1)
-                    }
-                    Box(
-                        modifier = Modifier.size(40.dp).clip(GroveShapes.Toggle).background(c.bgCard).border(1.dp, c.border, GroveShapes.Toggle).clickable {
-                            onShiftDebugDate(1)
-                        },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text("+", fontFamily = InterTight, fontSize = 18.sp, fontWeight = FontWeight.Medium, color = c.fg1)
-                    }
-                    Box(
-                        modifier = Modifier.size(40.dp).clip(GroveShapes.Toggle).background(c.clayBg).border(1.dp, c.clay, GroveShapes.Toggle).clickable {
-                            onShiftDebugDate(-debugDateOffset)
-                        },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text("Reset", fontFamily = InterTight, fontSize = 10.sp, fontWeight = FontWeight.Medium, color = c.clay)
-                    }
-                }
             }
         }
 
@@ -236,6 +202,17 @@ fun SettingsScreen(
             onDismiss = { showCurrencyPicker = false },
         )
     }
+
+    if (showResetDay) {
+        EditResetDaySheet(
+            current = state.user?.resetDay ?: 1,
+            onSave = { day ->
+                onUpdateResetDay(day)
+                showResetDay = false
+            },
+            onDismiss = { showResetDay = false },
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -248,7 +225,7 @@ private fun CurrencyPickerSheet(
     val c = GroveTheme.colors
     val scope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState()
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = c.bgApp, shape = GroveShapes.SheetTop, sheetState = sheetState) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = c.bgCard, shape = GroveShapes.SheetTop, sheetState = sheetState) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(horizontal = GroveSpacing.XL).padding(bottom = GroveSpacing.XL),
         ) {
@@ -317,6 +294,34 @@ private fun EditNameSheet(
                 onClick = { onSave(name) },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = name.trim().isNotEmpty(),
+            )
+        }
+    }
+}
+
+@Composable
+private fun EditResetDaySheet(
+    current: Int,
+    onSave: (Int) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val c = GroveTheme.colors
+    var day by remember { mutableStateOf(current.toString()) }
+    val parsed = day.toIntOrNull()
+    GroveBottomSheet(onDismiss = onDismiss) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = GroveSpacing.XL).padding(bottom = GroveSpacing.XL),
+        ) {
+            Text("Reset day", style = GroveType.sheetTitle, color = c.fg1)
+            Spacer(Modifier.height(GroveSpacing.SM + 4.dp))
+            FieldLabel("DAY OF MONTH")
+            GroveTextField(value = day, onValueChange = { day = it.filter { ch -> ch.isDigit() }.take(2) }, placeholder = "1")
+            Spacer(Modifier.height(GroveSpacing.SM + 6.dp))
+            PrimaryButton(
+                "Save",
+                onClick = { parsed?.let(onSave) },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = parsed in 1..31,
             )
         }
     }

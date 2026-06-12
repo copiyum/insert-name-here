@@ -27,6 +27,7 @@ data class BillLite(
     val id: UUID,
     val name: String,
     val amountMinor: Long,
+    val currencyCode: String,
     val iconKey: String,
     val dueDay: Int,
     val paid: Boolean,
@@ -39,4 +40,10 @@ data class IncomeLite(
     val currencyCode: String,
     val occurredAt: Instant,
     val source: String,
+)
+
+@Immutable
+data class CategoryBudgetLite(
+    val categoryId: UUID,
+    val amountMinor: Long,
 )

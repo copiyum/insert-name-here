@@ -31,7 +31,7 @@ object GroveType {
         @Composable get() = TextStyle(fontFamily = InterTight, fontSize = GroveTokens.TextFieldLabel.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.8.sp, color = GroveTheme.colors.fg3)
 
     val amount: TextStyle
-        @Composable get() = TextStyle(fontFamily = InterTight, fontSize = GroveTokens.TextAmount.sp, fontWeight = FontWeight.SemiBold, color = GroveTheme.colors.fg1)
+        @Composable get() = TextStyle(fontFamily = InterTight, fontSize = GroveTokens.TextAmount.sp, fontWeight = FontWeight.SemiBold, fontFeatureSettings = "tnum", color = GroveTheme.colors.fg1)
 }
 
 object Motion {

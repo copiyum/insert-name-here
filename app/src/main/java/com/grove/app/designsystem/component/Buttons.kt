@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -35,6 +36,7 @@ fun PrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifi
             containerColor = GroveTheme.colors.accent,
             contentColor = GroveTheme.colors.fgOnFern,
         ),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 1.dp, pressedElevation = 0.dp),
         shape = GroveShapes.Button,
     ) {
         Text(text, fontFamily = InterTight, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
@@ -47,9 +49,9 @@ fun IconCircleButton(icon: ImageVector, contentDescription: String?, onClick: ()
         modifier = Modifier
             .size(GroveSize.IconCircle)
             .clip(GroveShapes.Chip)
-            .background(GroveTheme.colors.bgCard)
+            .background(GroveTheme.colors.bgCardRaised)
             .border(GroveBorder.Thin, GroveTheme.colors.border, GroveShapes.Chip)
-            .clickable { onClick() },
+            .clickable(role = Role.Button) { onClick() },
         contentAlignment = Alignment.Center,
     ) {
         Icon(icon, contentDescription = contentDescription, tint = GroveTheme.colors.fg2, modifier = Modifier.size(18.dp))

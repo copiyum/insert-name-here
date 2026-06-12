@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -52,8 +53,8 @@ import com.grove.app.designsystem.theme.GroveSpacing
 import com.grove.app.designsystem.theme.InterTight
 import kotlin.math.atan2
 
-private val DrawInSpec: AnimationSpec<Float> = tween(1100, easing = EaseOutCubic)
-private val BarSpec: AnimationSpec<Float> = tween(600, easing = EaseOutCubic)
+private val DrawInSpec: AnimationSpec<Float> = tween(520, easing = EaseOutCubic)
+private val BarSpec: AnimationSpec<Float> = tween(360, easing = EaseOutCubic)
 
 @Composable
 fun ArcProgress(
@@ -148,12 +149,12 @@ fun DonutChart(
 }
 
 @Composable
-fun LineChart(data: List<Double>, baseline: Double, monthShort: String = "", modifier: Modifier = Modifier, currency: String = "USD") {
+fun LineChart(data: List<Double>, baseline: Double, modifier: Modifier = Modifier, monthShort: String = "", currency: String = "USD") {
     val c = GroveTheme.colors
     if (data.isEmpty()) return
     val density = LocalDensity.current
     var hover by remember { mutableStateOf<Int?>(null) }
-    var widthPx by remember { mutableStateOf(0f) }
+    var widthPx by remember { mutableFloatStateOf(0f) }
 
     Box(
         modifier = modifier.pointerInput(data.size) {

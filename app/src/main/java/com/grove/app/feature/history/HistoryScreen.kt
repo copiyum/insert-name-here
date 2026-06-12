@@ -1,14 +1,8 @@
 package com.grove.app.feature.history
 
-import androidx.compose.animation.core.EaseOutCubic
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.snap
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,7 +12,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -34,7 +27,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -42,14 +34,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.grove.app.data.BudgetState
 import com.grove.app.data.db.ExpenseLite
@@ -57,9 +44,14 @@ import com.grove.app.designsystem.catalog.CategoryVisuals
 import com.grove.app.designsystem.component.AppTopBar
 import com.grove.app.designsystem.component.CategoryIcon
 import com.grove.app.designsystem.component.Chip
+import com.grove.app.designsystem.component.EmptyState
 import com.grove.app.designsystem.component.FieldVariant
 import com.grove.app.designsystem.component.GroveCard
 import com.grove.app.designsystem.component.GroveTextField
+import com.grove.app.designsystem.component.MoneyText
+import com.grove.app.designsystem.component.MoneyTextSize
+import com.grove.app.designsystem.component.SwipeAction
+import com.grove.app.designsystem.component.SwipeActionRow
 import com.grove.app.designsystem.format.Dates
 import com.grove.app.designsystem.format.Money
 import com.grove.app.designsystem.theme.GroveBorder
@@ -72,18 +64,6 @@ import com.grove.app.designsystem.theme.InterTight
 import java.time.ZoneId
 import java.util.UUID
 
-private val Chips =
-    listOf(
-        "All" to "all",
-        "This week" to "week",
-        "Food" to "food",
-        "Transport" to "transport",
-        "Bills" to "bills",
-        "Shopping" to "shopping",
-        "Health" to "health",
-        "Fun" to "entertainment",
-    )
-
 @Composable
 fun HistoryScreen(
     state: BudgetState,
@@ -94,22 +74,25 @@ fun HistoryScreen(
     val c = GroveTheme.colors
     var filter by rememberSaveable { mutableStateOf("all") }
     var query by rememberSaveable { mutableStateOf("") }
+    val chips =
+        remember(state.categories) {
+            listOf("All" to "all", "This week" to "week") +
+                state.categories.map { it.displayName to it.id.toString() }
+        }
 
     val filtered =
-        remember(state.expenses, filter, query) {
+        remember(state.expenses, filter, query, state.today) {
             state.expenses
                 .filter { e ->
                     val matchesFilter =
                         when (filter) {
                             "week" -> {
-                                e.occurredAt.isAfter(
-                                    java.time.Instant
-                                        .now()
-                                        .minusSeconds(7 * 24 * 3600),
-                                )
+                                val date = e.occurredAt.atZone(ZoneId.systemDefault()).toLocalDate()
+                                val today = state.today.toLocalDate()
+                                !date.isBefore(today.minusDays(6)) && !date.isAfter(today)
                             }
 
-                            "all", "month" -> {
+                            "all" -> {
                                 true
                             }
 
@@ -145,15 +128,15 @@ fun HistoryScreen(
             }
             Spacer(Modifier.height(10.dp))
             LazyRow(horizontalArrangement = Arrangement.spacedBy(GroveSpacing.SM), contentPadding = PaddingValues(vertical = 4.dp)) {
-                items(Chips) { (label, id) -> Chip(label, selected = filter == id, onClick = { filter = id }) }
+                items(chips) { (label, id) -> Chip(label, selected = filter == id, onClick = { filter = id }) }
             }
         }
 
         Spacer(Modifier.height(GroveSpacing.MD))
 
-        if (filtered.isEmpty()) {
+    if (filtered.isEmpty()) {
             Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                Text("No expenses match", style = GroveType.body, fontWeight = FontWeight.Medium, color = c.fg3)
+                EmptyState("No expenses match", subtitle = if (query.isBlank()) "Try a different category filter." else "Try a shorter search.")
             }
         } else {
             LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 120.dp)) {
@@ -192,7 +175,7 @@ fun HistoryScreen(
                     item(key = "c-${expenses.first().id}") {
                         GroveCard(modifier = Modifier.fillMaxWidth(), padding = PaddingValues(horizontal = GroveSpacing.LG)) {
                             expenses.forEachIndexed { i, expense ->
-                                SwipeableExpenseRow(expense, currency, onDelete = { onDelete(expense.id) }, onEdit = { onEdit(expense) })
+                                ExpenseHistoryRow(expense, currency, onDelete = { onDelete(expense.id) }, onEdit = { onEdit(expense) })
                                 if (i < expenses.size - 1) HorizontalDivider(color = c.border)
                             }
                         }
@@ -204,57 +187,20 @@ fun HistoryScreen(
 }
 
 @Composable
-private fun SwipeableExpenseRow(
+private fun ExpenseHistoryRow(
     expense: ExpenseLite,
     currency: String,
     onDelete: () -> Unit,
     onEdit: () -> Unit,
 ) {
     val c = GroveTheme.colors
-    val density = LocalDensity.current
-    val revealPx = with(density) { 116.dp.toPx() }
-    val maxDragPx = with(density) { 132.dp.toPx() }
-
-    var offsetX by remember { mutableFloatStateOf(0f) }
-    var dragging by remember { mutableStateOf(false) }
-    val animatedX by animateFloatAsState(offsetX, if (dragging) snap() else tween(280, easing = EaseOutCubic), label = "swipe")
-
-    Box(modifier = Modifier.fillMaxWidth().clipToBounds()) {
-        Row(
-            modifier = Modifier.matchParentSize().padding(end = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(GroveSpacing.SM, Alignment.End),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            CircleAction(Icons.Outlined.Edit, "Edit", c.bgMuted, c.fg1) {
-                onEdit()
-                offsetX = 0f
-            }
-            CircleAction(Icons.Outlined.DeleteOutline, "Delete", c.clay, Color.White) { onDelete() }
-        }
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .offset { IntOffset(animatedX.toInt(), 0) }
-                    .background(c.bgCard)
-                    .pointerInput(Unit) {
-                        detectHorizontalDragGestures(
-                            onDragStart = { dragging = true },
-                            onDragEnd = {
-                                dragging = false
-                                offsetX = if (offsetX < -revealPx / 2f) -revealPx else 0f
-                            },
-                            onDragCancel = {
-                                dragging = false
-                                offsetX = 0f
-                            },
-                            onHorizontalDrag = { _, delta -> offsetX = (offsetX + delta).coerceIn(-maxDragPx, 0f) },
-                        )
-                    }.clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
-                        if (offsetX != 0f) offsetX = 0f
-                    }.padding(vertical = GroveSpacing.MD),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+    SwipeActionRow(
+        actions =
+            listOf(
+                SwipeAction(Icons.Outlined.Edit, "Edit", c.bgMuted, c.fg1) { onEdit() },
+                SwipeAction(Icons.Outlined.DeleteOutline, "Delete", c.danger, Color.White) { onDelete() },
+            ),
+    ) {
             CategoryIcon(expense.iconKey)
             Spacer(Modifier.width(GroveSpacing.MD))
             Column(modifier = Modifier.weight(1f)) {
@@ -267,32 +213,10 @@ private fun SwipeableExpenseRow(
                     color = c.fg3,
                 )
             }
-            Text(
+            MoneyText(
                 Money.currencyLong(expense.amountMinor, 2, expense.currencyCode.ifEmpty { currency }),
-                style = GroveType.amount,
+                size = MoneyTextSize.Row,
                 color = c.fg1,
             )
-        }
-    }
-}
-
-@Composable
-private fun CircleAction(
-    icon: ImageVector,
-    label: String,
-    bg: Color,
-    fg: Color,
-    onClick: () -> Unit,
-) {
-    Box(
-        modifier =
-            Modifier
-                .size(GroveSize.SwipeAction)
-                .clip(GroveShapes.Chip)
-                .background(bg)
-                .clickable { onClick() },
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(icon, contentDescription = label, tint = fg, modifier = Modifier.size(19.dp))
     }
 }

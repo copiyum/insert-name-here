@@ -61,7 +61,7 @@ com.grove.app
 | Android SDK | 35 |
 | Kotlin | 2.0.21 |
 | Gradle | 8.7+ |
-| Java | 21 |
+| Java | 17 |
 
 Open in Android Studio or run:
 

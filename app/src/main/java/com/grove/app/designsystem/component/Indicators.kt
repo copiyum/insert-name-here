@@ -48,8 +48,9 @@ fun ProgressBar(pct: Float, color: Color, modifier: Modifier = Modifier, height:
 @Composable
 fun StatusPill(label: String, kind: String) {
     val (bg, fg) = when (kind) {
-        "success" -> GroveTheme.colors.accent.copy(alpha = 0.14f) to GroveTheme.colors.accentDeep
-        "warn" -> GroveTheme.colors.clayBg to GroveTheme.colors.clay
+        "success" -> GroveTheme.colors.successBg to GroveTheme.colors.success
+        "warn" -> GroveTheme.colors.warnBg to GroveTheme.colors.warn
+        "danger" -> GroveTheme.colors.dangerBg to GroveTheme.colors.danger
         else -> GroveTheme.colors.bgMuted to GroveTheme.colors.fg2
     }
     Box(
@@ -71,9 +72,9 @@ fun StatusPill(label: String, kind: String) {
 @Composable
 fun HeroStatusChip(tone: SpendTone) {
     val (bg, fg) = if (tone.healthy) {
-        GroveTheme.colors.accent.copy(alpha = 0.14f) to (if (GroveTheme.colors.isDark) GroveTheme.colors.accentSoft else GroveTheme.colors.accentDeep)
+        GroveTheme.colors.successBg to GroveTheme.colors.success
     } else {
-        GroveTheme.colors.clayBg to GroveTheme.colors.clay
+        GroveTheme.colors.warnBg to GroveTheme.colors.warn
     }
     Row(
         modifier = Modifier

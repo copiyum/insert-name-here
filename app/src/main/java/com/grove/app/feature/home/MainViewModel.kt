@@ -3,6 +3,7 @@ package com.grove.app.feature.home
 import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.grove.app.data.BudgetPeriod
 import com.grove.app.data.BudgetState
 import com.grove.app.data.UserPreferences
 import com.grove.app.data.UserPreferencesRepository
@@ -11,15 +12,17 @@ import com.grove.app.data.db.GroveDatabase
 import com.grove.app.data.model.Bill
 import com.grove.app.data.model.Expense
 import com.grove.app.data.model.MonthlyBudget
+import com.grove.app.data.model.MonthlyCategoryBudget
+import com.grove.app.data.model.NotificationSettings
 import com.grove.app.data.model.UserProfile
 import com.grove.app.data.repository.BillRepository
 import com.grove.app.data.repository.BudgetRepository
 import com.grove.app.data.repository.CategoryRepository
 import com.grove.app.data.repository.ExpenseRepository
 import com.grove.app.data.repository.IncomeRepository
+import com.grove.app.data.repository.NotificationRepository
 import com.grove.app.data.repository.UserRepository
 import com.grove.app.data.userPreferencesDataStore
-import com.grove.app.designsystem.format.Currencies
 import com.grove.app.designsystem.format.Money
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -29,7 +32,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -44,6 +46,7 @@ class MainViewModel(
     private val billRepo: BillRepository,
     private val incomeRepo: IncomeRepository,
     private val budgetRepo: BudgetRepository,
+    private val notificationRepo: NotificationRepository,
     private val prefs: UserPreferencesRepository,
     private val reactor: BudgetStateReactor,
 ) : ViewModel() {
@@ -54,6 +57,7 @@ class MainViewModel(
         billRepo = Graph.billRepo(application),
         incomeRepo = Graph.incomeRepo(application),
         budgetRepo = Graph.budgetRepo(application),
+        notificationRepo = Graph.notificationRepo(application),
         prefs = Graph.prefsRepo(application),
         reactor = Graph.reactor(application),
     )
@@ -61,19 +65,7 @@ class MainViewModel(
     private val _toast = MutableStateFlow<String?>(null)
     val toast: StateFlow<String?> = _toast.asStateFlow()
 
-    private val _debugDateOffset = MutableStateFlow(0)
-    val debugDateOffset: StateFlow<Int> = _debugDateOffset.asStateFlow()
-    val debugDate: StateFlow<String> =
-        _debugDateOffset.map { offset ->
-            val d = LocalDate.now().plusDays(offset.toLong())
-            d.format(java.time.format.DateTimeFormatter.ofPattern("MMM d"))
-        }.stateIn(viewModelScope, SharingStarted.Eagerly, LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("MMM d")))
-
-    val state: StateFlow<BudgetState> =
-        combine(reactor.state, _debugDateOffset) { st, offset ->
-            val shiftedToday = java.time.LocalDateTime.now().plusDays(offset.toLong())
-            st.copy(today = shiftedToday)
-        }.stateIn(viewModelScope, SharingStarted.Eagerly, reactor.state.value)
+    val state: StateFlow<BudgetState> = reactor.state
 
     val preferences: StateFlow<UserPreferences> =
         prefs.preferences
@@ -89,9 +81,11 @@ class MainViewModel(
             .map { it.darkModeOverride }
             .stateIn(viewModelScope, SharingStarted.Eagerly, UserPreferences().darkModeOverride)
 
-    fun shiftDebugDate(days: Int) {
-        _debugDateOffset.value += days
-    }
+    val notificationSettings: StateFlow<NotificationSettings> =
+        notificationRepo
+            .observeSettings()
+            .map { it ?: NotificationSettings(true, 480, true, 3) }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, NotificationSettings(true, 480, true, 3))
 
     fun toggleDark(current: Boolean) {
         viewModelScope.launch { prefs.updateDarkMode(if (current) "light" else "dark") }
@@ -99,14 +93,9 @@ class MainViewModel(
 
     fun saveExpense(expense: Expense) {
         viewModelScope.launch {
-            val offset = _debugDateOffset.value
-            val adjusted = if (offset != 0) {
-                val shiftedInstant = expense.occurredAt.plusSeconds(offset * 86400L)
-                expense.copy(occurredAt = shiftedInstant)
-            } else expense
             val existed = state.value.expenses.any { it.id == expense.id }
-            expenseRepo.upsert(adjusted)
-            val display = Money.currencyLong(adjusted.amountMinor, 2, currency.value)
+            expenseRepo.upsert(expense)
+            val display = Money.currencyLong(expense.amountMinor, 2, currency.value)
             toast("${if (existed) "Updated" else "Saved"} · $display")
         }
     }
@@ -122,37 +111,26 @@ class MainViewModel(
 
     fun toggleBill(id: UUID) {
         viewModelScope.launch {
-            val now = Instant.now()
-            val today = LocalDate.now()
-            val periodStart =
-                LocalDate
-                    .of(today.year, today.monthValue, 1)
-                    .atStartOfDay(java.time.ZoneOffset.UTC)
-                    .toInstant()
-            val periodEnd =
-                LocalDate
-                    .of(today.year, today.monthValue, 1)
-                    .plusMonths(1)
-                    .atStartOfDay(java.time.ZoneOffset.UTC)
-                    .toInstant()
-            val pid = UUID.nameUUIDFromBytes("billpayment.$id.$periodStart.$periodEnd".toByteArray())
-            billRepo.markPaymentPaid(pid, now, null)
+            val bill = billRepo.get(id) ?: return@launch
+            billRepo.togglePaymentForPeriod(bill, state.value.period, Instant.now())
         }
     }
 
     fun updateMonthBudget(value: Double) {
         viewModelScope.launch {
-            val minor = (value * Math.pow(10.0, Currencies.minorUnitExponent(currency.value).toDouble())).toLong()
-            val today = LocalDate.now()
+            val minor = Money.toMinor(value, currency.value)
+            val period = state.value.period
+            val existing = budgetRepo.getForPeriod(period.start.year, period.start.monthValue)
+            val now = Instant.now()
             val budget =
                 MonthlyBudget(
-                    id = UUID.randomUUID(),
-                    periodYear = today.year,
-                    periodMonth = today.monthValue,
+                    id = existing?.id ?: UUID.randomUUID(),
+                    periodYear = period.start.year,
+                    periodMonth = period.start.monthValue,
                     totalMinor = minor,
                     currencyCode = currency.value,
-                    createdAt = Instant.now(),
-                    updatedAt = Instant.now(),
+                    createdAt = existing?.createdAt ?: now,
+                    updatedAt = now,
                 )
             budgetRepo.upsert(budget, emptyList())
         }
@@ -162,6 +140,33 @@ class MainViewModel(
         id: String,
         value: Double,
     ) {
+        viewModelScope.launch {
+            val categoryId = runCatching { UUID.fromString(id) }.getOrNull() ?: return@launch
+            val period = state.value.period
+            val now = Instant.now()
+            val budget =
+                budgetRepo.getForPeriod(period.start.year, period.start.monthValue) ?: MonthlyBudget(
+                    id = UUID.randomUUID(),
+                    periodYear = period.start.year,
+                    periodMonth = period.start.monthValue,
+                    totalMinor = state.value.monthBudgetMinor,
+                    currencyCode = currency.value,
+                    createdAt = now,
+                    updatedAt = now,
+                )
+            val existing =
+                budgetRepo
+                    .getCategoryBudgets(budget.id)
+                    .firstOrNull { it.categoryId == categoryId }
+            val categoryBudget =
+                MonthlyCategoryBudget(
+                    id = existing?.id ?: UUID.randomUUID(),
+                    monthlyBudgetId = budget.id,
+                    categoryId = categoryId,
+                    amountMinor = Money.toMinor(value, currency.value),
+                )
+            budgetRepo.upsert(budget, listOf(categoryBudget))
+        }
     }
 
     fun applyOnboarding(
@@ -176,8 +181,7 @@ class MainViewModel(
                     currencyCode = "USD",
                     onboardingCompleted = false,
                 )
-            val minor =
-                (monthBudget * Math.pow(10.0, Currencies.minorUnitExponent(current.currencyCode).toDouble())).toLong()
+            val minor = Money.toMinor(monthBudget, current.currencyCode)
             userRepo.upsert(
                 current.copy(
                     name = "Mae",
@@ -187,11 +191,12 @@ class MainViewModel(
                 ),
             )
             val today = LocalDate.now()
+            val period = BudgetPeriod.forDate(today, resetDay)
             budgetRepo.upsert(
                 MonthlyBudget(
                     id = UUID.randomUUID(),
-                    periodYear = today.year,
-                    periodMonth = today.monthValue,
+                    periodYear = period.start.year,
+                    periodMonth = period.start.monthValue,
                     totalMinor = minor,
                     currencyCode = current.currencyCode,
                     createdAt = Instant.now(),
@@ -199,6 +204,27 @@ class MainViewModel(
                 ),
                 emptyList(),
             )
+        }
+    }
+
+    fun skipOnboarding() {
+        viewModelScope.launch {
+            val current = userRepo.get() ?: return@launch
+            userRepo.upsert(current.copy(onboardingCompleted = true, onboardingCompletedAt = Instant.now()))
+        }
+    }
+
+    fun updateDailySafeSpend(enabled: Boolean) {
+        viewModelScope.launch {
+            val current = notificationRepo.getSettings() ?: NotificationSettings(true, 480, true, 3)
+            notificationRepo.upsertSettings(current.copy(dailySafeSpendEnabled = enabled))
+        }
+    }
+
+    fun updateBillAlerts(enabled: Boolean) {
+        viewModelScope.launch {
+            val current = notificationRepo.getSettings() ?: NotificationSettings(true, 480, true, 3)
+            notificationRepo.upsertSettings(current.copy(billAlertsEnabled = enabled))
         }
     }
 
@@ -211,6 +237,10 @@ class MainViewModel(
                     currencyCode = "USD",
                     onboardingCompleted = false,
                 )
+            expenseRepo.updateCurrencyCode(code)
+            billRepo.updateCurrencyCode(code)
+            incomeRepo.updateCurrencyCode(code)
+            budgetRepo.updateCurrencyCode(code)
             userRepo.upsert(current.copy(currencyCode = code))
         }
     }
@@ -222,6 +252,13 @@ class MainViewModel(
             if (trimmed.isNotEmpty()) {
                 userRepo.upsert(current.copy(name = trimmed))
             }
+        }
+    }
+
+    fun updateResetDay(day: Int) {
+        viewModelScope.launch {
+            val current = userRepo.get() ?: return@launch
+            userRepo.upsert(current.copy(resetDay = day.coerceIn(1, 31)))
         }
     }
 
@@ -263,6 +300,8 @@ object Graph {
     fun incomeRepo(application: Application) = IncomeRepository(db(application).incomeDao())
 
     fun budgetRepo(application: Application) = BudgetRepository(db(application).monthlyBudgetDao())
+
+    fun notificationRepo(application: Application) = NotificationRepository(db(application).notificationDao())
 
     fun prefsRepo(application: Application) = UserPreferencesRepository(application.userPreferencesDataStore)
 

@@ -39,4 +39,8 @@ class ExpenseRepository(
     suspend fun delete(id: UUID) = dao.delete(id)
 
     suspend fun get(id: UUID): Expense? = dao.getById(id)?.toDomain()
+
+    suspend fun updateCurrencyCode(currencyCode: String) {
+        dao.updateCurrencyCode(currencyCode, Instant.now())
+    }
 }

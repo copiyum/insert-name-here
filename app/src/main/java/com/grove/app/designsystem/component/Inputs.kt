@@ -35,19 +35,22 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.grove.app.designsystem.format.Currencies
-import com.grove.app.designsystem.theme.Fraunces
 import com.grove.app.designsystem.theme.GroveBorder
 import com.grove.app.designsystem.theme.GroveTheme
 import com.grove.app.designsystem.theme.GroveShapes
 import com.grove.app.designsystem.theme.GroveSize
 import com.grove.app.designsystem.theme.GroveSpacing
 import com.grove.app.designsystem.theme.InterTight
+import java.util.Locale
 
 enum class FieldVariant { Outlined, Filled, Bare }
 
@@ -57,7 +60,7 @@ fun GroveTextField(
     value: String,
     onValueChange: (String) -> Unit,
     placeholder: String,
-    modifier: Modifier = Modifier.fillMaxWidth(),
+    modifier: Modifier = Modifier,
     variant: FieldVariant = FieldVariant.Outlined,
     singleLine: Boolean = true,
 ) {
@@ -66,7 +69,7 @@ fun GroveTextField(
     when (variant) {
         FieldVariant.Outlined -> OutlinedTextField(
             value = value, onValueChange = onValueChange, placeholder = place,
-            modifier = modifier, singleLine = singleLine, shape = GroveShapes.InputOutlined,
+            modifier = modifier.fillMaxWidth(), singleLine = singleLine, shape = GroveShapes.InputOutlined,
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = c.accent, unfocusedBorderColor = c.border,
                 focusedContainerColor = c.bgCard, unfocusedContainerColor = c.bgCard,
@@ -75,7 +78,7 @@ fun GroveTextField(
         )
         FieldVariant.Filled -> TextField(
             value = value, onValueChange = onValueChange, placeholder = place,
-            modifier = modifier, singleLine = singleLine, shape = GroveShapes.InputFilled,
+            modifier = modifier.fillMaxWidth(), singleLine = singleLine, shape = GroveShapes.InputFilled,
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = c.bgMuted, unfocusedContainerColor = c.bgMuted,
                 focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent,
@@ -84,7 +87,7 @@ fun GroveTextField(
         )
         FieldVariant.Bare -> BasicTextField(
             value = value, onValueChange = onValueChange,
-            modifier = modifier.padding(vertical = 13.dp), singleLine = singleLine,
+            modifier = modifier.fillMaxWidth().padding(vertical = 13.dp), singleLine = singleLine,
             textStyle = TextStyle(color = c.fg1, fontFamily = InterTight, fontSize = 15.sp),
             cursorBrush = SolidColor(c.accent),
             decorationBox = { inner ->
@@ -106,7 +109,8 @@ fun GroveSwitch(checked: Boolean, onToggle: () -> Unit) {
             .clip(GroveShapes.Toggle)
             .background(if (checked) c.accent else c.bgMuted)
             .border(GroveBorder.Thin, if (checked) c.accent else c.border, GroveShapes.Toggle)
-            .clickable { onToggle() },
+            .semantics { stateDescription = if (checked) "On" else "Off" }
+            .clickable(role = Role.Switch) { onToggle() },
         contentAlignment = if (checked) Alignment.CenterEnd else Alignment.CenterStart,
     ) {
         Box(
@@ -153,7 +157,7 @@ fun Keypad(
                             .then(
                                 if (pressed) Modifier.background(c.bone) else Modifier
                             )
-                            .clickable(interactionSource = interactionSource, indication = null) {
+                            .clickable(interactionSource = interactionSource, indication = null, role = Role.Button) {
                                 when {
                                     isBackspace -> onBackspace()
                                     key == '.' -> onDecimal()
@@ -187,7 +191,7 @@ fun Keypad(
 }
 
 @Composable
-fun Stepper(value: Int, onChange: (Int) -> Unit, step: Int = 10, min: Int = 0, currency: String = "USD", modifier: Modifier = Modifier) {
+fun Stepper(value: Int, onChange: (Int) -> Unit, modifier: Modifier = Modifier, step: Int = 10, min: Int = 0, currency: String = "USD") {
     val c = GroveTheme.colors
     Row(
         modifier = modifier.fillMaxWidth().padding(vertical = GroveSpacing.SM),
@@ -195,10 +199,11 @@ fun Stepper(value: Int, onChange: (Int) -> Unit, step: Int = 10, min: Int = 0, c
         verticalAlignment = Alignment.CenterVertically,
     ) {
         StepperButton(Icons.Outlined.Remove, "Decrease") { onChange((value - step).coerceAtLeast(min)) }
-        Text(
-            "${Currencies.current(currency).symbol}${String.format("%,d", value)}",
-            fontFamily = Fraunces, fontWeight = FontWeight.Normal, fontSize = 40.sp,
-            letterSpacing = (-0.8).sp, color = c.fg1, textAlign = TextAlign.Center,
+        MoneyText(
+            "${Currencies.current(currency).symbol}${String.format(Locale.US, "%,d", value)}",
+            size = MoneyTextSize.Display,
+            color = c.fg1,
+            textAlign = TextAlign.Center,
             modifier = Modifier.weight(1f),
         )
         StepperButton(Icons.Outlined.Add, "Increase") { onChange(value + step) }
@@ -214,7 +219,7 @@ private fun StepperButton(icon: ImageVector, contentDescription: String, onClick
             .clip(GroveShapes.Stepper)
             .background(c.bgCard)
             .border(GroveBorder.Strong, c.borderStrong, GroveShapes.Stepper)
-            .clickable { onClick() },
+            .clickable(role = Role.Button) { onClick() },
         contentAlignment = Alignment.Center,
     ) {
         Icon(icon, contentDescription = contentDescription, tint = c.fg1, modifier = Modifier.size(22.dp))

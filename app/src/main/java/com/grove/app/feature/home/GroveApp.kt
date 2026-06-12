@@ -22,10 +22,12 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,6 +47,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.grove.app.data.model.Expense
+import com.grove.app.data.model.NotificationSettings
 import com.grove.app.designsystem.theme.GroveTheme
 import com.grove.app.designsystem.theme.GroveTokens
 import com.grove.app.designsystem.theme.InterTight
@@ -64,12 +67,11 @@ fun GroveApp() {
     val darkOverride by vm.darkOverride.collectAsStateWithLifecycle()
     val dark = darkOverride ?: isSystemInDarkTheme()
     val currency by vm.currency.collectAsStateWithLifecycle()
-    val debugDateOffset by vm.debugDateOffset.collectAsStateWithLifecycle()
-    val debugDate by vm.debugDate.collectAsStateWithLifecycle()
+    val notificationSettings by vm.notificationSettings.collectAsStateWithLifecycle()
 
     GroveTheme(dark = dark) {
         SystemBars(dark)
-        HomeScaffold(vm = vm, dark = dark, currency = currency, debugDateOffset = debugDateOffset, debugDate = debugDate)
+        HomeScaffold(vm = vm, dark = dark, currency = currency, notificationSettings = notificationSettings)
     }
 }
 
@@ -78,8 +80,7 @@ private fun HomeScaffold(
     vm: MainViewModel,
     dark: Boolean,
     currency: String,
-    debugDateOffset: Int,
-    debugDate: String,
+    notificationSettings: NotificationSettings,
 ) {
     val c = GroveTheme.colors
     val state by vm.state.collectAsStateWithLifecycle()
@@ -95,7 +96,11 @@ private fun HomeScaffold(
 
     var showAdd by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf<Expense?>(null) }
-    var onboarding by remember { mutableStateOf(false) }
+    var onboarding by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(state.user?.onboardingCompleted) {
+        if (state.user?.onboardingCompleted == false) onboarding = true
+    }
 
     Box(modifier = Modifier.fillMaxSize().background(c.bgApp)) {
         Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
@@ -107,10 +112,7 @@ private fun HomeScaffold(
                     exitTransition = { fadeOut(tween(GroveTokens.MotionExitSlow)) },
                 ) {
                     composable(Dest.Home.route) {
-                        DashboardScreen(state = state, currency = currency, onNavigate = { nav.switchTab(it) }, onAddExpense = {
-                            showAdd =
-                                true
-                        })
+                        DashboardScreen(state = state, currency = currency, onNavigate = { nav.switchTab(it) })
                     }
                     composable(Dest.History.route) {
                         HistoryScreen(
@@ -139,14 +141,15 @@ private fun HomeScaffold(
                             state = state,
                             currency = currency,
                             dark = dark,
-                            debugDate = debugDate,
-                            debugDateOffset = debugDateOffset,
+                            notificationSettings = notificationSettings,
                             onToggleDark = { vm.toggleDark(dark) },
                             onReplayOnboarding = { onboarding = true },
                             onOpenBudget = { nav.navigate(Dest.Budget.route) },
                             onUpdateCurrency = vm::updateCurrency,
                             onUpdateName = vm::updateUserName,
-                            onShiftDebugDate = vm::shiftDebugDate,
+                            onUpdateResetDay = vm::updateResetDay,
+                            onUpdateDailySafeSpend = vm::updateDailySafeSpend,
+                            onUpdateBillAlerts = vm::updateBillAlerts,
                         )
                     }
                 }
@@ -182,7 +185,10 @@ private fun HomeScaffold(
                     onboarding = false
                     nav.switchTab(Dest.Home.route)
                 },
-                onSkip = { onboarding = false },
+                onSkip = {
+                    vm.skipOnboarding()
+                    onboarding = false
+                },
             )
         }
 

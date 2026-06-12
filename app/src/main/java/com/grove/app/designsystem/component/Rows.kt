@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -40,8 +41,8 @@ import java.time.ZoneId
 fun ExpenseRow(
     expense: ExpenseLite,
     today: LocalDateTime,
-    currency: String = "USD",
     modifier: Modifier = Modifier,
+    currency: String = "USD",
 ) {
     Row(
         modifier = modifier.fillMaxWidth().padding(vertical = GroveSpacing.MD),
@@ -138,7 +139,7 @@ fun SettingRow(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
+                .then(if (onClick != null) Modifier.clickable(role = Role.Button) { onClick() } else Modifier)
                 .padding(vertical = GroveSpacing.MD),
         verticalAlignment = Alignment.CenterVertically,
     ) {

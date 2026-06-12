@@ -1,6 +1,7 @@
 package com.grove.app.designsystem.component
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -9,21 +10,50 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import com.grove.app.designsystem.theme.GroveBorder
 import com.grove.app.designsystem.theme.GroveTheme
 import com.grove.app.designsystem.theme.GroveShapes
 import com.grove.app.designsystem.theme.GroveSpacing
+
+enum class GroveCardVariant { Default, Elevated, Muted, Accent, Danger }
 
 @Composable
 fun GroveCard(
     modifier: Modifier = Modifier,
     padding: PaddingValues = PaddingValues(GroveSpacing.LG),
+    variant: GroveCardVariant = GroveCardVariant.Default,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val c = GroveTheme.colors
-    Column(modifier = modifier.clip(GroveShapes.Container).background(c.bgCard)) {
+    val background =
+        when (variant) {
+            GroveCardVariant.Default -> c.bgCard
+            GroveCardVariant.Elevated -> c.bgCardRaised
+            GroveCardVariant.Muted -> c.bgMuted
+            GroveCardVariant.Accent -> c.accentSurface
+            GroveCardVariant.Danger -> c.dangerBg
+        }
+    val border =
+        when (variant) {
+            GroveCardVariant.Accent -> c.accent.copy(alpha = if (c.isDark) 0.28f else 0.18f)
+            GroveCardVariant.Danger -> c.danger.copy(alpha = if (c.isDark) 0.32f else 0.22f)
+            GroveCardVariant.Muted -> Color.Transparent
+            else -> c.border
+        }
+    val elevation = if (variant == GroveCardVariant.Elevated) 3.dp else 0.dp
+    Surface(
+        modifier = modifier,
+        shape = GroveShapes.Container,
+        color = background,
+        shadowElevation = elevation,
+        border = if (border == Color.Transparent) null else BorderStroke(GroveBorder.Thin, border),
+    ) {
         Column(modifier = Modifier.padding(padding), content = content)
     }
 }
@@ -34,7 +64,7 @@ fun GroveBottomSheet(onDismiss: () -> Unit, content: @Composable ColumnScope.() 
     val c = GroveTheme.colors
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = c.bgApp,
+        containerColor = c.bgCard,
         shape = GroveShapes.SheetTop,
     ) {
         Column(modifier = Modifier.fillMaxWidth(), content = content)

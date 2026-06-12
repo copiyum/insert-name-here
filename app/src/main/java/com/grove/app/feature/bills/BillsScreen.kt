@@ -1,14 +1,8 @@
 package com.grove.app.feature.bills
 
-import androidx.compose.animation.core.EaseOutCubic
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.snap
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,7 +12,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -33,40 +26,39 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.grove.app.data.BudgetState
 import com.grove.app.data.db.BillLite
 import com.grove.app.data.model.Bill
 import com.grove.app.data.model.BillFrequency
 import com.grove.app.designsystem.catalog.BillIcons
 import com.grove.app.designsystem.component.AppTopBar
+import com.grove.app.designsystem.component.EmptyState
 import com.grove.app.designsystem.component.FieldLabel
 import com.grove.app.designsystem.component.GroveBottomSheet
 import com.grove.app.designsystem.component.GroveCard
+import com.grove.app.designsystem.component.GroveCardVariant
 import com.grove.app.designsystem.component.GroveTextField
+import com.grove.app.designsystem.component.MoneyText
+import com.grove.app.designsystem.component.MoneyTextSize
 import com.grove.app.designsystem.component.PrimaryButton
 import com.grove.app.designsystem.component.ProgressBar
 import com.grove.app.designsystem.component.SectionHeader
+import com.grove.app.designsystem.component.SwipeAction
+import com.grove.app.designsystem.component.SwipeActionRow
 import com.grove.app.designsystem.component.StatusPill
 import com.grove.app.designsystem.format.Currencies
 import com.grove.app.designsystem.format.Money
-import com.grove.app.designsystem.theme.Fraunces
 import com.grove.app.designsystem.theme.GroveBorder
 import com.grove.app.designsystem.theme.GroveShapes
 import com.grove.app.designsystem.theme.GroveSpacing
@@ -74,6 +66,7 @@ import com.grove.app.designsystem.theme.GroveTheme
 import com.grove.app.designsystem.theme.GroveType
 import java.time.Instant
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 
@@ -105,15 +98,12 @@ fun BillsScreen(
         item { AppTopBar(title = "Bills", subtitle = "${state.bills.count { !it.paid }} unpaid") }
 
         item {
-            GroveCard(modifier = Modifier.fillMaxWidth(), padding = PaddingValues(GroveSpacing.LG)) {
+            GroveCard(modifier = Modifier.fillMaxWidth(), padding = PaddingValues(GroveSpacing.LG), variant = GroveCardVariant.Elevated) {
                 Text("MONTHLY RECURRING", style = GroveType.fieldLabel, color = c.fg3)
                 Spacer(Modifier.height(GroveSpacing.SM))
-                Text(
+                MoneyText(
                     Money.currencyLong(total, 0, currency),
-                    fontFamily = Fraunces,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 36.sp,
-                    letterSpacing = (-0.7).sp,
+                    size = MoneyTextSize.Display,
                     color = c.fg1,
                 )
                 Spacer(Modifier.height(GroveSpacing.SM + 2.dp))
@@ -137,9 +127,13 @@ fun BillsScreen(
 
         item {
             GroveCard(modifier = Modifier.fillMaxWidth(), padding = PaddingValues(horizontal = GroveSpacing.LG)) {
-                sorted.forEachIndexed { i, bill ->
-                    SwipeableBillRow(bill, state.dayOfMonth, state.today, currency, onToggle = { onToggleBill(bill.id) }, onDelete = { onDeleteBill(bill.id) })
-                    if (i < sorted.size - 1) HorizontalDivider(color = c.border)
+                if (sorted.isEmpty()) {
+                    EmptyState("No bills yet", subtitle = "Add recurring bills so Grove can reserve them.")
+                } else {
+                    sorted.forEachIndexed { i, bill ->
+                        BillRow(bill, state.dayOfMonth, state.today, currency, onToggle = { onToggleBill(bill.id) }, onDelete = { onDeleteBill(bill.id) })
+                        if (i < sorted.size - 1) HorizontalDivider(color = c.border)
+                    }
                 }
             }
         }
@@ -154,21 +148,7 @@ fun BillsScreen(
 }
 
 @Composable
-private fun CircleAction(icon: ImageVector, contentDescription: String, bg: Color, tint: Color, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .size(40.dp)
-            .clip(GroveShapes.Toggle)
-            .background(bg)
-            .clickable { onClick() },
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(icon, contentDescription = contentDescription, tint = tint, modifier = Modifier.size(18.dp))
-    }
-}
-
-@Composable
-private fun SwipeableBillRow(
+private fun BillRow(
     bill: BillLite,
     dayOfMonth: Int,
     today: java.time.LocalDateTime,
@@ -177,67 +157,26 @@ private fun SwipeableBillRow(
     onDelete: () -> Unit,
 ) {
     val c = GroveTheme.colors
-    val density = LocalDensity.current
-    val revealPx = with(density) { 58.dp.toPx() }
-    val maxDragPx = with(density) { 70.dp.toPx() }
-
-    var offsetX by remember { mutableFloatStateOf(0f) }
-    var dragging by remember { mutableStateOf(false) }
-    val animatedX by animateFloatAsState(offsetX, if (dragging) snap() else tween(280, easing = EaseOutCubic), label = "swipeBill")
-
     val (statusLabel, statusKind) =
         when {
             bill.paid -> "Paid" to "success"
-            bill.dueDay < dayOfMonth -> "Overdue" to "warn"
+            bill.dueDay < dayOfMonth -> "Overdue" to "danger"
             bill.dueDay - dayOfMonth <= 5 -> "Due soon" to "warn"
             else -> "Upcoming" to "neutral"
         }
-    val dueStr =
-        LocalDate
-            .of(
-                today.year,
-                today.month,
-                bill.dueDay.coerceAtMost(today.month.maxLength()),
-            ).format(DateTimeFormatter.ofPattern("MMM d"))
+    val dueMonth = YearMonth.of(today.year, today.month)
+    val dueStr = dueMonth.atDay(bill.dueDay.coerceAtMost(dueMonth.lengthOfMonth())).format(DateTimeFormatter.ofPattern("MMM d"))
 
-    Box(modifier = Modifier.fillMaxWidth().clipToBounds()) {
-        Row(
-            modifier = Modifier.fillMaxSize().padding(end = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(GroveSpacing.SM, Alignment.End),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            CircleAction(Icons.Outlined.DeleteOutline, "Delete", c.clay, Color.White) { onDelete() }
-        }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .offset { IntOffset(animatedX.toInt(), 0) }
-                .background(c.bgCard)
-                .pointerInput(Unit) {
-                    detectHorizontalDragGestures(
-                        onDragStart = { dragging = true },
-                        onDragEnd = {
-                            dragging = false
-                            offsetX = if (offsetX < -revealPx / 2f) -revealPx else 0f
-                        },
-                        onDragCancel = {
-                            dragging = false
-                            offsetX = 0f
-                        },
-                        onHorizontalDrag = { _, delta -> offsetX = (offsetX + delta).coerceIn(-maxDragPx, 0f) },
-                    )
-                }.clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
-                    if (offsetX != 0f) offsetX = 0f
-                }.padding(vertical = GroveSpacing.MD),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+    SwipeActionRow(
+        actions = listOf(SwipeAction(Icons.Outlined.DeleteOutline, "Delete", c.danger, Color.White) { onDelete() }),
+    ) {
             Box(
                 modifier = Modifier
                     .size(26.dp)
                     .clip(GroveShapes.SmallTile)
                     .background(if (bill.paid) c.accent else c.bgCard)
                     .border(GroveBorder.Strong, if (bill.paid) c.accent else c.borderStrong, GroveShapes.SmallTile)
-                    .clickable { onToggle() },
+                    .clickable(role = Role.Checkbox) { onToggle() },
                 contentAlignment = Alignment.Center,
             ) {
                 if (bill.paid) Icon(Icons.Default.Check, contentDescription = null, tint = c.fgOnFern, modifier = Modifier.size(15.dp))
@@ -260,12 +199,11 @@ private fun SwipeableBillRow(
             }
             Spacer(Modifier.width(GroveSpacing.SM))
             Text(
-                Money.currencyLong(bill.amountMinor, 0, currency),
+                Money.currencyLong(bill.amountMinor, 0, bill.currencyCode.ifEmpty { currency }),
                 style = GroveType.amount,
                 color = if (bill.paid) c.fg3 else c.fg1,
                 textDecoration = if (bill.paid) TextDecoration.LineThrough else TextDecoration.None,
             )
-        }
     }
 }
 
@@ -279,7 +217,9 @@ private fun AddBillSheet(
     var name by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
     var dueDay by remember { mutableStateOf("") }
-    val valid = name.isNotBlank() && (amount.toDoubleOrNull() ?: 0.0) > 0
+    val parsedDueDay = dueDay.toIntOrNull()
+    val validDueDay = dueDay.isBlank() || parsedDueDay in 1..31
+    val valid = name.isNotBlank() && (amount.toDoubleOrNull() ?: 0.0) > 0 && validDueDay
 
     GroveBottomSheet(onDismiss = onDismiss) {
         Column(
@@ -298,10 +238,7 @@ private fun AddBillSheet(
                 Column(modifier = Modifier.weight(1f)) {
                     FieldLabel("AMOUNT (${Currencies.current(currency).symbol})")
                     GroveTextField(value = amount, onValueChange = {
-                        amount =
-                            it.filter { ch ->
-                                ch.isDigit() || ch == '.'
-                            }
+                        amount = normalizeMoneyInput(it, Currencies.minorUnitExponent(currency))
                     }, placeholder = "0")
                 }
                 Column(modifier = Modifier.weight(1f)) {
@@ -313,8 +250,7 @@ private fun AddBillSheet(
             PrimaryButton(
                 "Save bill",
                 onClick = {
-                    val exp = Currencies.minorUnitExponent(currency)
-                    val amountMinor = ((amount.toDoubleOrNull() ?: 0.0) * Math.pow(10.0, exp.toDouble())).toLong()
+                    val amountMinor = Money.toMinor(amount.toDoubleOrNull() ?: 0.0, currency)
                     onSave(
                         Bill(
                             id = UUID.randomUUID(),
@@ -322,7 +258,7 @@ private fun AddBillSheet(
                             amountMinor = amountMinor,
                             currencyCode = currency,
                             frequency = BillFrequency.monthly,
-                            dueDay = (dueDay.toIntOrNull() ?: 1).coerceIn(1, 28),
+                            dueDay = parsedDueDay ?: 1,
                             dueWeekday = null,
                             startDate = Instant.now(),
                             endDate = null,
@@ -338,4 +274,16 @@ private fun AddBillSheet(
             )
         }
     }
+}
+
+private fun normalizeMoneyInput(
+    value: String,
+    minorExponent: Int,
+): String {
+    val cleaned = value.filter { it.isDigit() || it == '.' }
+    val firstDot = cleaned.indexOf('.')
+    if (firstDot < 0 || minorExponent == 0) return cleaned.replace(".", "")
+    val whole = cleaned.take(firstDot)
+    val fractional = cleaned.drop(firstDot + 1).replace(".", "").take(minorExponent)
+    return "$whole.$fractional"
 }

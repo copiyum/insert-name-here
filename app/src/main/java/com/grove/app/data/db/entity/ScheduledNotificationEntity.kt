@@ -19,7 +19,10 @@ import java.util.UUID
             onDelete = ForeignKey.CASCADE,
         ),
     ],
-    indices = [Index(value = ["triggerAt", "firedAt"])],
+    indices = [
+        Index(value = ["triggerAt", "firedAt"]),
+        Index("relatedBillId"),
+    ],
 )
 data class ScheduledNotificationEntity(
     @PrimaryKey val id: UUID,
