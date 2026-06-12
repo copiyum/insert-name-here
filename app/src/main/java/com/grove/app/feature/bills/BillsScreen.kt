@@ -10,9 +10,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -43,9 +40,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.grove.app.data.BudgetState
-import com.grove.app.data.db.BillLite
-import com.grove.app.data.model.Bill
+import com.grove.app.data.model.BillLite
 import com.grove.app.data.model.BillFrequency
+import com.grove.app.data.model.BillInput
 import com.grove.app.designsystem.catalog.BillIcons
 import com.grove.app.designsystem.component.AppTopBar
 import com.grove.app.designsystem.component.BotanicalEmptyState
@@ -64,49 +61,49 @@ import com.grove.app.designsystem.component.SwipeAction
 import com.grove.app.designsystem.component.SwipeActionRow
 import com.grove.app.designsystem.component.StatusPill
 import com.grove.app.designsystem.component.groveClick
+import com.grove.app.designsystem.component.groveScreenContentPadding
 import com.grove.app.designsystem.component.rememberMoneyInputState
-import com.grove.app.designsystem.format.Currencies
-import com.grove.app.designsystem.format.Money
+import com.grove.app.core.format.Currencies
+import com.grove.app.core.format.Money
 import com.grove.app.designsystem.theme.GroveBorder
 import com.grove.app.designsystem.theme.GroveEase
 import com.grove.app.designsystem.theme.GroveShapes
-import com.grove.app.designsystem.theme.GroveSize
 import com.grove.app.designsystem.theme.GroveSpacing
 import com.grove.app.designsystem.theme.GroveSprings
 import com.grove.app.designsystem.theme.GroveTheme
 import com.grove.app.designsystem.theme.GroveType
 import java.time.Instant
 import java.time.LocalDate
-import java.time.YearMonth
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 
 @Composable
 fun BillsScreen(
     state: BudgetState,
     currency: String,
-    onToggleBill: (UUID) -> Unit,
-    onAddBill: (Bill) -> Unit,
+    onToggleBill: (BillLite) -> Unit,
+    onAddBill: (BillInput) -> Unit,
     onDeleteBill: (UUID) -> Unit,
 ) {
     val c = GroveTheme.colors
     val listState = rememberLazyListState()
     var showAdd by remember { mutableStateOf(false) }
-    val sorted = remember(state.bills) { state.bills.sortedBy { it.dueDay } }
+    val sorted = remember(state.bills) { state.bills.sortedBy { it.dueAt } }
     val total = remember(state.bills) { state.bills.sumOf { it.amountMinor } }
     val paidTotal = remember(state.bills) { state.bills.filter { it.paid }.sumOf { it.amountMinor } }
     val monthName = remember(state.today) { state.today.format(DateTimeFormatter.ofPattern("MMM")) }
-    val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = GroveSize.NavClearance + bottomInset),
+        contentPadding = groveScreenContentPadding(),
     ) {
         item { AppTopBar(title = "Bills", subtitle = "${state.bills.count { !it.paid }} unpaid") }
 
         item {
             GroveCard(modifier = Modifier.fillMaxWidth(), padding = PaddingValues(GroveSpacing.LG), variant = GroveCardVariant.Elevated) {
-                Text("MONTHLY RECURRING", style = GroveType.fieldLabel, color = c.fg3)
+                Text("DUE THIS PERIOD", style = GroveType.fieldLabel, color = c.fg3)
                 Spacer(Modifier.height(GroveSpacing.SM))
                 MoneyText(
                     Money.currencyLong(total, 0, currency),
@@ -143,7 +140,7 @@ fun BillsScreen(
                     )
                 } else {
                     sorted.forEachIndexed { i, bill ->
-                        BillRow(bill, state.dayOfMonth, state.today, currency, onToggle = { onToggleBill(bill.id) }, onDelete = { onDeleteBill(bill.id) })
+                        BillRow(bill, state.today.toLocalDate(), currency, onToggle = { onToggleBill(bill) }, onDelete = { onDeleteBill(bill.id) })
                         if (i < sorted.size - 1) HorizontalDivider(color = c.border)
                     }
                 }
@@ -162,22 +159,22 @@ fun BillsScreen(
 @Composable
 private fun BillRow(
     bill: BillLite,
-    dayOfMonth: Int,
-    today: java.time.LocalDateTime,
+    today: LocalDate,
     currency: String,
     onToggle: () -> Unit,
     onDelete: () -> Unit,
 ) {
     val c = GroveTheme.colors
+    val dueDate = bill.dueAt.atZone(ZoneOffset.UTC).toLocalDate()
+    val daysUntilDue = ChronoUnit.DAYS.between(today, dueDate)
     val (statusLabel, statusKind) =
         when {
             bill.paid -> "Paid" to "success"
-            bill.dueDay < dayOfMonth -> "Overdue" to "danger"
-            bill.dueDay - dayOfMonth <= 3 -> "Due soon" to "warn"
+            daysUntilDue < 0 -> "Overdue" to "danger"
+            daysUntilDue <= 3 -> "Due soon" to "warn"
             else -> "Upcoming" to "neutral"
         }
-    val dueMonth = YearMonth.of(today.year, today.month)
-    val dueStr = dueMonth.atDay(bill.dueDay.coerceAtMost(dueMonth.lengthOfMonth())).format(DateTimeFormatter.ofPattern("MMM d"))
+    val dueStr = dueDate.format(DateTimeFormatter.ofPattern("MMM d"))
     val checkBg by animateColorAsState(
         targetValue = if (bill.paid) c.accent else c.bgCard,
         animationSpec = GroveEase.normal(),
@@ -258,7 +255,7 @@ private fun BillRow(
 private fun AddBillSheet(
     currency: String,
     onDismiss: () -> Unit,
-    onSave: (Bill) -> Unit,
+    onSave: (BillInput) -> Unit,
 ) {
     val c = GroveTheme.colors
     var name by remember { mutableStateOf("") }
@@ -298,8 +295,7 @@ private fun AddBillSheet(
                     val amountMinor = amountState.amountMinor
                     val now = Instant.now()
                     onSave(
-                        Bill(
-                            id = UUID.randomUUID(),
+                        BillInput(
                             name = name.trim(),
                             amountMinor = amountMinor,
                             currencyCode = currency,
@@ -307,11 +303,7 @@ private fun AddBillSheet(
                             dueDay = (parsedDueDay ?: 15).coerceIn(1, 28),
                             dueWeekday = null,
                             startDate = now,
-                            endDate = null,
                             iconKey = "other",
-                            isActive = true,
-                            createdAt = now,
-                            updatedAt = now,
                         ),
                     )
                 },

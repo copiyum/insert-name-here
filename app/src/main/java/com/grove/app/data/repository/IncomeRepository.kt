@@ -35,8 +35,4 @@ class IncomeRepository(
     }
 
     suspend fun delete(id: UUID) = dao.delete(id)
-
-    suspend fun updateCurrencyCode(currencyCode: String) {
-        dao.updateCurrencyCode(currencyCode, Instant.now())
-    }
 }

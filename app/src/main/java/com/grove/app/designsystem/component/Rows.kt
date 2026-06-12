@@ -23,10 +23,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.grove.app.data.db.ExpenseLite
+import com.grove.app.data.model.ExpenseLite
 import com.grove.app.data.model.CategoryKind
-import com.grove.app.designsystem.format.Dates
-import com.grove.app.designsystem.format.Money
+import com.grove.app.core.format.Dates
+import com.grove.app.core.format.Money
 import com.grove.app.designsystem.theme.GroveBorder
 import com.grove.app.designsystem.theme.GroveShapes
 import com.grove.app.designsystem.theme.GroveSize

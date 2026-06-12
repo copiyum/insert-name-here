@@ -6,22 +6,13 @@ import com.grove.app.data.db.entity.MonthlyCategoryBudgetEntity
 import com.grove.app.data.model.MonthlyBudget
 import com.grove.app.data.model.MonthlyCategoryBudget
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 import java.time.Instant
 import java.util.UUID
 
 class BudgetRepository(
     private val dao: MonthlyBudgetDao,
 ) {
-    fun observeForPeriod(
-        year: Int,
-        month: Int,
-    ): Flow<MonthlyBudget?> = dao.observeForPeriod(year, month).map { it?.toDomain() }
-
     fun observeAll(): Flow<List<MonthlyBudget>> = dao.observeAll().mapList { it.toDomain() }
-
-    fun observeCategoryBudgets(monthlyBudgetId: UUID): Flow<List<MonthlyCategoryBudget>> =
-        dao.observeCategoryBudgets(monthlyBudgetId).mapList { it.toDomain() }
 
     fun observeAllCategoryBudgets(): Flow<List<MonthlyCategoryBudget>> =
         dao.observeAllCategoryBudgets().mapList { it.toDomain() }
@@ -31,17 +22,10 @@ class BudgetRepository(
         month: Int,
     ): MonthlyBudget? = dao.getForPeriod(year, month)?.toDomain()
 
-    suspend fun getCategoryBudgets(monthlyBudgetId: UUID): List<MonthlyCategoryBudget> =
-        dao.getCategoryBudgets(monthlyBudgetId).map { it.toDomain() }
-
     suspend fun getCategoryBudget(
         monthlyBudgetId: UUID,
         categoryId: UUID,
     ): MonthlyCategoryBudget? = dao.getCategoryBudget(monthlyBudgetId, categoryId)?.toDomain()
-
-    suspend fun updateCurrencyCode(currencyCode: String) {
-        dao.updateCurrencyCode(currencyCode, Instant.now())
-    }
 
     suspend fun upsert(
         budget: MonthlyBudget,

@@ -1,14 +1,14 @@
 package com.grove.app.data
 
 import androidx.compose.runtime.Immutable
-import com.grove.app.data.db.BillLite
-import com.grove.app.data.db.CategoryBudgetLite
-import com.grove.app.data.db.CategoryLite
-import com.grove.app.data.db.ExpenseLite
-import com.grove.app.data.db.IncomeLite
+import com.grove.app.data.model.BillLite
+import com.grove.app.data.model.CategoryBudgetLite
+import com.grove.app.data.model.CategoryLite
+import com.grove.app.data.model.ExpenseLite
+import com.grove.app.data.model.IncomeLite
 import com.grove.app.data.model.CategoryKind
 import com.grove.app.data.model.UserProfile
-import com.grove.app.designsystem.format.Currencies
+import com.grove.app.core.format.Currencies
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import java.time.LocalDate
@@ -37,15 +37,14 @@ data class BudgetState(
     val spentTodayMinor: Long = 0L,
     val upcomingBillsMinor: Long = 0L,
 ) {
-    val daysInMonth: Int get() = today.toLocalDate().lengthOfMonth()
-    val dayOfMonth: Int get() = today.dayOfMonth
     val period: BudgetPeriod get() = BudgetPeriod.forDate(today.toLocalDate(), user?.resetDay ?: 1)
     val dayOfBudgetPeriod: Int get() = period.dayIndex(today.toLocalDate())
     val daysLeft: Int get() = period.daysLeft(today.toLocalDate())
 
     val monthBudget: Double get() = monthBudgetMinor.toDouble() / minorUnit
     private val minorUnit: Double get() = Math.pow(10.0, Currencies.minorUnitExponent(homeCurrency).toDouble())
-    val spendingExpenses: List<ExpenseLite> get() = expenses.filter { it.categoryKind != CategoryKind.income }
+    val spendingExpenses: List<ExpenseLite>
+        get() = expenses.filter { it.categoryKind != CategoryKind.income && it.currencyCode == homeCurrency }
 
     val totalSpent: Double get() = totalSpentMinor.toDouble() / minorUnit
     val spentToday: Double get() = spentTodayMinor.toDouble() / minorUnit
@@ -69,9 +68,6 @@ data class BudgetState(
     val daysSinceFirstExpense: Int
         get() = firstExpenseDay?.let { ChronoUnit.DAYS.between(it, today.toLocalDate()).toInt() + 1 }?.coerceAtLeast(1) ?: 1
 
-    val elapsedPeriodDays: Int
-        get() = dayOfBudgetPeriod
-
     val pace: SpendPace
         get() {
             if (remainingMinor <= 0) return SpendPace.Over
@@ -88,9 +84,6 @@ data class BudgetState(
             if (safePerDayMinor > 0L && spentTodayMinor > (safePerDayMinor * 0.85).toLong()) return SpendPace.Tight
             return SpendPace.Healthy
         }
-
-    val homeCurrencySpentMinor: Long get() = totalSpentMinor
-
     companion object {
         fun empty() =
             BudgetState(

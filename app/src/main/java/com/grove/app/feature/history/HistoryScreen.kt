@@ -15,10 +15,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -52,7 +49,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.grove.app.data.BudgetState
-import com.grove.app.data.db.ExpenseLite
+import com.grove.app.data.model.ExpenseLite
 import com.grove.app.data.model.CategoryKind
 import com.grove.app.designsystem.catalog.CategoryVisuals
 import com.grove.app.designsystem.component.AppTopBar
@@ -69,12 +66,12 @@ import com.grove.app.designsystem.component.PeekHost
 import com.grove.app.designsystem.component.groveSharedElement
 import com.grove.app.designsystem.component.SwipeAction
 import com.grove.app.designsystem.component.SwipeActionRow
+import com.grove.app.designsystem.component.groveScreenContentPadding
 import com.grove.app.designsystem.component.rememberFoliageOverscroll
-import com.grove.app.designsystem.format.Dates
-import com.grove.app.designsystem.format.Money
+import com.grove.app.core.format.Dates
+import com.grove.app.core.format.Money
 import com.grove.app.designsystem.theme.GroveBorder
 import com.grove.app.designsystem.theme.GroveShapes
-import com.grove.app.designsystem.theme.GroveSize
 import com.grove.app.designsystem.theme.GroveSpacing
 import com.grove.app.designsystem.theme.GroveTheme
 import com.grove.app.designsystem.theme.GroveType
@@ -171,12 +168,11 @@ fun HistoryScreen(
                 }
             }
         } else {
-            val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
             CompositionLocalProvider(LocalOverscrollConfiguration provides null) {
             LazyColumn(
                 state = listState,
-                modifier = Modifier.fillMaxSize().nestedScroll(sway.connection).then(sway.modifier()),
-                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = GroveSize.NavClearance + bottomInset),
+                modifier = Modifier.fillMaxSize().nestedScroll(sway.connection).then(sway.modifier),
+                contentPadding = groveScreenContentPadding(),
             ) {
                 grouped.forEach { (date, expenses) ->
                     item(key = "h-$date") {
@@ -280,7 +276,7 @@ private fun ExpenseHistoryRow(
             CategoryIcon(
                 expense.iconKey,
                 contentDescription = expense.categoryName,
-                modifier = Modifier.groveSharedElement("expense-${'$'}{expense.id}"),
+                modifier = Modifier.groveSharedElement("expense-${expense.id}"),
             )
             Spacer(Modifier.width(GroveSpacing.MD))
             Column(modifier = Modifier.weight(1f)) {

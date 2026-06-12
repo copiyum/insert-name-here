@@ -1,4 +1,4 @@
-package com.grove.app.designsystem.format
+package com.grove.app.core.format
 
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -101,20 +101,20 @@ object Money {
 
     private fun localeFor(currencyCode: String): Locale =
         when (currencyCode) {
-            "INR" -> Locale("en", "IN")
+            "INR" -> Locale.forLanguageTag("en-IN")
             "EUR" -> Locale.FRANCE
             "GBP" -> Locale.UK
             "JPY" -> Locale.JAPAN
             "CAD" -> Locale.CANADA
-            "AUD" -> Locale("en", "AU")
-            "CHF" -> Locale("de", "CH")
+            "AUD" -> Locale.forLanguageTag("en-AU")
+            "CHF" -> Locale.forLanguageTag("de-CH")
             "CNY" -> Locale.CHINA
             "KRW" -> Locale.KOREA
-            "SGD" -> Locale("en", "SG")
-            "HKD" -> Locale("en", "HK")
-            "BRL" -> Locale("pt", "BR")
-            "MXN" -> Locale("es", "MX")
-            "ZAR" -> Locale("en", "ZA")
+            "SGD" -> Locale.forLanguageTag("en-SG")
+            "HKD" -> Locale.forLanguageTag("en-HK")
+            "BRL" -> Locale.forLanguageTag("pt-BR")
+            "MXN" -> Locale.forLanguageTag("es-MX")
+            "ZAR" -> Locale.forLanguageTag("en-ZA")
             else -> Locale.US
         }
 }

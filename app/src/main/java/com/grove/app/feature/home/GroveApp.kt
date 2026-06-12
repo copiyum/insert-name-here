@@ -60,6 +60,7 @@ import androidx.navigation.compose.rememberNavController
 import com.grove.app.data.GroveDefaults
 import com.grove.app.data.model.CategoryKind
 import com.grove.app.data.model.Expense
+import com.grove.app.data.model.ExpenseInput
 import com.grove.app.data.model.NotificationSettings
 import com.grove.app.designsystem.catalog.CategoryVisuals
 import androidx.compose.runtime.CompositionLocalProvider
@@ -217,8 +218,8 @@ private fun HomeScaffold(
                         BillsScreen(
                             state = state,
                             currency = currency,
-                            onToggleBill = { id ->
-                                vm.toggleBill(id)
+                            onToggleBill = { bill ->
+                                vm.toggleBill(bill)
                                 sounds.play(GroveSound.Chime, volume = 0.35f)
                             },
                             onAddBill = vm::addBill,
@@ -278,8 +279,8 @@ private fun HomeScaffold(
             currency = currency,
             safeSpendTargetBounds = safeSpendTargetBounds,
             spendTransfer = spendTransfer,
-            onSaveExpense = { expense ->
-                vm.saveExpense(expense)
+            onSaveExpense = { input ->
+                vm.saveExpense(input)
                 sounds.play(GroveSound.Tick)
             },
             onNavigateHome = {
@@ -324,7 +325,7 @@ private fun AddExpenseHost(
     currency: String,
     safeSpendTargetBounds: Rect?,
     spendTransfer: SpendTransferController,
-    onSaveExpense: (Expense) -> Unit,
+    onSaveExpense: (ExpenseInput) -> Unit,
     onNavigateHome: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -334,17 +335,16 @@ private fun AddExpenseHost(
         categories = state.categories,
         currency = currency,
         editing = editing,
-        onSave = { expense, originBounds ->
-            val category = state.categories.firstOrNull { it.id == expense.categoryId }
+        onSave = { input, originBounds ->
+            val category = state.categories.firstOrNull { it.id == input.categoryId }
             val animatedCategory =
                 category?.takeIf {
-                    editing == null && it.kind != CategoryKind.income && expense.amountMinor > 0L
+                    editing == null && it.kind != CategoryKind.income && input.amountMinor > 0L
                 }
             val snapshot = if (animatedCategory != null) state.dashboardSpendSnapshot() else null
-            onSaveExpense(expense)
             if (animatedCategory != null) {
                 spendTransfer.start(
-                    amountMinor = expense.amountMinor,
+                    amountMinor = input.amountMinor,
                     currency = currency,
                     categoryColor = CategoryVisuals.color(animatedCategory.iconKey),
                     origin = originBounds?.center,
@@ -353,6 +353,7 @@ private fun AddExpenseHost(
                 )
                 onNavigateHome()
             }
+            onSaveExpense(input)
         },
         onDismiss = onDismiss,
     )

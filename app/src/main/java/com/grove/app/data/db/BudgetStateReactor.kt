@@ -5,9 +5,14 @@ import com.grove.app.data.BudgetState
 import com.grove.app.data.MonthlyTotal
 import com.grove.app.data.model.Bill
 import com.grove.app.data.model.BillPayment
+import com.grove.app.data.model.BillLite
 import com.grove.app.data.model.Category
+import com.grove.app.data.model.CategoryBudgetLite
 import com.grove.app.data.model.CategoryKind
+import com.grove.app.data.model.CategoryLite
+import com.grove.app.data.model.ExpenseLite
 import com.grove.app.data.model.Income
+import com.grove.app.data.model.IncomeLite
 import com.grove.app.data.model.MonthlyBudget
 import com.grove.app.data.model.MonthlyCategoryBudget
 import com.grove.app.data.model.UserProfile
@@ -17,6 +22,7 @@ import com.grove.app.data.repository.CategoryRepository
 import com.grove.app.data.repository.ExpenseRepository
 import com.grove.app.data.repository.IncomeRepository
 import com.grove.app.data.repository.UserRepository
+import com.grove.app.data.repository.projectBillOccurrences
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.currentCoroutineContext
@@ -70,7 +76,7 @@ class BudgetStateReactor(
             val period = BudgetPeriod.forDate(now, user?.resetDay ?: 1)
             val todayStart = now
             // Category fields arrive pre-joined from the DAO (see ExpenseDao.observeAllWithCategory).
-            val spendingExpenses = expenses.filter { it.categoryKind != CategoryKind.income }
+            val spendingExpenses = expenses.filter { it.categoryKind != CategoryKind.income && it.currencyCode == homeCurrency }
             val periodSpend = spendingExpenses.filter { period.contains(it.occurredAt) }
             val spentTodayMinor =
                 spendingExpenses
@@ -78,15 +84,12 @@ class BudgetStateReactor(
                     .sumOf { it.amountMinor }
             val monthlyBudget =
                 budgets.firstOrNull {
-                    it.periodYear == period.start.year && it.periodMonth == period.start.monthValue
+                    it.periodYear == period.start.year &&
+                        it.periodMonth == period.start.monthValue &&
+                        it.currencyCode == homeCurrency
                 }
             val monthBudgetMinor = monthlyBudget?.totalMinor ?: 0L
-            val paidBillKeys =
-                payments
-                    .asSequence()
-                    .filter { it.periodYear == period.start.year && it.periodMonth == period.start.monthValue && it.paidAt != null }
-                    .map { it.billId }
-                    .toSet()
+            val projectedBills = projectBillOccurrences(bills.filter { it.currencyCode == homeCurrency }, payments, period)
             BudgetState(
                 today = now.atStartOfDay(),
                 monthBudgetMinor = monthBudgetMinor,
@@ -105,13 +108,8 @@ class BudgetStateReactor(
                 bills =
                     persistentListOf<BillLite>()
                         .builder()
-                        .apply {
-                            bills.forEach {
-                                val dueDay = it.dueDay ?: now.dayOfMonth
-                                val paid = it.id in paidBillKeys
-                                add(BillLite(it.id, it.name, it.amountMinor, it.currencyCode, it.iconKey, dueDay, paid))
-                            }
-                        }.build(),
+                        .apply { addAll(projectedBills) }
+                        .build(),
                 incomes =
                     persistentListOf<IncomeLite>()
                         .builder()
@@ -154,7 +152,7 @@ class BudgetStateReactor(
                         }.build(),
                 totalSpentMinor = periodSpend.sumOf { it.amountMinor },
                 spentTodayMinor = spentTodayMinor,
-                upcomingBillsMinor = bills.filter { it.id !in paidBillKeys }.sumOf { it.amountMinor },
+                upcomingBillsMinor = projectedBills.filter { !it.paid }.sumOf { it.amountMinor },
             )
         }.stateIn(
             scope = scope,

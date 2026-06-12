@@ -1,10 +1,11 @@
 package com.grove.app.data
 
-import com.grove.app.data.db.BillLite
-import com.grove.app.data.db.CategoryBudgetLite
-import com.grove.app.data.db.CategoryLite
-import com.grove.app.data.db.ExpenseLite
-import com.grove.app.data.db.IncomeLite
+import com.grove.app.data.model.CategoryBudgetLite
+import com.grove.app.data.model.CategoryLite
+import com.grove.app.data.model.ExpenseLite
+import com.grove.app.data.model.IncomeLite
+import com.grove.app.data.model.BillFrequency
+import com.grove.app.data.model.BillLite
 import com.grove.app.data.model.CategoryKind
 import com.grove.app.data.model.UserProfile
 import kotlinx.collections.immutable.persistentListOf
@@ -48,7 +49,7 @@ class BudgetStateTest {
                 resetDay = 1,
                 budgetMinor = 30_000,
                 expenses = listOf(expense(cat, 5_000, LocalDate.of(2026, 6, 10))),
-                bills = listOf(BillLite(bill, "Rent", 10_000, "USD", "receipt", 15, false)),
+                bills = listOf(bill(bill, "Rent", 10_000, LocalDate.of(2026, 6, 15))),
             )
 
         assertEquals(15_000, state.remainingMinor)
@@ -118,5 +119,22 @@ class BudgetStateTest {
         categoryKind = kind,
         note = "Test",
         occurredAt = date.atTime(LocalTime.NOON).atZone(ZoneOffset.UTC).toInstant(),
+    )
+
+    private fun bill(
+        id: UUID,
+        name: String,
+        amountMinor: Long,
+        dueDate: LocalDate,
+    ) = BillLite(
+        id = id,
+        name = name,
+        amountMinor = amountMinor,
+        currencyCode = "USD",
+        iconKey = "receipt",
+        dueAt = dueDate.atStartOfDay(ZoneOffset.UTC).toInstant(),
+        dueDay = dueDate.dayOfMonth,
+        frequency = BillFrequency.monthly,
+        paid = false,
     )
 }

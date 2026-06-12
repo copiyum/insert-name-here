@@ -10,7 +10,10 @@ import com.grove.app.data.UserPreferences
 import com.grove.app.data.UserPreferencesRepository
 import com.grove.app.data.db.BudgetStateReactor
 import com.grove.app.data.model.Bill
+import com.grove.app.data.model.BillInput
+import com.grove.app.data.model.BillLite
 import com.grove.app.data.model.Expense
+import com.grove.app.data.model.ExpenseInput
 import com.grove.app.data.model.MonthlyBudget
 import com.grove.app.data.model.MonthlyCategoryBudget
 import com.grove.app.data.model.NotificationSettings
@@ -22,7 +25,7 @@ import com.grove.app.data.repository.ExpenseRepository
 import com.grove.app.data.repository.IncomeRepository
 import com.grove.app.data.repository.NotificationRepository
 import com.grove.app.data.repository.UserRepository
-import com.grove.app.designsystem.format.Money
+import com.grove.app.core.format.Money
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -98,12 +101,25 @@ class MainViewModel(
         viewModelScope.launch { prefs.updateSounds(enabled) }
     }
 
-    fun saveExpense(expense: Expense) {
+    fun saveExpense(input: ExpenseInput) {
         viewModelScope.launch {
-            val existed = state.value.expenses.any { it.id == expense.id }
+            val id = input.id ?: UUID.randomUUID()
+            val now = Instant.now()
+            val existed = state.value.expenses.any { it.id == id }
+            val expense =
+                Expense(
+                    id = id,
+                    amountMinor = input.amountMinor,
+                    currencyCode = input.currencyCode,
+                    categoryId = input.categoryId,
+                    note = input.note,
+                    occurredAt = input.occurredAt,
+                    createdAt = now,
+                    updatedAt = now,
+                )
             runCatching { expenseRepo.upsert(expense) }
                 .onSuccess {
-                    val display = Money.currencyLong(expense.amountMinor, 2, currency.value)
+                    val display = Money.currencyLong(input.amountMinor, 2, input.currencyCode)
                     toast("${if (existed) "Updated" else "Saved"} · $display")
                 }.onFailure { toast("Hmm, that didn't save — try again") }
         }
@@ -119,16 +135,33 @@ class MainViewModel(
             .onFailure { toast("That one wouldn't budge — try again") }
     }
 
-    fun addBill(bill: Bill) = viewModelScope.launch {
+    fun addBill(input: BillInput) = viewModelScope.launch {
+        val now = Instant.now()
+        val bill =
+            Bill(
+                id = UUID.randomUUID(),
+                name = input.name,
+                amountMinor = input.amountMinor,
+                currencyCode = input.currencyCode,
+                frequency = input.frequency,
+                dueDay = input.dueDay,
+                dueWeekday = input.dueWeekday,
+                startDate = input.startDate,
+                endDate = null,
+                iconKey = input.iconKey,
+                isActive = true,
+                createdAt = now,
+                updatedAt = now,
+            )
         runCatching { billRepo.upsert(bill) }
-            .onSuccess { toast("Bill added · ${bill.name}") }
+            .onSuccess { toast("Bill added · ${input.name}") }
             .onFailure { toast("Hmm, that didn't save — try again") }
     }
 
-    fun toggleBill(id: UUID) {
+    fun toggleBill(occurrence: BillLite) {
         viewModelScope.launch {
-            val bill = billRepo.get(id) ?: return@launch
-            billRepo.togglePaymentForPeriod(bill, state.value.period, Instant.now())
+            val bill = billRepo.get(occurrence.id) ?: return@launch
+            billRepo.togglePaymentForOccurrence(bill, state.value.period, occurrence.dueAt, Instant.now())
         }
     }
 
@@ -248,10 +281,6 @@ class MainViewModel(
                     currencyCode = GroveDefaults.DEFAULT_CURRENCY,
                     onboardingCompleted = false,
                 )
-            expenseRepo.updateCurrencyCode(code)
-            billRepo.updateCurrencyCode(code)
-            incomeRepo.updateCurrencyCode(code)
-            budgetRepo.updateCurrencyCode(code)
             userRepo.upsert(current.copy(currencyCode = code))
         }
     }

@@ -17,17 +17,10 @@ import java.util.UUID
             childColumns = ["categoryId"],
             onDelete = ForeignKey.RESTRICT,
         ),
-        ForeignKey(
-            entity = PaymentMethodEntity::class,
-            parentColumns = ["id"],
-            childColumns = ["paymentMethodId"],
-            onDelete = ForeignKey.SET_NULL,
-        ),
     ],
     indices = [
         Index("occurredAt"),
         Index("categoryId"),
-        Index("paymentMethodId"),
         Index(value = ["occurredAt", "categoryId"]),
     ],
 )
@@ -36,7 +29,6 @@ data class ExpenseEntity(
     val amountMinor: Long,
     val currencyCode: String,
     val categoryId: UUID,
-    val paymentMethodId: UUID?,
     val note: String,
     val occurredAt: Instant,
     val createdAt: Instant,
@@ -48,7 +40,6 @@ data class ExpenseEntity(
             amountMinor = amountMinor,
             currencyCode = currencyCode,
             categoryId = categoryId,
-            paymentMethodId = paymentMethodId,
             note = note,
             occurredAt = occurredAt,
             createdAt = createdAt,

@@ -6,8 +6,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import com.grove.app.designsystem.format.Currencies
-import com.grove.app.designsystem.format.Money
+import com.grove.app.core.format.Currencies
+import com.grove.app.core.format.Money
 
 @Stable
 class MoneyInputState(

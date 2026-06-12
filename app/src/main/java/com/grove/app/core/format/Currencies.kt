@@ -1,4 +1,4 @@
-package com.grove.app.designsystem.format
+package com.grove.app.core.format
 
 data class Currency(
     val code: String,

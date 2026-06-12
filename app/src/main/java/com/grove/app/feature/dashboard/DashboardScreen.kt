@@ -8,10 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -60,11 +57,11 @@ import com.grove.app.designsystem.component.charts.ArcProgress
 import com.grove.app.designsystem.component.charts.WavyProgress
 import com.grove.app.designsystem.component.groveClick
 import com.grove.app.designsystem.component.groveFadeSlide
+import com.grove.app.designsystem.component.groveScreenContentPadding
 import com.grove.app.designsystem.component.moneyTextStyle
-import com.grove.app.designsystem.format.Money
+import com.grove.app.core.format.Money
 import com.grove.app.designsystem.theme.GroveBorder
 import com.grove.app.designsystem.theme.GroveShapes
-import com.grove.app.designsystem.theme.GroveSize
 import com.grove.app.designsystem.theme.GroveSprings
 import com.grove.app.designsystem.theme.GroveTheme
 import com.grove.app.designsystem.theme.GroveType
@@ -104,12 +101,11 @@ fun DashboardScreen(
         }
     val budgetLeftFraction =
         if (state.monthBudgetMinor > 0L) (ui.budgetLeftMinor.toFloat() / state.monthBudgetMinor).coerceIn(0f, 1f) else 1f
-    val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     AmbientBackdrop(modifier = Modifier.fillMaxSize()) {
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = GroveSize.NavClearance + bottomInset),
+        contentPadding = groveScreenContentPadding(),
     ) {
         item {
             AppTopBar(
@@ -201,7 +197,7 @@ fun DashboardScreen(
                 )
             } else {
                 GroveCardList(ui.recent, padding = PaddingValues(horizontal = 16.dp)) { expense ->
-                    ExpenseRow(expense, state.today, currency = currency, sharedElementKey = "expense-${'$'}{expense.id}")
+                    ExpenseRow(expense, state.today, currency = currency, sharedElementKey = "expense-${expense.id}")
                 }
             }
         }

@@ -77,19 +77,19 @@ fun BotanicalEmptyState(
             // Sprout: stem with two leaves.
             val stem = Path().apply {
                 moveTo(cx, potTop)
-                quadraticBezierTo(cx + w * 0.02f, h * 0.5f, cx - w * 0.02f, h * 0.34f)
+                quadraticTo(cx + w * 0.02f, h * 0.5f, cx - w * 0.02f, h * 0.34f)
             }
             drawPath(stem, c.accent, style = stroke)
             val leafL = Path().apply {
                 moveTo(cx - w * 0.015f, h * 0.46f)
-                quadraticBezierTo(cx - w * 0.2f, h * 0.4f, cx - w * 0.16f, h * 0.26f)
-                quadraticBezierTo(cx - w * 0.04f, h * 0.3f, cx - w * 0.015f, h * 0.46f)
+                quadraticTo(cx - w * 0.2f, h * 0.4f, cx - w * 0.16f, h * 0.26f)
+                quadraticTo(cx - w * 0.04f, h * 0.3f, cx - w * 0.015f, h * 0.46f)
                 close()
             }
             val leafR = Path().apply {
                 moveTo(cx - w * 0.01f, h * 0.38f)
-                quadraticBezierTo(cx + w * 0.17f, h * 0.34f, cx + w * 0.14f, h * 0.2f)
-                quadraticBezierTo(cx + w * 0.02f, h * 0.22f, cx - w * 0.01f, h * 0.38f)
+                quadraticTo(cx + w * 0.17f, h * 0.34f, cx + w * 0.14f, h * 0.2f)
+                quadraticTo(cx + w * 0.02f, h * 0.22f, cx - w * 0.01f, h * 0.38f)
                 close()
             }
             drawPath(leafL, c.accentSoft)

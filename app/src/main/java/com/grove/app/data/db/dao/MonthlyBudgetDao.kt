@@ -7,22 +7,12 @@ import androidx.room.Query
 import com.grove.app.data.db.entity.MonthlyBudgetEntity
 import com.grove.app.data.db.entity.MonthlyCategoryBudgetEntity
 import kotlinx.coroutines.flow.Flow
-import java.time.Instant
 import java.util.UUID
 
 @Dao
 interface MonthlyBudgetDao {
-    @Query("SELECT * FROM monthly_budgets WHERE periodYear = :year AND periodMonth = :month LIMIT 1")
-    fun observeForPeriod(
-        year: Int,
-        month: Int,
-    ): Flow<MonthlyBudgetEntity?>
-
     @Query("SELECT * FROM monthly_budgets ORDER BY periodYear DESC, periodMonth DESC")
     fun observeAll(): Flow<List<MonthlyBudgetEntity>>
-
-    @Query("SELECT * FROM monthly_category_budgets WHERE monthlyBudgetId = :monthlyBudgetId")
-    fun observeCategoryBudgets(monthlyBudgetId: UUID): Flow<List<MonthlyCategoryBudgetEntity>>
 
     @Query("SELECT * FROM monthly_category_budgets")
     fun observeAllCategoryBudgets(): Flow<List<MonthlyCategoryBudgetEntity>>
@@ -32,9 +22,6 @@ interface MonthlyBudgetDao {
         year: Int,
         month: Int,
     ): MonthlyBudgetEntity?
-
-    @Query("SELECT * FROM monthly_category_budgets WHERE monthlyBudgetId = :monthlyBudgetId")
-    suspend fun getCategoryBudgets(monthlyBudgetId: UUID): List<MonthlyCategoryBudgetEntity>
 
     @Query(
         "SELECT * FROM monthly_category_budgets WHERE monthlyBudgetId = :monthlyBudgetId AND categoryId = :categoryId LIMIT 1",
@@ -49,10 +36,4 @@ interface MonthlyBudgetDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertCategoryBudgets(entities: List<MonthlyCategoryBudgetEntity>)
-
-    @Query("UPDATE monthly_budgets SET currencyCode = :currencyCode, updatedAt = :updatedAt")
-    suspend fun updateCurrencyCode(
-        currencyCode: String,
-        updatedAt: Instant,
-    )
 }

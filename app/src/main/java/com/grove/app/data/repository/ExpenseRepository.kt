@@ -1,6 +1,6 @@
 package com.grove.app.data.repository
 
-import com.grove.app.data.db.ExpenseLite
+import com.grove.app.data.model.ExpenseLite
 import com.grove.app.data.db.dao.ExpenseDao
 import com.grove.app.data.db.entity.ExpenseEntity
 import com.grove.app.data.model.CategoryKind
@@ -40,7 +40,6 @@ class ExpenseRepository(
                 amountMinor = expense.amountMinor,
                 currencyCode = expense.currencyCode,
                 categoryId = expense.categoryId,
-                paymentMethodId = expense.paymentMethodId,
                 note = expense.note,
                 occurredAt = expense.occurredAt,
                 createdAt = existing?.createdAt ?: now,
@@ -52,8 +51,4 @@ class ExpenseRepository(
     suspend fun delete(id: UUID) = dao.delete(id)
 
     suspend fun get(id: UUID): Expense? = dao.getById(id)?.toDomain()
-
-    suspend fun updateCurrencyCode(currencyCode: String) {
-        dao.updateCurrencyCode(currencyCode, Instant.now())
-    }
 }

@@ -1,4 +1,4 @@
-package com.grove.app.designsystem.format
+package com.grove.app.core.format
 
 import org.junit.Assert.assertEquals
 import org.junit.Test

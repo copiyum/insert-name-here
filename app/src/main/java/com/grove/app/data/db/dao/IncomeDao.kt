@@ -20,12 +20,6 @@ interface IncomeDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: IncomeEntity)
 
-    @Query("UPDATE incomes SET currencyCode = :currencyCode, updatedAt = :updatedAt")
-    suspend fun updateCurrencyCode(
-        currencyCode: String,
-        updatedAt: Instant,
-    )
-
     @Query("DELETE FROM incomes WHERE id = :id")
     suspend fun delete(id: UUID)
 }

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -20,8 +21,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
-import com.grove.app.designsystem.format.Money
-import com.grove.app.designsystem.format.lerpMinor
+import com.grove.app.core.format.Money
+import com.grove.app.core.format.lerpMinor
 import com.grove.app.designsystem.theme.GroveEase
 import kotlinx.coroutines.delay
 
@@ -101,9 +102,17 @@ fun TickerMoneyText(
     fromMinor: Long? = null,
     progress: Float? = null,
 ) {
-    if (progress != null && fromMinor != null) {
+    var shown by remember { mutableLongStateOf(countUpFrom ?: minor) }
+    var entered by remember { mutableStateOf(countUpFrom == null) }
+    val settlementMinor = if (progress != null && fromMinor != null) lerpMinor(fromMinor, minor, progress) else null
+
+    if (settlementMinor != null) {
+        SideEffect {
+            shown = minor
+            entered = true
+        }
         Text(
-            text = Money.currencyLong(lerpMinor(fromMinor, minor, progress), decimals, currency),
+            text = Money.currencyLong(settlementMinor, decimals, currency),
             style = style,
             color = color,
             modifier = modifier,
@@ -112,8 +121,6 @@ fun TickerMoneyText(
         return
     }
 
-    var shown by remember { mutableLongStateOf(countUpFrom ?: minor) }
-    var entered by remember { mutableStateOf(countUpFrom == null) }
     LaunchedEffect(minor) {
         if (!entered) {
             delay(entryDelayMillis)

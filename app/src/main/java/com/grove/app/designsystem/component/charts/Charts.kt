@@ -51,8 +51,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.grove.app.designsystem.catalog.CategoryVisuals
 import com.grove.app.designsystem.component.animatedOnce
-import com.grove.app.designsystem.format.Currencies
-import com.grove.app.designsystem.format.Money
+import com.grove.app.core.format.Currencies
+import com.grove.app.core.format.Money
 import com.grove.app.designsystem.theme.GroveEase
 import com.grove.app.designsystem.theme.GroveTheme
 import com.grove.app.designsystem.theme.GroveShapes

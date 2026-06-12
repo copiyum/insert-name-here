@@ -65,8 +65,8 @@ class FoliageOverscroll internal constructor(private val scope: CoroutineScope) 
         }
     }
 
-    fun modifier(): Modifier =
-        Modifier.graphicsLayer {
+    val modifier: Modifier
+        get() = Modifier.graphicsLayer {
             translationY = offset.value
             rotationZ = (offset.value / 900f).coerceIn(-0.8f, 0.8f)
         }

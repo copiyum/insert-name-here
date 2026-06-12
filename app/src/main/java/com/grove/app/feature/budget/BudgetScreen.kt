@@ -8,10 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -60,9 +57,9 @@ import com.grove.app.designsystem.component.ProgressBar
 import com.grove.app.designsystem.component.SectionHeader
 import com.grove.app.designsystem.component.Stepper
 import com.grove.app.designsystem.component.groveClick
-import com.grove.app.designsystem.format.Money
+import com.grove.app.designsystem.component.groveScreenContentPadding
+import com.grove.app.core.format.Money
 import com.grove.app.designsystem.theme.GroveShapes
-import com.grove.app.designsystem.theme.GroveSize
 import com.grove.app.designsystem.theme.GroveSpacing
 import com.grove.app.designsystem.theme.GroveTheme
 import com.grove.app.designsystem.theme.GroveType
@@ -109,11 +106,10 @@ fun BudgetScreen(
                 if (unallocated > 0) add(unallocated to c.bgMuted)
             }
         }
-    val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = GroveSize.NavClearance + bottomInset),
+        contentPadding = groveScreenContentPadding(),
     ) {
         item { AppTopBar(title = "Budget", subtitle = "Monthly plan") }
 

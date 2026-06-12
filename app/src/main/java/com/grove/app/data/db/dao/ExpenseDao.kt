@@ -8,7 +8,6 @@ import androidx.room.Query
 import com.grove.app.data.db.entity.ExpenseEntity
 import com.grove.app.data.model.CategoryKind
 import kotlinx.coroutines.flow.Flow
-import java.time.Instant
 import java.util.UUID
 
 /**
@@ -40,12 +39,6 @@ interface ExpenseDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: ExpenseEntity)
-
-    @Query("UPDATE expenses SET currencyCode = :currencyCode, updatedAt = :updatedAt")
-    suspend fun updateCurrencyCode(
-        currencyCode: String,
-        updatedAt: Instant,
-    )
 
     @Query("DELETE FROM expenses WHERE id = :id")
     suspend fun delete(id: UUID)

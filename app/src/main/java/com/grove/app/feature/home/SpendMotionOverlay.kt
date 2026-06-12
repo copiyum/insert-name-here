@@ -15,7 +15,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import com.grove.app.designsystem.format.Money
+import com.grove.app.core.format.Money
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.log10

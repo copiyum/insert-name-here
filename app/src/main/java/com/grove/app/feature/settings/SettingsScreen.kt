@@ -9,10 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -66,10 +63,10 @@ import com.grove.app.designsystem.component.SettingRow
 import com.grove.app.designsystem.component.SwitchRow
 import com.grove.app.designsystem.component.groveClick
 import com.grove.app.designsystem.component.groveFadeSlide
-import com.grove.app.designsystem.format.Currencies
-import com.grove.app.designsystem.format.ordinal
+import com.grove.app.designsystem.component.groveScreenContentPadding
+import com.grove.app.core.format.Currencies
+import com.grove.app.core.format.ordinal
 import com.grove.app.designsystem.theme.GroveShapes
-import com.grove.app.designsystem.theme.GroveSize
 import com.grove.app.designsystem.theme.GroveSpacing
 import com.grove.app.designsystem.theme.GroveTheme
 import com.grove.app.designsystem.theme.GroveType
@@ -104,11 +101,10 @@ fun SettingsScreen(
     val displayName = state.user?.name?.trim()?.takeIf { it.isNotEmpty() } ?: "Add your name"
     val displayInitial = displayName.first().uppercaseChar().toString()
 
-    val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = GroveSize.NavClearance + bottomInset),
+        contentPadding = groveScreenContentPadding(),
     ) {
         item { AppTopBar(title = "Settings") }
 

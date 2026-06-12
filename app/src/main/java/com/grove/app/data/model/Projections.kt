@@ -1,7 +1,6 @@
-package com.grove.app.data.db
+package com.grove.app.data.model
 
 import androidx.compose.runtime.Immutable
-import com.grove.app.data.model.CategoryKind
 import java.time.Instant
 import java.util.UUID
 
@@ -33,7 +32,9 @@ data class BillLite(
     val amountMinor: Long,
     val currencyCode: String,
     val iconKey: String,
+    val dueAt: Instant,
     val dueDay: Int,
+    val frequency: BillFrequency,
     val paid: Boolean,
 )
 

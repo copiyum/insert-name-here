@@ -17,6 +17,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
@@ -38,8 +39,8 @@ import com.grove.app.designsystem.theme.GroveTheme
 import com.grove.app.designsystem.theme.GroveType
 import com.grove.app.designsystem.theme.InterTight
 import com.grove.app.designsystem.theme.SpaceGrotesk
-import com.grove.app.designsystem.format.Money
-import com.grove.app.designsystem.format.lerpMinor
+import com.grove.app.core.format.Money
+import com.grove.app.core.format.lerpMinor
 import kotlinx.coroutines.delay
 
 enum class MoneyTextSize { Hero, Display, Title, Row, Small }
@@ -78,9 +79,18 @@ fun AnimatedMoneyText(
     easing: Easing = EaseOutCubic,
     progress: Float? = null,
 ) {
-    if (progress != null && fromMinor != null) {
+    val progressAnim = remember { Animatable(1f) }
+    var startMinor by remember { mutableLongStateOf(fromMinor ?: minor) }
+    var targetMinor by remember { mutableLongStateOf(minor) }
+    val settlementMinor = if (progress != null && fromMinor != null) lerpMinor(fromMinor, minor, progress) else null
+
+    if (settlementMinor != null) {
+        SideEffect {
+            startMinor = minor
+            targetMinor = minor
+        }
         MoneyText(
-            text = Money.currencyLong(lerpMinor(fromMinor, minor, progress), decimals, currency),
+            text = Money.currencyLong(settlementMinor, decimals, currency),
             modifier = modifier,
             size = size,
             color = color,
@@ -88,10 +98,6 @@ fun AnimatedMoneyText(
         )
         return
     }
-
-    val progressAnim = remember { Animatable(1f) }
-    var startMinor by remember { mutableLongStateOf(fromMinor ?: minor) }
-    var targetMinor by remember { mutableLongStateOf(minor) }
 
     LaunchedEffect(minor, currency, animationKey, fromMinor, startDelayMillis, durationMillis, easing) {
         startMinor = fromMinor ?: lerpMinor(startMinor, targetMinor, progressAnim.value)

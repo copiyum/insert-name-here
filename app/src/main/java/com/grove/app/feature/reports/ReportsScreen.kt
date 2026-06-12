@@ -10,10 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -54,15 +51,15 @@ import com.grove.app.designsystem.component.MoneyText
 import com.grove.app.designsystem.component.MoneyTextSize
 import com.grove.app.designsystem.component.ProgressBar
 import com.grove.app.designsystem.component.SectionHeader
+import com.grove.app.designsystem.component.groveScreenContentPadding
 import com.grove.app.designsystem.component.rememberFoliageOverscroll
 import com.grove.app.designsystem.component.charts.DonutChart
 import com.grove.app.designsystem.component.charts.DonutSlice
 import com.grove.app.designsystem.component.charts.LineChart
 import com.grove.app.designsystem.component.charts.MonthBar
 import com.grove.app.designsystem.component.charts.MonthBars
-import com.grove.app.designsystem.format.Money
+import com.grove.app.core.format.Money
 import com.grove.app.designsystem.theme.GroveShapes
-import com.grove.app.designsystem.theme.GroveSize
 import com.grove.app.designsystem.theme.GroveSpacing
 import com.grove.app.designsystem.theme.GroveTheme
 import com.grove.app.designsystem.theme.GroveType
@@ -165,12 +162,11 @@ fun ReportsScreen(
     val momDelta = if (hasPrevMonth) {
         (state.totalSpent - prevMonthTotal) / prevMonthTotal
     } else 0.0
-    val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     CompositionLocalProvider(LocalOverscrollConfiguration provides null) {
     LazyColumn(
         state = listState,
-        modifier = Modifier.fillMaxSize().nestedScroll(sway.connection).then(sway.modifier()),
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = GroveSize.NavClearance + bottomInset),
+        modifier = Modifier.fillMaxSize().nestedScroll(sway.connection).then(sway.modifier),
+        contentPadding = groveScreenContentPadding(),
     ) {
         item { AppTopBar(title = "Reports", subtitle = "$monthName ${state.today.year}") }
 

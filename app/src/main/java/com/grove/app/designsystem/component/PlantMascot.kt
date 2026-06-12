@@ -114,7 +114,7 @@ fun PlantMascot(
 
         val stem = Path().apply {
             moveTo(baseX, baseY)
-            quadraticBezierTo(control.x, control.y, tip.x, tip.y)
+            quadraticTo(control.x, control.y, tip.x, tip.y)
         }
         drawPath(stem, stemColor, style = Stroke(width = w * 0.035f, cap = StrokeCap.Round))
 
@@ -158,8 +158,8 @@ private fun DrawScope.drawLeaf(at: Offset, size: Float, angleDeg: Float, color: 
     rotate(degrees = angleDeg, pivot = at) {
         val leaf = Path().apply {
             moveTo(at.x, at.y)
-            quadraticBezierTo(at.x + size * 0.5f, at.y - size * 0.7f, at.x, at.y - size * 1.4f)
-            quadraticBezierTo(at.x - size * 0.5f, at.y - size * 0.7f, at.x, at.y)
+            quadraticTo(at.x + size * 0.5f, at.y - size * 0.7f, at.x, at.y - size * 1.4f)
+            quadraticTo(at.x - size * 0.5f, at.y - size * 0.7f, at.x, at.y)
             close()
         }
         drawPath(leaf, color)

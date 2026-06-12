@@ -50,8 +50,9 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.grove.app.data.db.CategoryLite
+import com.grove.app.data.model.CategoryLite
 import com.grove.app.data.model.Expense
+import com.grove.app.data.model.ExpenseInput
 import com.grove.app.designsystem.catalog.CategoryVisuals
 import com.grove.app.designsystem.component.GroveBottomSheet
 import com.grove.app.designsystem.component.GroveHaptic
@@ -61,8 +62,8 @@ import com.grove.app.designsystem.component.MoneyTextSize
 import com.grove.app.designsystem.component.PrimaryButton
 import com.grove.app.designsystem.component.groveClick
 import com.grove.app.designsystem.component.rememberMoneyInputState
-import com.grove.app.designsystem.format.Currencies
-import com.grove.app.designsystem.format.Money
+import com.grove.app.core.format.Currencies
+import com.grove.app.core.format.Money
 import com.grove.app.designsystem.theme.GroveShapes
 import com.grove.app.designsystem.theme.GroveSpacing
 import com.grove.app.designsystem.theme.GroveSprings
@@ -86,7 +87,7 @@ fun AddExpenseSheet(
     categories: List<CategoryLite>,
     currency: String,
     editing: Expense? = null,
-    onSave: (Expense, Rect?) -> Unit,
+    onSave: (ExpenseInput, Rect?) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val c = GroveTheme.colors
@@ -109,7 +110,6 @@ fun AddExpenseSheet(
     val backScope = rememberCoroutineScope()
 
     fun saveExpense() {
-        val now = Instant.now()
         val catId = selectedCategoryId?.let { runCatching { UUID.fromString(it) }.getOrNull() } ?: categories.firstOrNull()?.id ?: return
         val editingDate = editing?.occurredAt?.atZone(ZoneId.systemDefault())?.toLocalDate()
         val occurredAt =
@@ -118,20 +118,17 @@ fun AddExpenseSheet(
             } else {
                 selectedDate.atTime(LocalTime.now()).atZone(ZoneId.systemDefault()).toInstant()
             }
-        val expense =
-            Expense(
-                id = editing?.id ?: UUID.randomUUID(),
+        val input =
+            ExpenseInput(
+                id = editing?.id,
                 amountMinor = amountMinor,
                 currencyCode = currency,
                 categoryId = catId,
-                paymentMethodId = editing?.paymentMethodId,
                 note = note,
                 occurredAt = occurredAt,
-                createdAt = editing?.createdAt ?: now,
-                updatedAt = now,
             )
         onSave(
-            expense,
+            input,
             saveOriginBounds,
         )
         onDismiss()

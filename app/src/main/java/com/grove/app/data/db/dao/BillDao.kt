@@ -29,10 +29,4 @@ interface BillDao {
         active: Boolean,
         updatedAt: Instant,
     )
-
-    @Query("UPDATE bills SET currencyCode = :currencyCode, updatedAt = :updatedAt")
-    suspend fun updateCurrencyCode(
-        currencyCode: String,
-        updatedAt: Instant,
-    )
 }

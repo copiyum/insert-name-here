@@ -14,19 +14,25 @@ interface BillPaymentDao {
     @Query("SELECT * FROM bill_payments ORDER BY dueAt DESC")
     fun observeAll(): Flow<List<BillPaymentEntity>>
 
-    @Query("SELECT * FROM bill_payments WHERE id = :id")
-    suspend fun getById(id: UUID): BillPaymentEntity?
+    @Query(
+        """
+        SELECT * FROM bill_payments
+        WHERE billId = :billId
+            AND periodStart = :periodStart
+            AND periodEnd = :periodEnd
+            AND dueAt = :dueAt
+        LIMIT 1
+        """,
+    )
+    suspend fun getForOccurrence(
+        billId: UUID,
+        periodStart: Instant,
+        periodEnd: Instant,
+        dueAt: Instant,
+    ): BillPaymentEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: BillPaymentEntity)
-
-    @Query("UPDATE bill_payments SET paidAt = :paidAt, amountPaidMinor = :amountPaidMinor, updatedAt = :updatedAt WHERE id = :id")
-    suspend fun markPaid(
-        id: UUID,
-        paidAt: Instant,
-        amountPaidMinor: Long?,
-        updatedAt: Instant,
-    )
 
     @Query("UPDATE bill_payments SET paidAt = NULL, amountPaidMinor = NULL, updatedAt = :updatedAt WHERE id = :id")
     suspend fun markUnpaid(

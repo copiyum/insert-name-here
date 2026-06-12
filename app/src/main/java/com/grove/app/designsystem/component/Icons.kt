@@ -21,9 +21,9 @@ import com.grove.app.designsystem.theme.GroveTheme
 @Composable
 fun CategoryIcon(
     iconKey: String,
+    modifier: Modifier = Modifier,
     size: Int = GroveSize.CategoryIcon.value.toInt(),
     contentDescription: String? = null,
-    modifier: Modifier = Modifier,
 ) {
     val v = CategoryVisuals.of(iconKey)
     val c = GroveTheme.colors

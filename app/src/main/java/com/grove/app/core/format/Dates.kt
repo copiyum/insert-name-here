@@ -1,4 +1,4 @@
-package com.grove.app.designsystem.format
+package com.grove.app.core.format
 
 import java.time.LocalDateTime
 import java.time.LocalDate

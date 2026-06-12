@@ -8,8 +8,6 @@ enum class CategoryKind { expense, income, both }
 
 enum class BillFrequency { monthly, weekly, biweekly, quarterly, yearly, one_off }
 
-enum class PaymentKind { cash, debit_card, credit_card, bank_account, other }
-
 enum class NotificationKind { daily_safe_spend, bill_due }
 
 @Immutable
@@ -26,7 +24,6 @@ data class Category(
     val id: UUID,
     val displayName: String,
     val iconKey: String,
-    val colorHex: String,
     val kind: CategoryKind,
     val sortOrder: Int = 0,
     val archivedAt: Instant? = null,
@@ -38,11 +35,20 @@ data class Expense(
     val amountMinor: Long,
     val currencyCode: String,
     val categoryId: UUID,
-    val paymentMethodId: UUID?,
     val note: String,
     val occurredAt: Instant,
     val createdAt: Instant,
     val updatedAt: Instant,
+)
+
+@Immutable
+data class ExpenseInput(
+    val id: UUID?,
+    val amountMinor: Long,
+    val currencyCode: String,
+    val categoryId: UUID,
+    val note: String,
+    val occurredAt: Instant,
 )
 
 @Immutable
@@ -60,6 +66,18 @@ data class Bill(
     val isActive: Boolean,
     val createdAt: Instant,
     val updatedAt: Instant,
+)
+
+@Immutable
+data class BillInput(
+    val name: String,
+    val amountMinor: Long,
+    val currencyCode: String,
+    val frequency: BillFrequency,
+    val dueDay: Int?,
+    val dueWeekday: Int?,
+    val startDate: Instant,
+    val iconKey: String,
 )
 
 @Immutable
@@ -109,27 +127,6 @@ data class MonthlyCategoryBudget(
     val monthlyBudgetId: UUID,
     val categoryId: UUID,
     val amountMinor: Long,
-)
-
-@Immutable
-data class PaymentMethod(
-    val id: UUID,
-    val displayName: String,
-    val kind: PaymentKind,
-    val last4: String?,
-    val colorHex: String,
-    val iconKey: String,
-    val sortOrder: Int = 0,
-    val archivedAt: Instant? = null,
-)
-
-@Immutable
-data class Tag(
-    val id: UUID,
-    val name: String,
-    val colorHex: String,
-    val createdAt: Instant,
-    val updatedAt: Instant,
 )
 
 @Immutable

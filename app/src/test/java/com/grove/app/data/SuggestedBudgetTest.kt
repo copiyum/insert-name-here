@@ -1,6 +1,6 @@
 package com.grove.app.data
 
-import com.grove.app.data.db.ExpenseLite
+import com.grove.app.data.model.ExpenseLite
 import com.grove.app.data.model.CategoryKind
 import com.grove.app.data.model.UserProfile
 import kotlinx.collections.immutable.persistentListOf
@@ -54,6 +54,23 @@ class SuggestedBudgetTest {
 
         // Median 12_377 rounds up to 13_000.
         assertEquals(13_000L, suggestion)
+    }
+
+    @Test
+    fun monthSuggestionUsesNewestCompletedMonthsWhenHistoryIsNewestFirst() {
+        val suggestion =
+            state(
+                pastMonths =
+                    listOf(
+                        month(2026, 6, 99_000),
+                        month(2026, 5, 30_000),
+                        month(2026, 4, 20_000),
+                        month(2026, 3, 10_000),
+                        month(2026, 2, 200_000),
+                    ),
+            ).suggestedMonthBudgetMinor()
+
+        assertEquals(20_000L, suggestion)
     }
 
     @Test

@@ -50,8 +50,8 @@ import com.grove.app.designsystem.component.PresetChipRow
 import com.grove.app.designsystem.component.PrimaryButton
 import com.grove.app.designsystem.component.Stepper
 import com.grove.app.designsystem.component.groveClick
-import com.grove.app.designsystem.format.Currencies
-import com.grove.app.designsystem.format.ordinal
+import com.grove.app.core.format.Currencies
+import com.grove.app.core.format.ordinal
 import com.grove.app.designsystem.sound.GroveSound
 import com.grove.app.designsystem.sound.LocalGroveSounds
 import com.grove.app.designsystem.theme.GroveEase
