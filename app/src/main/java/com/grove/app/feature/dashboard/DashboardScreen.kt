@@ -107,6 +107,7 @@ fun DashboardScreen(
     onHeroRingBoundsChange: (Rect) -> Unit = {},
     onHeroRingVisualsChange: (Color, Color, Float) -> Unit = { _, _, _ -> },
     suppressInitialProgressAnimation: Boolean = false,
+    heroRingProgressOverride: Float? = null,
     safeSpendAnimationKey: Any? = null,
     safeSpendSettlementProgress: Float? = null,
     spendSnapshot: DashboardSpendSnapshot? = null,
@@ -199,6 +200,7 @@ fun DashboardScreen(
                             fromMinor = safeSpendFromMinor,
                             fromPct = fromPctToday,
                             suppressInitialProgressAnimation = suppressInitialProgressAnimation,
+                            heroRingProgressOverride = heroRingProgressOverride,
                             settlementProgress = settlementProgress,
                         )
                     }
@@ -250,10 +252,12 @@ private fun RingHero(
     fromMinor: Long?,
     fromPct: Float?,
     suppressInitialProgressAnimation: Boolean,
+    heroRingProgressOverride: Float?,
     settlementProgress: Float?,
 ) {
     val c = GroveTheme.colors
     val pulse = rememberHeroPulse(safeTodayMinor, settlementProgress)
+    val ringScale = if (suppressInitialProgressAnimation) 1f else pulse
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
         val ringSize = responsiveHeroRingSize(maxWidth)
         Column(
@@ -266,8 +270,8 @@ private fun RingHero(
                         .size(ringSize)
                         .onGloballyPositioned { onRingBoundsChange(it.boundsInRoot()) }
                         .graphicsLayer {
-                            scaleX = pulse
-                            scaleY = pulse
+                            scaleX = ringScale
+                            scaleY = ringScale
                         },
                 contentAlignment = Alignment.Center,
             ) {
@@ -281,7 +285,7 @@ private fun RingHero(
                     fromPct = fromPct,
                     progressOverride = when {
                         settlementProgress != null -> pctSpent
-                        suppressInitialProgressAnimation -> 0f
+                        heroRingProgressOverride != null -> heroRingProgressOverride
                         else -> null
                     },
                     snapToTargetWhenOverrideClears = true,

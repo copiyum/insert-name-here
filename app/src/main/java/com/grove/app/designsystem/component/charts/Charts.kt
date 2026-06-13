@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
@@ -55,6 +56,7 @@ import com.grove.app.designsystem.component.animatedOnce
 import com.grove.app.core.format.Currencies
 import com.grove.app.core.format.Money
 import com.grove.app.designsystem.theme.GroveEase
+import com.grove.app.designsystem.theme.GroveColors
 import com.grove.app.designsystem.theme.GroveTheme
 import com.grove.app.designsystem.theme.GroveShapes
 import com.grove.app.designsystem.theme.GroveSpacing
@@ -138,59 +140,88 @@ fun ArcProgress(
         Canvas(modifier = Modifier.fillMaxSize()) {
             val dim = size.minDimension
             val strokePx = stroke.dp.toPx()
-            val radius = (dim - strokePx) / 2
-            val center = Offset(size.width / 2, size.height / 2)
-            val topLeft = Offset(center.x - radius, center.y - radius)
-            val arcSize = Size(radius * 2, radius * 2)
-
-            // Recessed groove: the track plus a faint inner/outer bevel so the tube
-            // reads as sunk into the surface rather than painted on top of it.
-            drawCircle(c.bgCard, radius = radius, center = center, style = Stroke(strokePx))
-            drawCircle(
-                lerp(c.bgCard, if (c.isDark) Color.Black else c.borderStrong, 0.35f).copy(alpha = 0.5f),
-                radius = radius - strokePx * 0.40f, center = center, style = Stroke(strokePx * 0.10f),
+            drawGroveArcProgress(
+                colors = c,
+                pct = drawPct,
+                color = color,
+                colorDeep = colorDeep,
+                strokePx = strokePx,
+                center = Offset(size.width / 2, size.height / 2),
+                diameterPx = dim,
             )
-            drawCircle(
-                lerp(c.bgCard, Color.White, if (c.isDark) 0.06f else 0.7f).copy(alpha = 0.4f),
-                radius = radius + strokePx * 0.40f, center = center, style = Stroke(strokePx * 0.08f),
-            )
-
-            if (drawPct > 0) {
-                val sweep = 360f * drawPct
-                val faceHi = lerp(color, Color.White, 0.45f)
-                val innerGlow = lerp(color, Color.White, 0.65f)
-
-                // Ambient glow — a faint colour halo radiating from inside the tube.
-                drawArc(color.copy(alpha = 0.10f), -90f, sweep, false, topLeft, arcSize, style = Stroke(strokePx * 1.30f, cap = StrokeCap.Round))
-                drawArc(color.copy(alpha = 0.05f), -90f, sweep, false, topLeft, arcSize, style = Stroke(strokePx * 1.75f, cap = StrokeCap.Round))
-
-                // Solid fill.
-                drawArc(Brush.linearGradient(listOf(color, colorDeep)), -90f, sweep, false, topLeft, arcSize, style = Stroke(strokePx, cap = StrokeCap.Round))
-
-                // Cylinder face — gently brightest down the centre of the tube.
-                drawArc(faceHi.copy(alpha = 0.30f), -90f, sweep, false, topLeft, arcSize, style = Stroke(strokePx * 0.46f, cap = StrokeCap.Round))
-                drawArc(innerGlow.copy(alpha = 0.12f), -90f, sweep, false, topLeft, arcSize, style = Stroke(strokePx * 0.26f, cap = StrokeCap.Round))
-
-                // Soft overhead rim light along the top edge of the tube.
-                drawArc(
-                    Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.24f), Color.Transparent)),
-                    -90f, sweep, false,
-                    Offset(center.x - (radius + strokePx * 0.28f), center.y - (radius + strokePx * 0.28f)),
-                    Size((radius + strokePx * 0.28f) * 2, (radius + strokePx * 0.28f) * 2),
-                    style = Stroke(strokePx * 0.13f, cap = StrokeCap.Round),
-                )
-
-                // Leading-cap shine so the head of the arc reads as a rounded knob.
-                val endRad = Math.toRadians((-90f + sweep).toDouble())
-                val capCenter = Offset(
-                    center.x + (radius * kotlin.math.cos(endRad)).toFloat(),
-                    center.y + (radius * kotlin.math.sin(endRad)).toFloat(),
-                )
-                drawCircle(faceHi.copy(alpha = 0.55f), radius = strokePx * 0.13f, center = capCenter)
-            }
         }
         content()
     }
+}
+
+internal fun DrawScope.drawGroveArcProgress(
+    colors: GroveColors,
+    pct: Float,
+    color: Color,
+    colorDeep: Color,
+    strokePx: Float,
+    center: Offset,
+    diameterPx: Float,
+    drawTrack: Boolean = true,
+) {
+    val drawPct = pct.coerceIn(0f, 1f)
+    val radius = ((diameterPx - strokePx) / 2f).coerceAtLeast(0f)
+    val topLeft = Offset(center.x - radius, center.y - radius)
+    val arcSize = Size(radius * 2f, radius * 2f)
+
+    if (drawTrack) {
+        // Recessed groove: the track plus a faint inner/outer bevel so the tube
+        // reads as sunk into the surface rather than painted on top of it.
+        drawCircle(colors.bgCard, radius = radius, center = center, style = Stroke(strokePx))
+        drawCircle(
+            lerp(colors.bgCard, if (colors.isDark) Color.Black else colors.borderStrong, 0.35f).copy(alpha = 0.5f),
+            radius = radius - strokePx * 0.40f,
+            center = center,
+            style = Stroke(strokePx * 0.10f),
+        )
+        drawCircle(
+            lerp(colors.bgCard, Color.White, if (colors.isDark) 0.06f else 0.7f).copy(alpha = 0.4f),
+            radius = radius + strokePx * 0.40f,
+            center = center,
+            style = Stroke(strokePx * 0.08f),
+        )
+    }
+
+    if (drawPct <= 0f || radius <= 0f) return
+
+    val sweep = 360f * drawPct
+    val faceHi = lerp(color, Color.White, 0.45f)
+    val innerGlow = lerp(color, Color.White, 0.65f)
+
+    // Ambient glow — a faint colour halo radiating from inside the tube.
+    drawArc(color.copy(alpha = 0.10f), -90f, sweep, false, topLeft, arcSize, style = Stroke(strokePx * 1.30f, cap = StrokeCap.Round))
+    drawArc(color.copy(alpha = 0.05f), -90f, sweep, false, topLeft, arcSize, style = Stroke(strokePx * 1.75f, cap = StrokeCap.Round))
+
+    // Solid fill.
+    drawArc(Brush.linearGradient(listOf(color, colorDeep)), -90f, sweep, false, topLeft, arcSize, style = Stroke(strokePx, cap = StrokeCap.Round))
+
+    // Cylinder face — gently brightest down the centre of the tube.
+    drawArc(faceHi.copy(alpha = 0.30f), -90f, sweep, false, topLeft, arcSize, style = Stroke(strokePx * 0.46f, cap = StrokeCap.Round))
+    drawArc(innerGlow.copy(alpha = 0.12f), -90f, sweep, false, topLeft, arcSize, style = Stroke(strokePx * 0.26f, cap = StrokeCap.Round))
+
+    // Soft overhead rim light along the top edge of the tube.
+    drawArc(
+        Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.24f), Color.Transparent)),
+        -90f,
+        sweep,
+        false,
+        Offset(center.x - (radius + strokePx * 0.28f), center.y - (radius + strokePx * 0.28f)),
+        Size((radius + strokePx * 0.28f) * 2, (radius + strokePx * 0.28f) * 2),
+        style = Stroke(strokePx * 0.13f, cap = StrokeCap.Round),
+    )
+
+    // Leading-cap shine so the head of the arc reads as a rounded knob.
+    val endRad = Math.toRadians((-90f + sweep).toDouble())
+    val capCenter = Offset(
+        center.x + (radius * kotlin.math.cos(endRad)).toFloat(),
+        center.y + (radius * kotlin.math.sin(endRad)).toFloat(),
+    )
+    drawCircle(faceHi.copy(alpha = 0.55f), radius = strokePx * 0.13f, center = capCenter)
 }
 
 @Composable

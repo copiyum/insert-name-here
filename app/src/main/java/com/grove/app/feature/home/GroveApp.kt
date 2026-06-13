@@ -115,12 +115,14 @@ fun GroveApp(startupDarkOverride: Boolean? = null) {
     var heroRingVisuals by remember { mutableStateOf<HeroRingVisuals?>(null) }
     var contentReady by remember { mutableStateOf(false) }
     var dashboardRevealProgress by remember { mutableStateOf(if (motionEnabled && !splashDone) 0f else 1f) }
-    var splashRingHandoffReady by remember { mutableStateOf(!motionEnabled || splashDone) }
+    var dashboardRingProgressOverride by remember {
+        mutableStateOf<Float?>(if (motionEnabled && !splashDone) 0f else null)
+    }
 
     LaunchedEffect(splashDone, motionEnabled) {
         if (splashDone || !motionEnabled) {
             dashboardRevealProgress = 1f
-            splashRingHandoffReady = true
+            dashboardRingProgressOverride = null
         }
     }
 
@@ -137,7 +139,8 @@ fun GroveApp(startupDarkOverride: Boolean? = null) {
                     heroRingVisuals = HeroRingVisuals(color, colorDeep, pct)
                 },
                 onContentReady = { contentReady = it },
-                suppressInitialProgressAnimation = !splashRingHandoffReady,
+                suppressInitialProgressAnimation = dashboardRingProgressOverride != null,
+                heroRingProgressOverride = dashboardRingProgressOverride,
                 dashboardRevealProgress = dashboardRevealProgress,
             )
             if (!splashDone) {
@@ -149,7 +152,9 @@ fun GroveApp(startupDarkOverride: Boolean? = null) {
                         heroRingPct = heroRingVisuals?.pct,
                         contentReady = contentReady,
                         onRevealProgressChange = { dashboardRevealProgress = it },
-                        onRingHandoffReady = { splashRingHandoffReady = true },
+                        onRingHandoffReady = { finalPct ->
+                            dashboardRingProgressOverride = finalPct.coerceIn(0f, 1f)
+                        },
                         onFinished = { splashDone = true },
                     )
                 } else {
@@ -179,6 +184,7 @@ private fun HomeScaffold(
     onHeroRingVisualsChange: (Color, Color, Float) -> Unit = { _, _, _ -> },
     onContentReady: (Boolean) -> Unit = {},
     suppressInitialProgressAnimation: Boolean = false,
+    heroRingProgressOverride: Float? = null,
     dashboardRevealProgress: Float = 1f,
 ) {
     val c = GroveTheme.colors
@@ -212,8 +218,6 @@ private fun HomeScaffold(
     val spendTargetReady = spendTransfer.event?.targetBounds != null && rootSize.width > 0 && rootSize.height > 0
     val spendSettlementProgress = spendTransfer.settlementProgress(motionEnabled)
     val contentReveal = dashboardRevealProgress.coerceIn(0f, 1f)
-    val contentRevealOffsetPx = with(density) { (1f - contentReveal) * 10.dp.toPx() }
-    val contentRevealScale = 0.992f + 0.008f * contentReveal
     val navOffset by animateDpAsState(
         targetValue = if (navVisible) 0.dp else 96.dp,
         animationSpec = GroveSprings.standard(),
@@ -261,9 +265,6 @@ private fun HomeScaffold(
                 .statusBarsPadding()
                 .graphicsLayer {
                     alpha = contentReveal
-                    translationY = contentRevealOffsetPx
-                    scaleX = contentRevealScale
-                    scaleY = contentRevealScale
                 },
         ) {
             Box(modifier = Modifier.weight(1f).hazeSource(state = hazeState).nestedScroll(bottomNavScrollConnection)) {
@@ -290,6 +291,7 @@ private fun HomeScaffold(
                             onHeroRingBoundsChange = onHeroRingBoundsChange,
                             onHeroRingVisualsChange = onHeroRingVisualsChange,
                             suppressInitialProgressAnimation = suppressInitialProgressAnimation,
+                            heroRingProgressOverride = heroRingProgressOverride,
                             safeSpendAnimationKey = spendTransfer.event?.id,
                             safeSpendSettlementProgress = spendSettlementProgress,
                             spendSnapshot = spendTransfer.snapshot,

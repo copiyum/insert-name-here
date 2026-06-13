@@ -38,7 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
 import androidx.core.content.res.ResourcesCompat
 import com.grove.app.R
-import com.grove.app.designsystem.component.charts.ArcProgress
+import com.grove.app.designsystem.component.charts.drawGroveArcProgress
 import com.grove.app.designsystem.theme.GroveTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -67,7 +67,6 @@ private const val SETTLE_AFTER_READY_MS = 200
 // The morph + the locked dashboard reveal share this duration — kept deliberately
 // graceful so the hand-off reads as a premium settle rather than a snap.
 private const val MORPH_DURATION = 820
-private const val MORPH_PROGRESS_REBASE_DURATION = 160
 private const val REVEAL_FADE_DURATION = 260
 
 @Composable
@@ -78,7 +77,7 @@ fun SplashRing(
     heroRingPct: Float?,
     contentReady: Boolean,
     onRevealProgressChange: (Float) -> Unit,
-    onRingHandoffReady: () -> Unit,
+    onRingHandoffReady: (Float) -> Unit,
     onFinished: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -163,32 +162,30 @@ fun SplashRing(
         val fadeWord = launch { wordAlpha.animateTo(0f, tween(MARK_OUT_DURATION, easing = emphAccel)) }
 
         if (morphTarget == null) {
+            ringHandoffReady.value(morphPct ?: latestHeroPct.value?.coerceIn(0f, 1f) ?: 0f)
             val revealDashboard = launch {
                 dashboardReveal.animateTo(1f, tween(REVEAL_FADE_DURATION, easing = emphDecel))
             }
             overlayAlpha.animateTo(0f, tween(REVEAL_FADE_DURATION, easing = emphAccel))
             revealDashboard.join()
-            ringHandoffReady.value()
             finished.value()
             return@LaunchedEffect
         }
 
         // During handoff, the dashboard owns the empty groove and the splash owns the
-        // fill. Rebase the splash fill early, then draw it into the dashboard ring slot
-        // so the final stroke reads as one continuous object rather than two rings.
+        // fill. The splash stroke resolves from the full brand ring into the real
+        // dashboard progress while it travels, so there is no second "load from zero"
+        // once it docks.
+        val finalPct = morphPct ?: latestHeroPct.value?.coerceIn(0f, 1f) ?: 0f
         val settleProgress = launch {
-            ringFraction.animateTo(0f, tween(MORPH_PROGRESS_REBASE_DURATION, easing = emphAccel))
-            ringFraction.animateTo(
-                morphPct ?: 1f,
-                tween((MORPH_DURATION - MORPH_PROGRESS_REBASE_DURATION).coerceAtLeast(0), easing = smooth),
-            )
+            ringFraction.animateTo(finalPct, tween(MORPH_DURATION, easing = smooth))
         }
         val revealDashboard = launch {
             dashboardReveal.animateTo(1f, tween(MORPH_DURATION, easing = smooth))
         }
         morph.animateTo(1f, tween(MORPH_DURATION, easing = smooth))
         settleProgress.join()
-        ringHandoffReady.value()
+        ringHandoffReady.value(finalPct)
         revealDashboard.join()
         fadeWord.join()
         overlayAlpha.animateTo(0f, tween(REVEAL_FADE_DURATION, easing = emphAccel))
@@ -221,39 +218,31 @@ fun SplashRing(
             (widthPx * 0.64f).coerceIn(216.dp.toPx(), 280.dp.toPx())
         }
         val heroDiameterPx = target?.let { min(it.width, it.height).coerceAtLeast(1f) } ?: fallbackHeroPx
-        val heroDiameterDp = with(density) { heroDiameterPx.toDp() }
         val initialDiameterPx = heroDiameterPx * SMALL_RING_SCALE
         val initialDiameterDp = with(density) { initialDiameterPx.toDp() }
-        val scale = lerp(SMALL_RING_SCALE, 1f, m).coerceAtLeast(0.01f)
+        val currentDiameterPx = lerp(initialDiameterPx, heroDiameterPx, m).coerceAtLeast(1f)
         val visualStroke = lerp(INITIAL_STROKE_DP, HERO_STROKE_DP, m)
-        val strokeBeforeScale = visualStroke / scale
         val curCx = lerp(drawCx, target?.center?.x ?: drawCx, m)
         val curCy = lerp(drawCy, target?.center?.y ?: drawCy, m)
         val markFade = 1f - (m / 0.32f).coerceIn(0f, 1f)
         val ringColor = morphColor ?: heroRingColor ?: c.success
         val ringColorDeep = morphColorDeep ?: heroRingColorDeep ?: ringColor
 
-        Box(
+        Canvas(
             modifier = Modifier
-                .align(Alignment.Center)
-                .size(heroDiameterDp)
-                .graphicsLayer {
-                    alpha = splashObjectAlpha
-                    translationX = curCx - rootCx
-                    translationY = curCy - rootCy
-                    scaleX = scale
-                    scaleY = scale
-                },
+                .fillMaxSize()
+                .graphicsLayer { alpha = splashObjectAlpha },
         ) {
-            ArcProgress(
-                pct = 1f,
+            drawGroveArcProgress(
+                colors = c,
+                pct = ringFraction.value,
                 color = ringColor,
                 colorDeep = ringColorDeep,
-                modifier = Modifier.fillMaxSize(),
-                stroke = strokeBeforeScale,
-                animationKey = "splash",
-                progressOverride = ringFraction.value,
-            ) {}
+                strokePx = visualStroke.dp.toPx(),
+                center = Offset(curCx, curCy),
+                diameterPx = currentDiameterPx,
+                drawTrack = false,
+            )
         }
 
         Box(
