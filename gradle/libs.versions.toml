@@ -11,6 +11,7 @@ composeBom = "2024.10.00"
 navigationCompose = "2.8.5"
 datastore = "1.1.1"
 room = "2.6.1"
+haze = "1.2.2"
 junit = "4.13.2"
 androidxTestJunit = "1.1.5"
 androidxTestRunner = "1.5.2"
@@ -38,6 +39,7 @@ androidx-compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-mani
 androidx-compose-material3 = { module = "androidx.compose.material3:material3" }
 androidx-compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
+haze = { module = "dev.chrisbanes.haze:haze", version.ref = "haze" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
 androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }

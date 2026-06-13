@@ -11,8 +11,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.grove.app.designsystem.theme.GroveTheme
@@ -70,5 +74,39 @@ fun MorphLoader(
         }
         path.close()
         drawPath(path, color)
+    }
+}
+
+/**
+ * Calm indeterminate spinner: a faint track ring with a single rounded arc that
+ * rotates. Reads unmistakably as "loading" and echoes the app's ring identity.
+ */
+@Composable
+fun RingSpinner(
+    modifier: Modifier = Modifier,
+    size: Dp = 40.dp,
+    color: Color = GroveTheme.colors.accent,
+) {
+    val trackColor = GroveTheme.colors.bgMuted
+    val rotation by rememberInfiniteTransition(label = "ringSpinner").animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(tween(900, easing = LinearEasing), RepeatMode.Restart),
+        label = "ringSpin",
+    )
+    Canvas(modifier = modifier.size(size)) {
+        val sw = this.size.minDimension * 0.1f
+        val r = (this.size.minDimension - sw) / 2f
+        val topLeft = Offset((this.size.width - r * 2) / 2f, (this.size.height - r * 2) / 2f)
+        drawCircle(trackColor, radius = r, style = Stroke(sw))
+        drawArc(
+            color = color,
+            startAngle = rotation,
+            sweepAngle = 268f,
+            useCenter = false,
+            topLeft = topLeft,
+            size = Size(r * 2, r * 2),
+            style = Stroke(sw, cap = StrokeCap.Round),
+        )
     }
 }

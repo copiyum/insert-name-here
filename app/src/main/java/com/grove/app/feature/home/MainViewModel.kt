@@ -39,6 +39,9 @@ import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
 
+/** Resolved theme override plus whether persisted prefs have loaded yet. */
+data class ThemePrefs(val loaded: Boolean, val darkOverride: Boolean?)
+
 class MainViewModel(
     private val userRepo: UserRepository,
     private val categoryRepo: CategoryRepository,
@@ -77,10 +80,15 @@ class MainViewModel(
             .map { it.homeCurrency }
             .stateIn(viewModelScope, SharingStarted.Eagerly, GroveDefaults.DEFAULT_CURRENCY)
 
-    val darkOverride: StateFlow<Boolean?> =
-        preferences
-            .map { it.darkModeOverride }
-            .stateIn(viewModelScope, SharingStarted.Eagerly, UserPreferences().darkModeOverride)
+    /**
+     * The theme override and a loaded flag, emitted together from one flow so the
+     * boot veil and the resolved theme can never disagree across a frame (which is
+     * what let a dark first frame slip through on a light-app / dark-system start).
+     */
+    val themePrefs: StateFlow<ThemePrefs> =
+        prefs.preferences
+            .map { ThemePrefs(loaded = true, darkOverride = it.darkModeOverride) }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, ThemePrefs(loaded = false, darkOverride = null))
 
     val notificationSettings: StateFlow<NotificationSettings> =
         notificationRepo

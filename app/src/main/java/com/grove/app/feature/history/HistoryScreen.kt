@@ -159,7 +159,7 @@ fun HistoryScreen(
         if (filtered.isEmpty()) {
             Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
                 if (state.expenses.isEmpty()) {
-                    BotanicalEmptyState("Nothing planted yet", subtitle = "Expenses you log will grow here.")
+                    BotanicalEmptyState("Nothing logged yet", subtitle = "What you log shows up here.")
                 } else {
                     BotanicalEmptyState(
                         "Nothing here just now",

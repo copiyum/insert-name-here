@@ -184,7 +184,7 @@ fun ReportsScreen(
                 Text(if (selected != null) "Tap again to clear" else "Tap a slice to focus", style = GroveType.rowSub, color = c.fg3)
                 Spacer(Modifier.height(GroveSpacing.SM))
                 if (byCategory.isEmpty()) {
-                    BotanicalEmptyState("No growth to chart yet", subtitle = "Spend a little, then watch the patterns.")
+                    BotanicalEmptyState("Nothing to chart yet", subtitle = "Spend a little, then watch the patterns.")
                 } else {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(GroveSpacing.SM + 2.dp)) {
                         DonutChart(data = donutData, total = filteredTotal, selected = selected, onSelect = {
@@ -297,7 +297,7 @@ fun ReportsScreen(
                 val maxAmount: Double = byCategory.firstOrNull()?.amount ?: 1.0
                 val top = byCategory.take(5)
                 if (top.isEmpty()) {
-                    BotanicalEmptyState("Nothing to rank yet", subtitle = "Your top categories will sprout here as you spend.")
+                    BotanicalEmptyState("Nothing to rank yet", subtitle = "Your top categories appear here as you spend.")
                 } else {
                     for ((i, entry) in top.withIndex()) {
                         val dim = selected != null && selected != entry.id

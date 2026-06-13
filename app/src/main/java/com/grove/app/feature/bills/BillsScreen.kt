@@ -1,5 +1,7 @@
 package com.grove.app.feature.bills
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.LocalOverscrollConfiguration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.animation.animateColorAsState
@@ -26,6 +28,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
@@ -62,6 +66,7 @@ import com.grove.app.designsystem.component.SwipeActionRow
 import com.grove.app.designsystem.component.StatusPill
 import com.grove.app.designsystem.component.groveClick
 import com.grove.app.designsystem.component.groveScreenContentPadding
+import com.grove.app.designsystem.component.rememberBounceOverscroll
 import com.grove.app.designsystem.component.rememberMoneyInputState
 import com.grove.app.core.format.Currencies
 import com.grove.app.core.format.Money
@@ -79,6 +84,7 @@ import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun BillsScreen(
     state: BudgetState,
@@ -89,14 +95,16 @@ fun BillsScreen(
 ) {
     val c = GroveTheme.colors
     val listState = rememberLazyListState()
+    val bounce = rememberBounceOverscroll()
     var showAdd by remember { mutableStateOf(false) }
     val sorted = remember(state.bills) { state.bills.sortedBy { it.dueAt } }
     val total = remember(state.bills) { state.bills.sumOf { it.amountMinor } }
     val paidTotal = remember(state.bills) { state.bills.filter { it.paid }.sumOf { it.amountMinor } }
     val monthName = remember(state.today) { state.today.format(DateTimeFormatter.ofPattern("MMM")) }
+    CompositionLocalProvider(LocalOverscrollConfiguration provides null) {
     LazyColumn(
         state = listState,
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().nestedScroll(bounce.connection).then(bounce.modifier),
         contentPadding = groveScreenContentPadding(),
     ) {
         item { AppTopBar(title = "Bills", subtitle = "${state.bills.count { !it.paid }} unpaid") }
@@ -133,7 +141,7 @@ fun BillsScreen(
             GroveCard(modifier = Modifier.fillMaxWidth(), padding = PaddingValues(horizontal = GroveSpacing.LG)) {
                 if (sorted.isEmpty()) {
                     BotanicalEmptyState(
-                        title = "No bills planted",
+                        title = "No bills yet",
                         subtitle = "Add recurring bills so safe-to-spend stays honest.",
                         ctaText = "Add a bill",
                         onCta = { showAdd = true },
@@ -146,6 +154,7 @@ fun BillsScreen(
                 }
             }
         }
+    }
     }
 
     if (showAdd) {

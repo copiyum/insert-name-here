@@ -1,5 +1,7 @@
 package com.grove.app.feature.settings
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.LocalOverscrollConfiguration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.rememberScrollState
@@ -38,6 +40,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,6 +50,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -64,6 +68,7 @@ import com.grove.app.designsystem.component.SwitchRow
 import com.grove.app.designsystem.component.groveClick
 import com.grove.app.designsystem.component.groveFadeSlide
 import com.grove.app.designsystem.component.groveScreenContentPadding
+import com.grove.app.designsystem.component.rememberBounceOverscroll
 import com.grove.app.core.format.Currencies
 import com.grove.app.core.format.ordinal
 import com.grove.app.designsystem.theme.GroveShapes
@@ -74,6 +79,7 @@ import com.grove.app.designsystem.theme.InterTight
 import com.grove.app.designsystem.theme.SpaceGrotesk
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SettingsScreen(
     state: BudgetState,
@@ -93,6 +99,7 @@ fun SettingsScreen(
 ) {
     val c = GroveTheme.colors
     val listState = rememberLazyListState()
+    val bounce = rememberBounceOverscroll()
     var showCurrencyPicker by rememberSaveable { mutableStateOf(false) }
     var showEditName by rememberSaveable { mutableStateOf(false) }
     var showResetDay by rememberSaveable { mutableStateOf(false) }
@@ -101,9 +108,10 @@ fun SettingsScreen(
     val displayName = state.user?.name?.trim()?.takeIf { it.isNotEmpty() } ?: "Add your name"
     val displayInitial = displayName.first().uppercaseChar().toString()
 
+    CompositionLocalProvider(LocalOverscrollConfiguration provides null) {
     LazyColumn(
         state = listState,
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().nestedScroll(bounce.connection).then(bounce.modifier),
         contentPadding = groveScreenContentPadding(),
     ) {
         item { AppTopBar(title = "Settings") }
@@ -196,6 +204,7 @@ fun SettingsScreen(
                 Text("Grove v1.0 · made for quiet budgets", fontFamily = InterTight, fontSize = 12.sp, color = c.fg3)
             }
         }
+    }
     }
 
     if (showEditName) {

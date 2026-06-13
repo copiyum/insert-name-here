@@ -17,12 +17,13 @@ import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Receipt
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -34,37 +35,66 @@ import com.grove.app.designsystem.theme.GroveTheme
 import com.grove.app.designsystem.theme.InterTight
 import com.grove.app.designsystem.component.GroveHaptic
 import com.grove.app.designsystem.component.groveClick
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.hazeEffect
 
 @Composable
 fun BottomNavBar(
     activeRoute: String,
     onChange: (String) -> Unit,
     onAdd: () -> Unit,
+    hazeState: HazeState,
     modifier: Modifier = Modifier,
 ) {
     val c = GroveTheme.colors
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = c.navBg,
-        shadowElevation = 0.dp,
+    Column(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .hazeEffect(
+                    state = hazeState,
+                    style =
+                        HazeStyle(
+                            backgroundColor = c.bgApp,
+                            tint = HazeTint(c.navBg.copy(alpha = if (c.isDark) 0.50f else 0.60f)),
+                            blurRadius = 24.dp,
+                            // Devices below API 31 can't blur — lean on a near-opaque tint instead.
+                            fallbackTint = HazeTint(c.navBg.copy(alpha = 0.96f)),
+                        ),
+                ),
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(c.border))
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .navigationBarsPadding()
-                        .padding(start = 6.dp, end = 6.dp, top = 5.dp, bottom = 3.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                BottomTabs.take(2).forEach { tab ->
-                    NavItem(tab, tab.icon(), activeRoute, onChange, Modifier.weight(1f))
-                }
-                AddTabItem(onAdd, Modifier.weight(1f))
-                BottomTabs.drop(2).forEach { tab ->
-                    NavItem(tab, tab.icon(), activeRoute, onChange, Modifier.weight(1f))
-                }
+        // Glassy top edge: a hairline that catches light in the middle and fades at the sides.
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(
+                                c.border.copy(alpha = 0f),
+                                if (c.isDark) c.borderStrong else Color.White.copy(alpha = 0.75f),
+                                c.border.copy(alpha = 0f),
+                            ),
+                        ),
+                    ),
+        )
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(start = 6.dp, end = 6.dp, top = 5.dp, bottom = 3.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            BottomTabs.take(2).forEach { tab ->
+                NavItem(tab, tab.icon(), activeRoute, onChange, Modifier.weight(1f))
+            }
+            AddTabItem(onAdd, Modifier.weight(1f))
+            BottomTabs.drop(2).forEach { tab ->
+                NavItem(tab, tab.icon(), activeRoute, onChange, Modifier.weight(1f))
             }
         }
     }

@@ -45,8 +45,37 @@ data class SpendTone(
 fun toneOf(pace: SpendPace): SpendTone {
     val c = GroveTheme.colors
     return when (pace) {
-        SpendPace.Over -> SpendTone(c.danger, c.danger, "Needs rest", healthy = false)
-        SpendPace.Tight -> SpendTone(c.warn, c.warn, "Growing thirsty", healthy = false)
-        SpendPace.Healthy -> SpendTone(c.accent, c.accentDeep, "Thriving", healthy = true)
+        SpendPace.Over -> SpendTone(c.danger, c.danger, SpendStatusCopy.label(pace, 0), healthy = false)
+        SpendPace.Tight -> SpendTone(c.warn, c.warn, SpendStatusCopy.label(pace, 0), healthy = false)
+        SpendPace.Healthy -> SpendTone(c.accent, c.accentDeep, SpendStatusCopy.label(pace, 0), healthy = true)
+    }
+}
+
+/**
+ * Abstract, non-cute status copy for the spend pace. Each pace has a small pool of
+ * phrasings; [label] picks one deterministically from a seed (use the day so it
+ * stays stable through the day but varies day to day, keeping it from going stale).
+ */
+object SpendStatusCopy {
+    private val healthy = listOf(
+        "On track", "Comfortable", "Plenty of room", "Cruising",
+        "All clear", "Steady", "Well within", "Easy pace",
+    )
+    private val tight = listOf(
+        "Getting tight", "Close to the edge", "Ease off", "Watch the pace",
+        "Near the line", "Tightening", "Slow it down",
+    )
+    private val over = listOf(
+        "Over today", "Past the line", "In the red", "Over budget",
+        "Eased over", "Resets tomorrow",
+    )
+
+    fun label(pace: SpendPace, seed: Int): String {
+        val pool = when (pace) {
+            SpendPace.Healthy -> healthy
+            SpendPace.Tight -> tight
+            SpendPace.Over -> over
+        }
+        return pool[((seed % pool.size) + pool.size) % pool.size]
     }
 }

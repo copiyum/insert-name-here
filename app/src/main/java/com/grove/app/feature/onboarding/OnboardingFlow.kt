@@ -43,12 +43,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.grove.app.data.SpendPace
 import com.grove.app.designsystem.component.GroveHaptic
-import com.grove.app.designsystem.component.PlantMascot
 import com.grove.app.designsystem.component.PresetChipRow
 import com.grove.app.designsystem.component.PrimaryButton
 import com.grove.app.designsystem.component.Stepper
+import com.grove.app.designsystem.component.charts.ArcProgress
 import com.grove.app.designsystem.component.groveClick
 import com.grove.app.core.format.Currencies
 import com.grove.app.core.format.ordinal
@@ -155,9 +154,23 @@ fun OnboardingFlow(userName: String = "there", currency: String = "INR", onDone:
 }
 
 @Composable
+private fun OnbRing(pct: Float) {
+    val c = GroveTheme.colors
+    Box(modifier = Modifier.size(120.dp)) {
+        ArcProgress(
+            pct = pct,
+            color = c.accent,
+            colorDeep = c.accentDeep,
+            modifier = Modifier.fillMaxSize(),
+            stroke = 13f,
+        ) {}
+    }
+}
+
+@Composable
 private fun StepIntro() {
     Column {
-        PlantMascot(growth = 0.35f, pace = SpendPace.Healthy, size = 120.dp)
+        OnbRing(pct = 0.32f)
         Spacer(Modifier.height(26.dp))
         OnbTitle("Meet Grove")
         Spacer(Modifier.height(12.dp))
@@ -170,7 +183,7 @@ private fun StepPlantNumber(budget: Int, currency: String, resetDay: Int, onBudg
     val c = GroveTheme.colors
     Column {
         OnbKicker("One number")
-        OnbTitle("Plant one number")
+        OnbTitle("Set your number")
         Spacer(Modifier.height(12.dp))
         OnbSub("The total you'd like to spend each month. Everything else grows from this — and you can fine-tune categories later.")
         Spacer(Modifier.height(28.dp))
@@ -214,7 +227,7 @@ private fun StepPlantNumber(budget: Int, currency: String, resetDay: Int, onBudg
 private fun StepGrow(userName: String, budget: Int, resetDay: Int, currency: String) {
     val c = GroveTheme.colors
     Column {
-        PlantMascot(growth = 0.9f, pace = SpendPace.Healthy, size = 120.dp)
+        OnbRing(pct = 0.88f)
         Spacer(Modifier.height(26.dp))
         OnbTitle("You're set, $userName")
         Spacer(Modifier.height(12.dp))

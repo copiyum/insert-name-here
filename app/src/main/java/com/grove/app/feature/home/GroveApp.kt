@@ -10,6 +10,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -68,7 +69,9 @@ import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import com.grove.app.designsystem.component.LocalNavAnimatedScope
 import com.grove.app.designsystem.component.LocalSharedTransitionScope
-import com.grove.app.designsystem.component.MorphLoader
+import com.grove.app.designsystem.component.RingSpinner
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import com.grove.app.designsystem.component.rememberBottomNavVisibilityConnection
 import com.grove.app.designsystem.sound.GroveSound
 import com.grove.app.designsystem.sound.LocalGroveSounds
@@ -93,8 +96,10 @@ import com.grove.app.feature.settings.SettingsScreen
 fun GroveApp() {
     val context = LocalContext.current
     val vm: MainViewModel = viewModel { MainViewModel(context.applicationContext as android.app.Application) }
-    val darkOverride by vm.darkOverride.collectAsStateWithLifecycle()
-    val dark = darkOverride ?: true
+    val themePrefs by vm.themePrefs.collectAsStateWithLifecycle()
+    // Until a saved override loads, follow the system theme rather than forcing dark —
+    // otherwise a light-mode cold start flashes dark cards on the first frames.
+    val dark = themePrefs.darkOverride ?: isSystemInDarkTheme()
     val currency by vm.currency.collectAsStateWithLifecycle()
     val notificationSettings by vm.notificationSettings.collectAsStateWithLifecycle()
 
@@ -113,8 +118,17 @@ private fun HomeScaffold(
     notificationSettings: NotificationSettings,
 ) {
     val c = GroveTheme.colors
-    val context = LocalContext.current
     val state by vm.state.collectAsStateWithLifecycle()
+    val themePrefs by vm.themePrefs.collectAsStateWithLifecycle()
+
+    if (!themePrefs.loaded || state.user == null) {
+        Box(modifier = Modifier.fillMaxSize().background(c.bgApp)) {
+            BootVeil(visible = true)
+        }
+        return
+    }
+
+    val context = LocalContext.current
     val toast by vm.toast.collectAsStateWithLifecycle()
     val soundsEnabled by vm.soundsEnabled.collectAsStateWithLifecycle()
     val sounds = rememberGroveSoundPlayer(soundsEnabled)
@@ -137,6 +151,7 @@ private fun HomeScaffold(
     var rootSize by remember { mutableStateOf(IntSize.Zero) }
     var safeSpendTargetBounds by remember { mutableStateOf<Rect?>(null) }
     val spendTransfer = rememberSpendTransferController()
+    val hazeState = remember { HazeState() }
     val motionEnabled = remember(context) { systemAnimationsEnabled(context) }
     val safeSpendTargetAvailable = safeSpendTargetBounds != null
     val spendTargetReady = spendTransfer.event?.targetBounds != null && rootSize.width > 0 && rootSize.height > 0
@@ -180,7 +195,7 @@ private fun HomeScaffold(
     ) {
         CompositionLocalProvider(LocalGroveSounds provides sounds) {
         Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
-            Box(modifier = Modifier.weight(1f).nestedScroll(bottomNavScrollConnection)) {
+            Box(modifier = Modifier.weight(1f).hazeSource(state = hazeState).nestedScroll(bottomNavScrollConnection)) {
                 SharedTransitionLayout {
                 CompositionLocalProvider(LocalSharedTransitionScope provides this@SharedTransitionLayout) {
                 NavHost(
@@ -265,6 +280,7 @@ private fun HomeScaffold(
             activeRoute = activeTab,
             onChange = { nav.switchTab(it) },
             onAdd = { showAdd = true },
+            hazeState = hazeState,
             modifier =
                 Modifier
                     .align(Alignment.BottomCenter)
@@ -305,8 +321,6 @@ private fun HomeScaffold(
         )
 
         SpendOverlayHost(spendTransfer = spendTransfer, rootSize = rootSize)
-
-        BootVeil(visible = state.user == null)
 
         ToastHost(
             visible = toast != null,
@@ -409,7 +423,7 @@ private fun BootVeil(visible: Boolean) {
             modifier = Modifier.fillMaxSize().background(c.bgApp),
             contentAlignment = Alignment.Center,
         ) {
-            MorphLoader(size = 44.dp)
+            RingSpinner(size = 40.dp)
         }
     }
 }

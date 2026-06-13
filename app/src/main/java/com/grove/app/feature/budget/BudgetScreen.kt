@@ -1,5 +1,7 @@
 package com.grove.app.feature.budget
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.LocalOverscrollConfiguration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -23,6 +25,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -32,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -58,6 +62,7 @@ import com.grove.app.designsystem.component.SectionHeader
 import com.grove.app.designsystem.component.Stepper
 import com.grove.app.designsystem.component.groveClick
 import com.grove.app.designsystem.component.groveScreenContentPadding
+import com.grove.app.designsystem.component.rememberBounceOverscroll
 import com.grove.app.core.format.Money
 import com.grove.app.designsystem.theme.GroveShapes
 import com.grove.app.designsystem.theme.GroveSpacing
@@ -76,6 +81,7 @@ private sealed interface EditTarget {
     ) : EditTarget
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun BudgetScreen(
     state: BudgetState,
@@ -85,6 +91,7 @@ fun BudgetScreen(
 ) {
     val c = GroveTheme.colors
     val listState = rememberLazyListState()
+    val bounce = rememberBounceOverscroll()
     var edit by remember { mutableStateOf<EditTarget?>(null) }
     val budgetCategories = remember(state.categories) { state.categories.filter { it.kind != CategoryKind.income } }
     val budgetCategoryIds = remember(budgetCategories) { budgetCategories.map { it.id }.toSet() }
@@ -106,9 +113,10 @@ fun BudgetScreen(
                 if (unallocated > 0) add(unallocated to c.bgMuted)
             }
         }
+    CompositionLocalProvider(LocalOverscrollConfiguration provides null) {
     LazyColumn(
         state = listState,
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().nestedScroll(bounce.connection).then(bounce.modifier),
         contentPadding = groveScreenContentPadding(),
     ) {
         item { AppTopBar(title = "Budget", subtitle = "Monthly plan") }
@@ -220,6 +228,7 @@ fun BudgetScreen(
                 }
             }
         }
+    }
     }
 
     edit?.let { target ->

@@ -119,17 +119,28 @@ internal fun SpendMotionOverlay(
 
         val pulse = impactProgress.coerceIn(0f, 1f)
         if (pulse > 0f) {
-            val radius = targetBounds.maxDimension / 2f + 18.dp.toPx() * pulse
+            val fade = 1f - pulse
+            val base = targetBounds.maxDimension / 2f
+
+            // Soft filled flash that punches at impact, then fades fast.
             drawCircle(
-                color = event.categoryColor.copy(alpha = 0.22f * (1f - pulse)),
-                radius = radius,
+                color = event.categoryColor.copy(alpha = 0.32f * fade * fade),
+                radius = base + 24.dp.toPx() * pulse,
+                center = target,
+            )
+            // Primary expanding ring — travels further and reads bold.
+            drawCircle(
+                color = event.categoryColor.copy(alpha = 0.6f * fade),
+                radius = base + 58.dp.toPx() * pulse,
+                center = target,
+                style = Stroke(width = 1.5.dp.toPx() + 4.dp.toPx() * fade, cap = StrokeCap.Round),
+            )
+            // Second, faster ring for a layered shockwave.
+            drawCircle(
+                color = event.categoryColor.copy(alpha = 0.32f * fade),
+                radius = base + 96.dp.toPx() * smoothStep(pulse),
                 center = target,
                 style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round),
-            )
-            drawCircle(
-                color = event.categoryColor.copy(alpha = 0.1f * (1f - pulse)),
-                radius = radius * 0.72f,
-                center = target,
             )
         }
     }

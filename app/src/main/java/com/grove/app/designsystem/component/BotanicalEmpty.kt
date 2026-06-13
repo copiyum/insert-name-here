@@ -23,9 +23,9 @@ import com.grove.app.designsystem.theme.GroveTheme
 import com.grove.app.designsystem.theme.GroveType
 
 /**
- * Illustrated empty state: a hand-drawn-feeling sprout in a pot under a dashed
- * sun, with encouraging copy and an optional CTA. Procedural so it tints itself
- * for both themes.
+ * Illustrated empty state: an abstract set of concentric rings with a glowing
+ * core and a single accent tick, with copy and an optional CTA. Procedural so it
+ * tints itself for both themes.
  */
 @Composable
 fun BotanicalEmptyState(
@@ -42,58 +42,30 @@ fun BotanicalEmptyState(
     ) {
         Canvas(modifier = Modifier.size(96.dp)) {
             val w = size.width
-            val h = size.height
             val cx = w / 2f
-            val stroke = Stroke(width = w * 0.028f, cap = StrokeCap.Round)
+            val cy = size.height / 2f
+            val center = Offset(cx, cy)
+            val sw = w * 0.03f
+            val baseR = w * 0.30f
 
-            // Dashed sun arc, top-right.
+            // Abstract concentric rings echoing the app's ring language.
+            drawCircle(c.border, radius = baseR, center = center, style = Stroke(sw))
+            drawCircle(c.borderStrong.copy(alpha = 0.55f), radius = baseR * 0.64f, center = center, style = Stroke(sw))
+
+            // A single accent arc tick on the outer ring.
             drawArc(
-                color = c.clay.copy(alpha = 0.75f),
-                startAngle = 180f,
-                sweepAngle = 200f,
+                color = c.accent,
+                startAngle = -90f,
+                sweepAngle = 92f,
                 useCenter = false,
-                topLeft = Offset(w * 0.62f, h * 0.04f),
-                size = androidx.compose.ui.geometry.Size(w * 0.26f, w * 0.26f),
-                style = Stroke(
-                    width = stroke.width,
-                    cap = StrokeCap.Round,
-                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(w * 0.05f, w * 0.05f)),
-                ),
+                topLeft = Offset(cx - baseR, cy - baseR),
+                size = androidx.compose.ui.geometry.Size(baseR * 2, baseR * 2),
+                style = Stroke(width = sw, cap = StrokeCap.Round),
             )
 
-            // Pot.
-            val potTop = h * 0.66f
-            val pot = Path().apply {
-                moveTo(cx - w * 0.2f, potTop)
-                lineTo(cx + w * 0.2f, potTop)
-                lineTo(cx + w * 0.14f, h * 0.92f)
-                lineTo(cx - w * 0.14f, h * 0.92f)
-                close()
-            }
-            drawPath(pot, c.bgMuted)
-            drawPath(pot, c.borderStrong, style = stroke)
-            drawLine(c.borderStrong, Offset(cx - w * 0.23f, potTop), Offset(cx + w * 0.23f, potTop), stroke.width, StrokeCap.Round)
-
-            // Sprout: stem with two leaves.
-            val stem = Path().apply {
-                moveTo(cx, potTop)
-                quadraticTo(cx + w * 0.02f, h * 0.5f, cx - w * 0.02f, h * 0.34f)
-            }
-            drawPath(stem, c.accent, style = stroke)
-            val leafL = Path().apply {
-                moveTo(cx - w * 0.015f, h * 0.46f)
-                quadraticTo(cx - w * 0.2f, h * 0.4f, cx - w * 0.16f, h * 0.26f)
-                quadraticTo(cx - w * 0.04f, h * 0.3f, cx - w * 0.015f, h * 0.46f)
-                close()
-            }
-            val leafR = Path().apply {
-                moveTo(cx - w * 0.01f, h * 0.38f)
-                quadraticTo(cx + w * 0.17f, h * 0.34f, cx + w * 0.14f, h * 0.2f)
-                quadraticTo(cx + w * 0.02f, h * 0.22f, cx - w * 0.01f, h * 0.38f)
-                close()
-            }
-            drawPath(leafL, c.accentSoft)
-            drawPath(leafR, c.accent.copy(alpha = 0.9f))
+            // Soft glowing core.
+            drawCircle(c.accent.copy(alpha = if (c.isDark) 0.22f else 0.14f), radius = baseR * 0.36f, center = center)
+            drawCircle(c.accent, radius = w * 0.03f, center = center)
         }
         Spacer(Modifier.height(GroveSpacing.MD))
         Text(title, style = GroveType.rowTitle, color = c.fg1, textAlign = TextAlign.Center)

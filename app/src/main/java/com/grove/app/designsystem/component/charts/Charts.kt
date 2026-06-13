@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -93,7 +94,14 @@ fun ArcProgress(
     val drawPct = progressOverride?.coerceIn(0f, 1f) ?: animPct.value
 
     LaunchedEffect(pct, animationKey, fromPct, startDelayMillis, durationMillis, easing) {
-        if (progressOverride != null) return@LaunchedEffect
+        if (progressOverride != null) {
+            // Spend settlement is driving the fill directly. Keep animPct in step so
+            // that when the override clears, the ring simply holds at the settled
+            // value instead of re-animating from a stale one.
+            animPct.snapTo(progressOverride.coerceIn(0f, 1f))
+            played = true
+            return@LaunchedEffect
+        }
         if (fromPct != null) {
             animPct.snapTo(fromPct.coerceIn(0f, 1f))
         } else if (!played) {
@@ -115,12 +123,51 @@ fun ArcProgress(
             val center = Offset(size.width / 2, size.height / 2)
             val topLeft = Offset(center.x - radius, center.y - radius)
             val arcSize = Size(radius * 2, radius * 2)
+
+            // Recessed groove: the track plus a faint inner/outer bevel so the tube
+            // reads as sunk into the surface rather than painted on top of it.
             drawCircle(c.bgCard, radius = radius, center = center, style = Stroke(strokePx))
+            drawCircle(
+                lerp(c.bgCard, if (c.isDark) Color.Black else c.borderStrong, 0.35f).copy(alpha = 0.5f),
+                radius = radius - strokePx * 0.40f, center = center, style = Stroke(strokePx * 0.10f),
+            )
+            drawCircle(
+                lerp(c.bgCard, Color.White, if (c.isDark) 0.06f else 0.7f).copy(alpha = 0.4f),
+                radius = radius + strokePx * 0.40f, center = center, style = Stroke(strokePx * 0.08f),
+            )
+
             if (drawPct > 0) {
+                val sweep = 360f * drawPct
+                val faceHi = lerp(color, Color.White, 0.45f)
+                val innerGlow = lerp(color, Color.White, 0.65f)
+
+                // Ambient glow — a faint colour halo radiating from inside the tube.
+                drawArc(color.copy(alpha = 0.10f), -90f, sweep, false, topLeft, arcSize, style = Stroke(strokePx * 1.30f, cap = StrokeCap.Round))
+                drawArc(color.copy(alpha = 0.05f), -90f, sweep, false, topLeft, arcSize, style = Stroke(strokePx * 1.75f, cap = StrokeCap.Round))
+
+                // Solid fill.
+                drawArc(Brush.linearGradient(listOf(color, colorDeep)), -90f, sweep, false, topLeft, arcSize, style = Stroke(strokePx, cap = StrokeCap.Round))
+
+                // Cylinder face — gently brightest down the centre of the tube.
+                drawArc(faceHi.copy(alpha = 0.30f), -90f, sweep, false, topLeft, arcSize, style = Stroke(strokePx * 0.46f, cap = StrokeCap.Round))
+                drawArc(innerGlow.copy(alpha = 0.12f), -90f, sweep, false, topLeft, arcSize, style = Stroke(strokePx * 0.26f, cap = StrokeCap.Round))
+
+                // Soft overhead rim light along the top edge of the tube.
                 drawArc(
-                    Brush.linearGradient(listOf(color, colorDeep)),
-                    -90f, 360f * drawPct, false, topLeft, arcSize, style = Stroke(strokePx, cap = StrokeCap.Round),
+                    Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.24f), Color.Transparent)),
+                    -90f, sweep, false,
+                    Offset(center.x - (radius + strokePx * 0.28f), center.y - (radius + strokePx * 0.28f)),
+                    Size((radius + strokePx * 0.28f) * 2, (radius + strokePx * 0.28f) * 2),
+                    style = Stroke(strokePx * 0.13f, cap = StrokeCap.Round),
                 )
+
+                // Leading-cap shine so the head of the arc reads as a rounded knob.
+                val endRad = Math.toRadians((-90f + sweep).toDouble())
+                val capCenter = Offset(
+                    center.x + (radius * kotlin.math.cos(endRad)).toFloat(),
+                    center.y + (radius * kotlin.math.sin(endRad)).toFloat(),
+                )
+                drawCircle(faceHi.copy(alpha = 0.55f), radius = strokePx * 0.13f, center = capCenter)
             }
         }
         content()

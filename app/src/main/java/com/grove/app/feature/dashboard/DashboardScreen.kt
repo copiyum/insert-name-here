@@ -1,5 +1,7 @@
 package com.grove.app.feature.dashboard
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.LocalOverscrollConfiguration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -20,6 +22,7 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.getValue
@@ -28,6 +31,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -39,6 +43,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.graphics.graphicsLayer
 import com.grove.app.data.BudgetState
+import com.grove.app.data.SpendPace
 import com.grove.app.designsystem.component.AmbientBackdrop
 import com.grove.app.designsystem.component.AnimatedMoneyText
 import com.grove.app.designsystem.component.AppTopBar
@@ -53,6 +58,7 @@ import com.grove.app.designsystem.component.IconCircleButton
 import com.grove.app.designsystem.component.MoneyTextSize
 import com.grove.app.designsystem.component.SectionHeader
 import com.grove.app.designsystem.component.TickerMoneyText
+import com.grove.app.designsystem.component.rememberBounceOverscroll
 import com.grove.app.designsystem.component.charts.ArcProgress
 import com.grove.app.designsystem.component.charts.WavyProgress
 import com.grove.app.designsystem.component.groveClick
@@ -68,11 +74,23 @@ import com.grove.app.designsystem.theme.GroveType
 import com.grove.app.designsystem.theme.InterTight
 import com.grove.app.designsystem.theme.JetBrainsMono
 import com.grove.app.designsystem.theme.SpaceGrotesk
+import com.grove.app.designsystem.theme.SpendStatusCopy
 import com.grove.app.designsystem.theme.SpendTone
 import com.grove.app.designsystem.theme.heroWeightFor
 import com.grove.app.designsystem.theme.spaceGroteskAtWeight
 import java.time.format.DateTimeFormatter
 
+/** Fraction of today's allowance already spent: spent / (spent + still-safe), clamped 0..1. */
+private fun todaySpendFraction(spentTodayMinor: Long, safeTodayMinor: Long): Float {
+    val day = spentTodayMinor + safeTodayMinor
+    return when {
+        day > 0L -> (spentTodayMinor.toFloat() / day).coerceIn(0f, 1f)
+        spentTodayMinor > 0L -> 1f
+        else -> 0f
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun DashboardScreen(
     state: BudgetState,
@@ -85,6 +103,7 @@ fun DashboardScreen(
 ) {
     val c = GroveTheme.colors
     val listState = rememberLazyListState()
+    val bounce = rememberBounceOverscroll()
     var mode by rememberSaveable { mutableStateOf("Ring") }
     val monthName = remember(state.today) { state.today.format(DateTimeFormatter.ofPattern("MMMM")) }
     val settlementProgress = safeSpendSettlementProgress?.coerceIn(0f, 1f)
@@ -93,18 +112,31 @@ fun DashboardScreen(
         state.dashboardUiState(currency, activeSnapshot, settlementProgress)
     }
     val safeSpendFromMinor = activeSnapshot?.safeTodayMinor
-    val tone =
+    val pace =
         when {
-            ui.budgetLeftMinor - ui.upcomingBillsMinor < 0L -> SpendTone(c.danger, c.danger, "Needs rest", healthy = false)
-            ui.safePerDayMinor > 0L && ui.dailyAvgMinor.toDouble() > ui.safePerDayMinor.toDouble() * 1.12 -> SpendTone(c.warn, c.warn, "Growing thirsty", healthy = false)
-            else -> SpendTone(c.success, c.success, "Thriving", healthy = true)
+            ui.budgetLeftMinor - ui.upcomingBillsMinor < 0L -> SpendPace.Over
+            ui.safePerDayMinor > 0L && ui.dailyAvgMinor.toDouble() > ui.safePerDayMinor.toDouble() * 1.12 -> SpendPace.Tight
+            else -> SpendPace.Healthy
+        }
+    val statusSeed = state.today.toLocalDate().toEpochDay().toInt()
+    val statusLabel = SpendStatusCopy.label(pace, statusSeed)
+    val tone =
+        when (pace) {
+            SpendPace.Over -> SpendTone(c.danger, c.danger, statusLabel, healthy = false)
+            SpendPace.Tight -> SpendTone(c.warn, c.warn, statusLabel, healthy = false)
+            SpendPace.Healthy -> SpendTone(c.success, c.success, statusLabel, healthy = true)
         }
     val budgetLeftFraction =
         if (state.monthBudgetMinor > 0L) (ui.budgetLeftMinor.toFloat() / state.monthBudgetMinor).coerceIn(0f, 1f) else 1f
+    // The ring tracks how much of TODAY'S safe-to-spend has been used:
+    // spent today / (spent today + still-safe today).
+    val pctToday = todaySpendFraction(ui.spentTodayMinor, ui.safeTodayMinor)
+    val fromPctToday = activeSnapshot?.let { todaySpendFraction(it.spentTodayMinor, it.safeTodayMinor) }
     AmbientBackdrop(modifier = Modifier.fillMaxSize()) {
+    CompositionLocalProvider(LocalOverscrollConfiguration provides null) {
     LazyColumn(
         state = listState,
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().nestedScroll(bounce.connection).then(bounce.modifier),
         contentPadding = groveScreenContentPadding(),
     ) {
         item {
@@ -131,24 +163,9 @@ fun DashboardScreen(
                             safeTodayMinor = ui.safeTodayMinor,
                             currency = currency,
                             remaining = "${Money.currencyLong(ui.budgetLeftMinor, 0, currency)} left · ${state.daysLeft}d",
-                            pctSpent = ui.pctSpent,
+                            pctSpent = pctToday,
                             tone = tone,
                             leftFraction = budgetLeftFraction,
-                            onTargetBoundsChange = onSafeSpendTargetBoundsChange,
-                            animationKey = safeSpendAnimationKey,
-                            fromMinor = safeSpendFromMinor,
-                            settlementProgress = settlementProgress,
-                        )
-                    }
-                    "Grid" -> {
-                        GridHero(
-                            safeToday = Money.currencyLong(ui.safeTodayMinor, 0, currency),
-                            safeTodayMinor = ui.safeTodayMinor,
-                            currency = currency,
-                            remaining = "${Money.currencyLong(ui.budgetLeftMinor, 0, currency)} left",
-                            pctSpent = ui.pctSpent,
-                            tone = tone,
-                            stats = ui.stats,
                             onTargetBoundsChange = onSafeSpendTargetBoundsChange,
                             animationKey = safeSpendAnimationKey,
                             fromMinor = safeSpendFromMinor,
@@ -160,13 +177,13 @@ fun DashboardScreen(
                             safeTodayMinor = ui.safeTodayMinor,
                             currency = currency,
                             remaining = "${Money.currencyLong(ui.budgetLeftMinor, 0, currency)} left · ${state.daysLeft}d",
-                            pctSpent = ui.pctSpent,
+                            pctSpent = pctToday,
                             tone = tone,
                             leftFraction = budgetLeftFraction,
                             onTargetBoundsChange = onSafeSpendTargetBoundsChange,
                             animationKey = safeSpendAnimationKey,
                             fromMinor = safeSpendFromMinor,
-                            fromPct = activeSnapshot?.pctSpent,
+                            fromPct = fromPctToday,
                             settlementProgress = settlementProgress,
                         )
                     }
@@ -174,10 +191,8 @@ fun DashboardScreen(
             }
         }
 
-        if (mode != "Grid") {
-            item {
-                StatGrid(ui.stats, modifier = Modifier.padding(top = 18.dp))
-            }
+        item {
+            StatGrid(ui.stats, modifier = Modifier.padding(top = 18.dp))
         }
 
         item {
@@ -192,7 +207,7 @@ fun DashboardScreen(
         item {
             if (ui.recent.isEmpty()) {
                 BotanicalEmptyState(
-                    title = "Plant your first expense",
+                    title = "Log your first expense",
                     subtitle = "Log what you spend and today's number stays honest.",
                 )
             } else {
@@ -201,6 +216,7 @@ fun DashboardScreen(
                 }
             }
         }
+    }
     }
     }
 }
@@ -244,30 +260,30 @@ private fun RingHero(
                 animationKey = animationKey ?: pctSpent,
                 fromPct = fromPct,
                 progressOverride = settlementProgress?.let { pctSpent },
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        "SAFE TO SPEND TODAY",
-                        fontFamily = JetBrainsMono,
-                        fontSize = 11.sp,
-                        letterSpacing = 1.4.sp,
-                        color = c.fg3,
-                    )
-                    Spacer(Modifier.height(6.dp))
-                    TickerMoneyText(
-                        minor = safeTodayMinor,
-                        currency = currency,
-                        style = moneyTextStyle(MoneyTextSize.Hero).copy(
-                            fontFamily = spaceGroteskAtWeight(heroWeightFor(leftFraction)),
-                        ),
-                        modifier = Modifier.onGloballyPositioned { onTargetBoundsChange(it.boundsInRoot()) },
-                        color = c.fg1,
-                        fromMinor = fromMinor,
-                        progress = settlementProgress,
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text(remaining, fontFamily = InterTight, fontSize = 13.sp, color = c.fg3)
-                }
+            ) {}
+
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    "SAFE TO SPEND TODAY",
+                    fontFamily = JetBrainsMono,
+                    fontSize = 11.sp,
+                    letterSpacing = 1.4.sp,
+                    color = c.fg3,
+                )
+                Spacer(Modifier.height(6.dp))
+                TickerMoneyText(
+                    minor = safeTodayMinor,
+                    currency = currency,
+                    style = moneyTextStyle(MoneyTextSize.Hero).copy(
+                        fontFamily = spaceGroteskAtWeight(heroWeightFor(leftFraction)),
+                    ),
+                    modifier = Modifier.onGloballyPositioned { onTargetBoundsChange(it.boundsInRoot()) },
+                    color = c.fg1,
+                    fromMinor = fromMinor,
+                    progress = settlementProgress,
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(remaining, fontFamily = InterTight, fontSize = 13.sp, color = c.fg3)
             }
         }
         Spacer(Modifier.height(14.dp))
@@ -290,13 +306,11 @@ private fun FocusHero(
 ) {
     val c = GroveTheme.colors
     val pulse = rememberHeroPulse(safeTodayMinor, settlementProgress)
-    GroveCard(
+    Column(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .padding(top = 8.dp),
-        padding = PaddingValues(20.dp),
-        variant = GroveCardVariant.Default,
+                .padding(top = 8.dp, start = 4.dp, end = 4.dp),
     ) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text("SAFE TO SPEND TODAY", style = GroveType.capLabel, color = c.fg3)
@@ -330,8 +344,8 @@ private fun FocusHero(
         )
         Spacer(Modifier.height(8.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("${(pctSpent * 100).toInt()}% spent", style = GroveType.rowSub, color = c.fg3)
-            Text("Budget pace", style = GroveType.rowSub, color = c.fg3)
+            Text("${(pctSpent * 100).toInt()}% of today used", style = GroveType.rowSub, color = c.fg3)
+            Text("Today", style = GroveType.rowSub, color = c.fg3)
         }
     }
 }
@@ -357,45 +371,6 @@ private fun rememberHeroPulse(value: Long, settlementProgress: Float?): Float {
 }
 
 @Composable
-private fun GridHero(
-    safeToday: String,
-    safeTodayMinor: Long,
-    currency: String,
-    remaining: String,
-    pctSpent: Float,
-    tone: SpendTone,
-    stats: List<HomeStat>,
-    onTargetBoundsChange: (Rect) -> Unit,
-    animationKey: Any?,
-    fromMinor: Long?,
-    settlementProgress: Float?,
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(11.dp),
-    ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(11.dp)) {
-            StatTile(
-                label = "SAFE TODAY",
-                value = safeToday,
-                subtitle = remaining,
-                modifier =
-                    Modifier
-                        .weight(1f),
-                animatedMinor = safeTodayMinor,
-                currency = currency,
-                onAnimatedBoundsChange = onTargetBoundsChange,
-                animationKey = animationKey ?: safeTodayMinor,
-                fromMinor = fromMinor,
-                settlementProgress = settlementProgress,
-            )
-            StatTile("STATUS", tone.label, "${(pctSpent * 100).toInt()}% spent", Modifier.weight(1f))
-        }
-        StatGrid(stats)
-    }
-}
-
-@Composable
 private fun StatGrid(
     stats: List<HomeStat>,
     modifier: Modifier = Modifier,
@@ -418,45 +393,6 @@ private fun StatGrid(
                     )
                 }
                 if (row.size == 1) Spacer(Modifier.weight(1f))
-            }
-        }
-    }
-}
-
-@Composable
-private fun HomeModeTabs(
-    selected: String,
-    onSelect: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val c = GroveTheme.colors
-    Row(
-        modifier =
-            modifier
-                .clip(GroveShapes.Chip)
-                .background(c.bgCard)
-                .border(GroveBorder.Thin, c.border, GroveShapes.Chip)
-                .padding(3.dp),
-        horizontalArrangement = Arrangement.spacedBy(3.dp),
-    ) {
-        listOf("Ring", "Focus", "Grid").forEach { label ->
-            val active = label == selected
-            Box(
-                modifier =
-                    Modifier
-                        .clip(GroveShapes.Chip)
-                        .background(if (active) c.fg1 else androidx.compose.ui.graphics.Color.Transparent)
-                        .groveClick(haptic = GroveHaptic.Light) { onSelect(label) }
-                        .padding(horizontal = 13.dp, vertical = 6.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    label,
-                    fontFamily = InterTight,
-                    fontSize = 12.5.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = if (active) c.bgApp else c.fg3,
-                )
             }
         }
     }
@@ -515,3 +451,43 @@ private fun StatTile(
         Text(subtitle, fontFamily = InterTight, fontSize = 11.5.sp, color = c.fg3.copy(alpha = 0.78f))
     }
 }
+
+@Composable
+private fun HomeModeTabs(
+    selected: String,
+    onSelect: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val c = GroveTheme.colors
+    Row(
+        modifier =
+            modifier
+                .clip(GroveShapes.Chip)
+                .background(c.bgCard)
+                .border(GroveBorder.Thin, c.border, GroveShapes.Chip)
+                .padding(3.dp),
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        listOf("Ring", "Focus").forEach { label ->
+            val active = label == selected
+            Box(
+                modifier =
+                    Modifier
+                        .clip(GroveShapes.Chip)
+                        .background(if (active) c.fg1 else androidx.compose.ui.graphics.Color.Transparent)
+                        .groveClick(haptic = GroveHaptic.Light) { onSelect(label) }
+                        .padding(horizontal = 13.dp, vertical = 6.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    label,
+                    fontFamily = InterTight,
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = if (active) c.bgApp else c.fg3,
+                )
+            }
+        }
+    }
+}
+

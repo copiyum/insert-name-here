@@ -71,3 +71,57 @@ class FoliageOverscroll internal constructor(private val scope: CoroutineScope) 
             rotationZ = (offset.value / 900f).coerceIn(-0.8f, 0.8f)
         }
 }
+
+/**
+ * Universal bouncy overscroll for screens that don't get the foliage sway. Same
+ * rubber-band physics as [FoliageOverscroll] — the content stretches with growing
+ * resistance and springs back with a touch of overshoot — but a plain vertical
+ * translation, so every scrollable page shares one consistent feel. Pair with
+ * `LocalOverscrollConfiguration provides null` so the stock glow doesn't double up.
+ */
+@Composable
+fun rememberBounceOverscroll(): BounceOverscroll {
+    val scope = rememberCoroutineScope()
+    return remember { BounceOverscroll(scope) }
+}
+
+class BounceOverscroll internal constructor(private val scope: CoroutineScope) {
+    private val offset = Animatable(0f)
+
+    val connection: NestedScrollConnection = object : NestedScrollConnection {
+        override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+            if (source == NestedScrollSource.UserInput && offset.value != 0f &&
+                available.y != 0f && (available.y < 0f) == (offset.value > 0f)
+            ) {
+                val consume = if (offset.value > 0f) {
+                    available.y.coerceAtLeast(-offset.value)
+                } else {
+                    available.y.coerceAtMost(-offset.value)
+                }
+                scope.launch { offset.snapTo(offset.value + consume) }
+                return Offset(0f, consume)
+            }
+            return Offset.Zero
+        }
+
+        override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+            if (source == NestedScrollSource.UserInput && available.y != 0f) {
+                val resistance = 1f / (1f + abs(offset.value) / 80f)
+                val damped = available.y * resistance * 0.5f
+                scope.launch { offset.snapTo(offset.value + damped) }
+                return Offset(0f, available.y)
+            }
+            return Offset.Zero
+        }
+
+        override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
+            if (offset.value != 0f || abs(available.y) > 0f) {
+                offset.animateTo(0f, GroveSprings.expressive(), initialVelocity = available.y * 0.25f)
+            }
+            return available
+        }
+    }
+
+    val modifier: Modifier
+        get() = Modifier.graphicsLayer { translationY = offset.value }
+}
