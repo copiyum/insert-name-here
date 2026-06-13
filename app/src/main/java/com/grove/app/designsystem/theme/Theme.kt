@@ -41,21 +41,6 @@ data class SpendTone(
     val healthy: Boolean,
 )
 
-@Composable
-fun toneOf(pace: SpendPace): SpendTone {
-    val c = GroveTheme.colors
-    return when (pace) {
-        SpendPace.Over -> SpendTone(c.danger, c.danger, SpendStatusCopy.label(pace, 0), healthy = false)
-        SpendPace.Tight -> SpendTone(c.warn, c.warn, SpendStatusCopy.label(pace, 0), healthy = false)
-        SpendPace.Healthy -> SpendTone(c.accent, c.accentDeep, SpendStatusCopy.label(pace, 0), healthy = true)
-    }
-}
-
-/**
- * Abstract, non-cute status copy for the spend pace. Each pace has a small pool of
- * phrasings; [label] picks one deterministically from a seed (use the day so it
- * stays stable through the day but varies day to day, keeping it from going stale).
- */
 object SpendStatusCopy {
     private val healthy = listOf(
         "On track", "Comfortable", "Plenty of room", "Cruising",

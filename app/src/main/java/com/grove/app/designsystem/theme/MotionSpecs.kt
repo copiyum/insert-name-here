@@ -7,22 +7,13 @@ import androidx.compose.animation.core.TweenSpec
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 
-/**
- * Grove's motion vocabulary. Springs are the default for anything the user watches
- * move — they stay interruptible and settle naturally. Tweens survive only where a
- * hard duration is required (nav transitions, choreographed sequences).
- */
 object GroveSprings {
-    /** Press feedback, toggles — settles almost instantly, no visible bounce. */
     fun <T> snappy(): SpringSpec<T> = spring(dampingRatio = 0.9f, stiffness = 1400f)
 
-    /** Default for most UI movement — slight life, no overshoot worth noticing. */
     fun <T> standard(): SpringSpec<T> = spring(dampingRatio = 0.85f, stiffness = 420f)
 
-    /** Playful entrances, celebratory moments — visible overshoot. */
     fun <T> expressive(): SpringSpec<T> = spring(dampingRatio = 0.65f, stiffness = 320f)
 
-    /** Large surfaces (sheets, overlays) — critically damped, calm. */
     fun <T> gentle(): SpringSpec<T> = spring(dampingRatio = 1f, stiffness = 220f)
 }
 

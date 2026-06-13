@@ -15,12 +15,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 
-/**
- * Replaces the stock overscroll glow with a foliage sway: the list translates with
- * rubber-band resistance and leans a fraction of a degree, then springs back with
- * a touch of overshoot — like a branch let go. Pair with
- * `LocalOverscrollConfiguration provides null` so the glow doesn't double up.
- */
 @Composable
 fun rememberFoliageOverscroll(): FoliageOverscroll {
     val scope = rememberCoroutineScope()
@@ -32,7 +26,6 @@ class FoliageOverscroll internal constructor(private val scope: CoroutineScope) 
 
     val connection: NestedScrollConnection = object : NestedScrollConnection {
         override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-            // While stretched, dragging back unwinds the stretch before the list scrolls.
             if (source == NestedScrollSource.UserInput && offset.value != 0f &&
                 available.y != 0f && (available.y < 0f) == (offset.value > 0f)
             ) {
@@ -72,13 +65,6 @@ class FoliageOverscroll internal constructor(private val scope: CoroutineScope) 
         }
 }
 
-/**
- * Universal bouncy overscroll for screens that don't get the foliage sway. Same
- * rubber-band physics as [FoliageOverscroll] — the content stretches with growing
- * resistance and springs back with a touch of overshoot — but a plain vertical
- * translation, so every scrollable page shares one consistent feel. Pair with
- * `LocalOverscrollConfiguration provides null` so the stock glow doesn't double up.
- */
 @Composable
 fun rememberBounceOverscroll(): BounceOverscroll {
     val scope = rememberCoroutineScope()

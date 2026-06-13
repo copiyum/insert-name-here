@@ -9,11 +9,6 @@ import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import com.grove.app.R
 
-/**
- * Space Grotesk ships as a variable font — this exposes its weight axis so the
- * hero number can physically lighten as the budget thins. Weights are quantized
- * to steps of 25 so animation doesn't allocate a typeface per frame.
- */
 @OptIn(ExperimentalTextApi::class)
 @Composable
 fun spaceGroteskAtWeight(weight: Int): FontFamily {
@@ -29,6 +24,5 @@ fun spaceGroteskAtWeight(weight: Int): FontFamily {
     }
 }
 
-/** Weight for the hero number: confident at full budget, lighter as it drains. */
 fun heroWeightFor(budgetLeftFraction: Float): Int =
     (450 + (250 * budgetLeftFraction.coerceIn(0f, 1f))).toInt()

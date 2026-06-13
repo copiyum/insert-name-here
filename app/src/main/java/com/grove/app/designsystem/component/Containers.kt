@@ -57,7 +57,6 @@ fun GroveCard(
     }
 }
 
-/** Card containing a list of rows with dividers between them (never after the last). */
 @Composable
 fun <T> GroveCardList(
     items: List<T>,

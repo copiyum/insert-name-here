@@ -90,7 +90,6 @@ fun OnboardingFlow(userName: String = "there", currency: String = "INR", onDone:
                 Spacer(Modifier.width(38.dp))
             }
 
-            // Seedling-stage progress: each dot is a step; the current one stretches.
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                 repeat(STEPS) { i ->
                     val on = i == step

@@ -37,13 +37,5 @@ data class NotificationSettingsEntity(
             createdAt = createdAt,
             updatedAt = updatedAt,
         )
-
-        fun defaults() =
-            NotificationSettings(
-                dailySafeSpendEnabled = true,
-                dailySafeSpendTimeMinutes = 480,
-                billAlertsEnabled = true,
-                billAlertsDaysBefore = 3,
-            )
     }
 }

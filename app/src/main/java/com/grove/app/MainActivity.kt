@@ -12,8 +12,6 @@ import kotlinx.coroutines.runBlocking
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Manage the system splash (static dark frame) and dismiss it on first Compose
-        // frame. The animated ceremony itself is the Compose SplashRing overlay.
         installSplashScreen()
         super.onCreate(savedInstanceState)
         val startupDarkOverride =

@@ -10,11 +10,6 @@ import com.grove.app.data.model.CategoryKind
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 
-/**
- * Expense row joined with its (active) category. Category fields are null when the
- * category is archived or missing, so callers can fall back to a generic bucket —
- * mirroring the old in-memory join against active categories only.
- */
 data class ExpenseWithCategoryRow(
     @Embedded val expense: ExpenseEntity,
     val categoryName: String?,

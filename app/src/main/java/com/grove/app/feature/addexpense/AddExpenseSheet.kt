@@ -104,8 +104,6 @@ fun AddExpenseSheet(
     var showDatePicker by remember { mutableStateOf(false) }
     var saveOriginBounds by remember { mutableStateOf<Rect?>(null) }
 
-    // Predictive back: the sheet shrinks with the gesture, commits to dismiss,
-    // and springs back to full size when the gesture is cancelled.
     val backProgress = remember { Animatable(0f) }
     val backScope = rememberCoroutineScope()
 
@@ -144,7 +142,6 @@ fun AddExpenseSheet(
         }
 
     GroveBottomSheet(onDismiss = onDismiss) {
-        // Registered inside the sheet's window so it sees back events before the host.
         PredictiveBackHandler { progress ->
             try {
                 progress.collect { event -> backProgress.snapTo(event.progress) }

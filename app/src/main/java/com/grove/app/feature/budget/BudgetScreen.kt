@@ -233,8 +233,6 @@ fun BudgetScreen(
 
     edit?.let { target ->
         val monthly = target is EditTarget.Monthly
-        // Adaptive suggestion from spending history; shown only when it meaningfully
-        // (>10%) differs from what's currently set.
         val suggestionMinor =
             remember(target, state) {
                 when (target) {

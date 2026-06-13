@@ -23,10 +23,6 @@ import com.grove.app.designsystem.theme.GroveEase
 import com.grove.app.designsystem.theme.GroveSprings
 import com.grove.app.designsystem.theme.GroveTheme
 
-/**
- * Long-press peek: a preview card that springs up over a dimmed scrim. Show by
- * setting [visible]; dismiss on scrim tap. Put it last in the screen's root Box.
- */
 @Composable
 fun PeekHost(
     visible: Boolean,

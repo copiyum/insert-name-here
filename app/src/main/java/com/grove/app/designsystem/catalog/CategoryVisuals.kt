@@ -34,5 +34,4 @@ object CategoryVisuals {
 
     fun of(id: String): CategoryVisual = map[id] ?: fallback
     fun color(id: String): Color = of(id).color
-    fun label(id: String): String = of(id).label
 }

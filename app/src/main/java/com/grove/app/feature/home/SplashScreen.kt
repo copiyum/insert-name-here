@@ -40,18 +40,12 @@ import androidx.core.content.res.ResourcesCompat
 import com.grove.app.R
 import com.grove.app.designsystem.component.charts.drawGroveArcProgress
 import com.grove.app.designsystem.theme.GroveTheme
+import com.grove.app.designsystem.theme.spendProgressColorAt
+import com.grove.app.designsystem.theme.spendProgressDeepColorAt
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.min
 
-/**
- * Cold-start launch ceremony, played as a full-screen Compose overlay above the app.
- *
- * The splash ring starts as a compact sibling of the live dashboard hero ring, then
- * scales and translates into the measured [heroRingBounds]. The dashboard ring holds
- * its real value underneath, so once the overlay dissolves the dashboard simply
- * appears instead of running a second launch animation.
- */
 private const val SMALL_RING_SCALE = 0.42f
 private const val INITIAL_STROKE_DP = 11f
 private const val HERO_STROKE_DP = 18f
@@ -64,8 +58,6 @@ private const val INITIAL_VISUAL_WAIT_MS = 240
 private const val READY_POLL_MS = 40
 private const val MAX_READY_WAIT_MS = 2200
 private const val SETTLE_AFTER_READY_MS = 200
-// The morph + the locked dashboard reveal share this duration — kept deliberately
-// graceful so the hand-off reads as a premium settle rather than a snap.
 private const val MORPH_DURATION = 820
 private const val REVEAL_FADE_DURATION = 260
 
@@ -103,8 +95,6 @@ fun SplashRing(
 
     val emphDecel = remember { CubicBezierEasing(0.05f, 0.7f, 0.1f, 1f) }
     val emphAccel = remember { CubicBezierEasing(0.3f, 0f, 0.8f, 0.15f) }
-    // Balanced ease-in-out — distributes motion across the whole duration instead of the
-    // front-loaded emphDecel (which whips to ~90% then crawls and reads as a near-pop).
     val smooth = remember { CubicBezierEasing(0.4f, 0f, 0.2f, 1f) }
 
     var rootSize by remember { mutableStateOf(IntSize.Zero) }
@@ -172,10 +162,6 @@ fun SplashRing(
             return@LaunchedEffect
         }
 
-        // During handoff, the dashboard owns the empty groove and the splash owns the
-        // fill. The splash stroke resolves from the full brand ring into the real
-        // dashboard progress while it travels, so there is no second "load from zero"
-        // once it docks.
         val finalPct = morphPct ?: latestHeroPct.value?.coerceIn(0f, 1f) ?: 0f
         val settleProgress = launch {
             ringFraction.animateTo(finalPct, tween(MORPH_DURATION, easing = smooth))
@@ -201,13 +187,6 @@ fun SplashRing(
             .fillMaxSize()
             .onSizeChanged { rootSize = it },
     ) {
-        // No opaque background here on purpose: HomeScaffold already paints a constant
-        // opaque bgApp behind everything, and the dashboard content is hidden via its
-        // own reveal alpha during the draw. Painting a *second* fading bg on top is what
-        // caused the "fade through black" — the half-faded dashboard was being darkened
-        // by this overlay. With it gone, the dashboard simply fades in over one constant
-        // background while the splash ring hands off.
-
         val rootCx = rootSize.width / 2f
         val rootCy = rootSize.height / 2f
         val drawCx = rootCx
@@ -225,8 +204,9 @@ fun SplashRing(
         val curCx = lerp(drawCx, target?.center?.x ?: drawCx, m)
         val curCy = lerp(drawCy, target?.center?.y ?: drawCy, m)
         val markFade = 1f - (m / 0.32f).coerceIn(0f, 1f)
-        val ringColor = morphColor ?: heroRingColor ?: c.success
-        val ringColorDeep = morphColorDeep ?: heroRingColorDeep ?: ringColor
+        val isMorphing = m > 0.001f
+        val ringColor = if (isMorphing) spendProgressColorAt(c, ringFraction.value) else c.success
+        val ringColorDeep = if (isMorphing) spendProgressDeepColorAt(c, ringFraction.value) else c.accentDeep
 
         Canvas(
             modifier = Modifier

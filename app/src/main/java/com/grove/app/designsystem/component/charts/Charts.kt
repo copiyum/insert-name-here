@@ -108,9 +108,6 @@ fun ArcProgress(
         snapToTargetWhenOverrideClears,
     ) {
         if (progressOverride != null) {
-            // Spend settlement is driving the fill directly. Keep animPct in step so
-            // that when the override clears, the ring simply holds at the settled
-            // value instead of re-animating from a stale one.
             animPct.snapTo(progressOverride.coerceIn(0f, 1f))
             played = true
             hadProgressOverride = true
@@ -170,8 +167,6 @@ internal fun DrawScope.drawGroveArcProgress(
     val arcSize = Size(radius * 2f, radius * 2f)
 
     if (drawTrack) {
-        // Recessed groove: the track plus a faint inner/outer bevel so the tube
-        // reads as sunk into the surface rather than painted on top of it.
         drawCircle(colors.bgCard, radius = radius, center = center, style = Stroke(strokePx))
         drawCircle(
             lerp(colors.bgCard, if (colors.isDark) Color.Black else colors.borderStrong, 0.35f).copy(alpha = 0.5f),
@@ -193,18 +188,14 @@ internal fun DrawScope.drawGroveArcProgress(
     val faceHi = lerp(color, Color.White, 0.45f)
     val innerGlow = lerp(color, Color.White, 0.65f)
 
-    // Ambient glow — a faint colour halo radiating from inside the tube.
     drawArc(color.copy(alpha = 0.10f), -90f, sweep, false, topLeft, arcSize, style = Stroke(strokePx * 1.30f, cap = StrokeCap.Round))
     drawArc(color.copy(alpha = 0.05f), -90f, sweep, false, topLeft, arcSize, style = Stroke(strokePx * 1.75f, cap = StrokeCap.Round))
 
-    // Solid fill.
     drawArc(Brush.linearGradient(listOf(color, colorDeep)), -90f, sweep, false, topLeft, arcSize, style = Stroke(strokePx, cap = StrokeCap.Round))
 
-    // Cylinder face — gently brightest down the centre of the tube.
     drawArc(faceHi.copy(alpha = 0.30f), -90f, sweep, false, topLeft, arcSize, style = Stroke(strokePx * 0.46f, cap = StrokeCap.Round))
     drawArc(innerGlow.copy(alpha = 0.12f), -90f, sweep, false, topLeft, arcSize, style = Stroke(strokePx * 0.26f, cap = StrokeCap.Round))
 
-    // Soft overhead rim light along the top edge of the tube.
     drawArc(
         Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.24f), Color.Transparent)),
         -90f,
@@ -215,7 +206,6 @@ internal fun DrawScope.drawGroveArcProgress(
         style = Stroke(strokePx * 0.13f, cap = StrokeCap.Round),
     )
 
-    // Leading-cap shine so the head of the arc reads as a rounded knob.
     val endRad = Math.toRadians((-90f + sweep).toDouble())
     val capCenter = Offset(
         center.x + (radius * kotlin.math.cos(endRad)).toFloat(),

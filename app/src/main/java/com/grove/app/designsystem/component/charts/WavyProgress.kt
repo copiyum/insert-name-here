@@ -22,11 +22,6 @@ import com.grove.app.designsystem.component.animatedOnce
 import kotlin.math.PI
 import kotlin.math.sin
 
-/**
- * Organic progress line: the filled part undulates like a vine, the remainder is a
- * flat track. The wave drifts slowly while idle and flattens as progress nears 1
- * so a finished month reads as settled, not busy.
- */
 @Composable
 fun WavyProgress(
     progress: Float,
@@ -57,7 +52,6 @@ fun WavyProgress(
         val stroke = strokeWidth.toPx()
         val waveLenPx = wavelength.toPx()
         val splitX = w * shown
-        // Amplitude eases out near completion and stays inside the canvas.
         val amplitude = (size.height - stroke) / 2f * (1f - shown * 0.35f)
 
         if (shown > 0.005f) {

@@ -2,7 +2,7 @@ package com.grove.app.designsystem.theme
 
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
-
+import androidx.compose.ui.graphics.lerp
 
 val Pine = Color(0xFF212121)
 val Fern = Color(0xFF328759)
@@ -116,3 +116,40 @@ val DarkColors = GroveColors(
     navActiveText = Color(0xFF328759),
     navInactiveText = Color(0xFF8A8F98),
 )
+
+fun spendProgressColorStops(colors: GroveColors): List<Pair<Float, Color>> {
+    val lime = if (colors.isDark) Color(0xFF8BC34A) else Color(0xFF6F9F1B)
+    val orange = if (colors.isDark) Color(0xFFFF7A1A) else Color(0xFFD45A00)
+    return listOf(
+        0.00f to colors.success,
+        0.55f to lime,
+        0.72f to colors.warn,
+        0.88f to orange,
+        0.96f to colors.danger,
+    )
+}
+
+fun spendProgressColorAt(colors: GroveColors, progress: Float): Color =
+    colorAtProgressStop(spendProgressColorStops(colors), progress)
+
+fun spendProgressDeepColorAt(colors: GroveColors, progress: Float): Color {
+    val base = spendProgressColorAt(colors, progress)
+    val shade = if (colors.isDark) Color.White else Color.Black
+    return lerp(base, shade, if (colors.isDark) 0.14f else 0.12f)
+}
+
+private fun colorAtProgressStop(stops: List<Pair<Float, Color>>, progress: Float): Color {
+    val sorted = stops.sortedBy { it.first }
+    val p = progress.coerceIn(0f, 1f)
+    val first = sorted.firstOrNull() ?: return Color.Unspecified
+    if (p <= first.first) return first.second
+
+    sorted.zipWithNext().forEach { (start, end) ->
+        if (p <= end.first) {
+            val span = (end.first - start.first).coerceAtLeast(0.0001f)
+            return lerp(start.second, end.second, ((p - start.first) / span).coerceIn(0f, 1f))
+        }
+    }
+
+    return sorted.last().second
+}

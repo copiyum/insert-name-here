@@ -34,7 +34,6 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-/** Tiered haptic vocabulary — pick by weight of the action, not by component. */
 enum class GroveHaptic { None, Light, Tick, Heavy }
 
 fun GroveHaptic.perform(view: android.view.View) {
@@ -46,11 +45,6 @@ fun GroveHaptic.perform(view: android.view.View) {
     }
 }
 
-/**
- * True when system animations are enabled. Decorative motion (ambience drift,
- * idle sway, wave loops) should pause when the user turns animations off;
- * state-conveying animation may stay.
- */
 @Composable
 fun rememberMotionEnabled(): Boolean {
     val context = androidx.compose.ui.platform.LocalContext.current

@@ -12,7 +12,6 @@ object GroveSpacing {
     val XXL: Dp = 32.dp
 }
 
-
 object GroveRadius {
     val Container = 16.dp
     val Button = 12.dp
@@ -39,7 +38,6 @@ object GroveSize {
     val SwitchKnob = 20.dp
     val StatusDot = 7.dp
 
-    /** Base clearance scrolling content keeps above the bottom nav bar (add nav bar insets on top). */
     val NavClearance = 108.dp
 }
 
@@ -48,13 +46,11 @@ object GroveMotion {
     val ScreenExitMs = 90
 }
 
-
 object GroveBorder {
     val Thin = 1.dp
     val Strong = 1.5.dp
     val AddButton = 2.dp
 }
-
 
 @Suppress("MemberVisibilityCanBePrivate")
 object GroveTokens {
@@ -63,14 +59,8 @@ object GroveTokens {
     val Size get() = GroveSize
     val Border get() = GroveBorder
 
-    val MotionEnterFast = GroveMotion.ScreenEnterMs
-    val MotionEnterMid = GroveMotion.ScreenEnterMs
     val MotionEnterSlow = GroveMotion.ScreenEnterMs
-    val MotionExitFast = GroveMotion.ScreenExitMs
-    val MotionExitMid = GroveMotion.ScreenExitMs
     val MotionExitSlow = GroveMotion.ScreenExitMs
-    val MotionNav = GroveMotion.ScreenExitMs
-    val SpringDefault = 300
 
     val TextBody = 14
     val TextSheetTitle = 24

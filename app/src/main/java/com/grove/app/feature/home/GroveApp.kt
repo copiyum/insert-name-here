@@ -106,9 +106,6 @@ fun GroveApp(startupDarkOverride: Boolean? = null) {
     val currency by vm.currency.collectAsStateWithLifecycle()
     val notificationSettings by vm.notificationSettings.collectAsStateWithLifecycle()
 
-    // Cold-start launch ceremony. rememberSaveable survives config changes (no replay on
-    // rotation) but resets on process death — i.e. exactly once per cold start. Skipped
-    // entirely under reduced motion so it can never read as a sluggish/broken wait.
     val motionEnabled = remember(context) { systemAnimationsEnabled(context) }
     var splashDone by rememberSaveable { mutableStateOf(false) }
     var heroRingBounds by remember { mutableStateOf<Rect?>(null) }
@@ -233,8 +230,6 @@ private fun HomeScaffold(
     LaunchedEffect(state.user?.onboardingCompleted) {
         if (state.user?.onboardingCompleted == false) onboarding = true
     }
-    // Signal the splash overlay once the budget data has actually loaded, so it only
-    // hands off onto a fully-populated dashboard (no post-morph reload/pop-in).
     LaunchedEffect(state.user != null) { onContentReady(state.user != null) }
     LaunchedEffect(currentRoute) {
         navVisible = true

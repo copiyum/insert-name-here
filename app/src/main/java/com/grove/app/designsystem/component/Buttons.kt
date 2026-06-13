@@ -71,7 +71,6 @@ fun PrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifi
 
 @Composable
 fun IconCircleButton(icon: ImageVector, contentDescription: String?, onClick: () -> Unit = {}) {
-    // 48dp touch target wrapping the 42dp visual circle.
     Box(
         modifier = Modifier
             .size(48.dp)

@@ -26,11 +26,6 @@ import com.grove.app.core.format.lerpMinor
 import com.grove.app.designsystem.theme.GroveEase
 import kotlinx.coroutines.delay
 
-/**
- * Slot-machine text: every character slides vertically when it changes, rolling
- * up for increases and down for decreases. Characters are keyed by their distance
- * from the right edge so trailing digits stay put when the value grows a digit.
- */
 @Composable
 fun TickerText(
     text: String,
@@ -83,12 +78,6 @@ private fun tickerTransform(rollingUp: Boolean, staggerIndex: Int): ContentTrans
 private fun numericValue(text: String): Long =
     text.filter(Char::isDigit).take(17).toLongOrNull() ?: 0L
 
-/**
- * Money ticker. On first appearance it rolls from [countUpFrom]; afterwards every
- * value change rolls digit-by-digit. While [progress] drives an external settlement
- * animation (the spend-transfer overlay) it renders plain interpolated text so the
- * two systems never fight.
- */
 @Composable
 fun TickerMoneyText(
     minor: Long,

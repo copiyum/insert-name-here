@@ -239,7 +239,6 @@ fun Stepper(value: Int, onChange: (Int) -> Unit, modifier: Modifier = Modifier, 
 @Composable
 private fun StepperButton(icon: ImageVector, contentDescription: String, onClick: () -> Unit) {
     val c = GroveTheme.colors
-    // 48dp minimum touch target; the visual pill stays at its original size.
     Box(
         modifier = Modifier
             .sizeIn(minWidth = 48.dp, minHeight = 48.dp)

@@ -18,11 +18,6 @@ import com.grove.app.designsystem.theme.GroveSpacing
 import com.grove.app.designsystem.theme.GroveType
 
 @Composable
-fun CapLabel(text: String, modifier: Modifier = Modifier, color: Color = GroveTheme.colors.fg3) {
-    Text(text, style = GroveType.capLabel, color = color, modifier = modifier)
-}
-
-@Composable
 fun FieldLabel(text: String) {
     Text(text, style = GroveType.fieldLabel, color = GroveTheme.colors.fg3)
     Spacer(Modifier.height(GroveSpacing.SM))

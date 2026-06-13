@@ -253,9 +253,6 @@ private fun ExpenseHistoryRow(
         onClick = onEdit,
     ) {
         Row(
-            // Long-press peek: watches the gesture without consuming it, so tap-to-edit
-            // (parent click) and horizontal swipe actions keep working. Once a long press
-            // lands, the rest of the gesture is swallowed so release doesn't open the editor.
             modifier =
                 Modifier.weight(1f).pointerInput(expense) {
                     awaitEachGesture {
@@ -308,7 +305,6 @@ private fun ExpensePeekCard(
     val isIncome = expense.categoryKind == CategoryKind.income
     val amount = Money.currencyLong(expense.amountMinor, 2, expense.currencyCode.ifEmpty { currency })
     val occurred = expense.occurredAt.atZone(ZoneId.systemDefault()).toLocalDateTime()
-    // The category owns this card: its color washes the surface (Ivy Wallet pattern).
     val categoryColor = CategoryVisuals.color(expense.iconKey)
     GroveCard(
         modifier = Modifier

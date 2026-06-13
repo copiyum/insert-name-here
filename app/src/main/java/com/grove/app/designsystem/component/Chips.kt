@@ -27,7 +27,6 @@ import com.grove.app.designsystem.theme.InterTight
 @Composable
 fun Chip(text: String, selected: Boolean, onClick: () -> Unit) {
     val c = GroveTheme.colors
-    // Outer box guarantees a 48dp touch target; the visual pill stays compact and centered.
     Box(
         modifier = Modifier
             .minimumInteractiveComponentSize()

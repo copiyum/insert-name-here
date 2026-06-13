@@ -75,7 +75,6 @@ class BudgetStateReactor(
             val homeCurrency = user?.currencyCode ?: "INR"
             val period = BudgetPeriod.forDate(now, user?.resetDay ?: 1)
             val todayStart = now
-            // Category fields arrive pre-joined from the DAO (see ExpenseDao.observeAllWithCategory).
             val spendingExpenses = expenses.filter { it.categoryKind != CategoryKind.income && it.currencyCode == homeCurrency }
             val periodSpend = spendingExpenses.filter { period.contains(it.occurredAt) }
             val spentTodayMinor =

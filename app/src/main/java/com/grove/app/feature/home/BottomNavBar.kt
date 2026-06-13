@@ -60,12 +60,10 @@ fun BottomNavBar(
                             backgroundColor = c.bgApp,
                             tint = HazeTint(c.navBg.copy(alpha = if (c.isDark) 0.50f else 0.60f)),
                             blurRadius = 24.dp,
-                            // Devices below API 31 can't blur — lean on a near-opaque tint instead.
                             fallbackTint = HazeTint(c.navBg.copy(alpha = 0.96f)),
                         ),
                 ),
     ) {
-        // Glassy top edge: a hairline that catches light in the middle and fades at the sides.
         Box(
             modifier =
                 Modifier

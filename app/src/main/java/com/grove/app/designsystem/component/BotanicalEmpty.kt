@@ -22,11 +22,6 @@ import com.grove.app.designsystem.theme.GroveSpacing
 import com.grove.app.designsystem.theme.GroveTheme
 import com.grove.app.designsystem.theme.GroveType
 
-/**
- * Illustrated empty state: an abstract set of concentric rings with a glowing
- * core and a single accent tick, with copy and an optional CTA. Procedural so it
- * tints itself for both themes.
- */
 @Composable
 fun BotanicalEmptyState(
     title: String,
@@ -48,11 +43,9 @@ fun BotanicalEmptyState(
             val sw = w * 0.03f
             val baseR = w * 0.30f
 
-            // Abstract concentric rings echoing the app's ring language.
             drawCircle(c.border, radius = baseR, center = center, style = Stroke(sw))
             drawCircle(c.borderStrong.copy(alpha = 0.55f), radius = baseR * 0.64f, center = center, style = Stroke(sw))
 
-            // A single accent arc tick on the outer ring.
             drawArc(
                 color = c.accent,
                 startAngle = -90f,
@@ -63,7 +56,6 @@ fun BotanicalEmptyState(
                 style = Stroke(width = sw, cap = StrokeCap.Round),
             )
 
-            // Soft glowing core.
             drawCircle(c.accent.copy(alpha = if (c.isDark) 0.22f else 0.14f), radius = baseR * 0.36f, center = center)
             drawCircle(c.accent, radius = w * 0.03f, center = center)
         }

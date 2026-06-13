@@ -10,10 +10,6 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalContext
 import com.grove.app.R
 
-/**
- * Grove's sound palette — two sounds, nothing more: a wooden tick when an
- * expense lands and a soft chime for confirmations. Muted entirely when [enabled] is false (Settings toggle).
- */
 enum class GroveSound { Tick, Chime }
 
 class GroveSoundPlayer(context: Context) {

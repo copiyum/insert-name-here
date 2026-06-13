@@ -18,7 +18,6 @@ class SuggestedBudgetTest {
     fun monthSuggestionIsNullWithFewerThanTwoMonthsOfHistory() {
         assertNull(state().suggestedMonthBudgetMinor())
         assertNull(state(pastMonths = listOf(month(2026, 5, 12_000))).suggestedMonthBudgetMinor())
-        // Zero-total months don't count as history.
         assertNull(
             state(pastMonths = listOf(month(2026, 4, 0), month(2026, 5, 12_000))).suggestedMonthBudgetMinor(),
         )
@@ -36,7 +35,6 @@ class SuggestedBudgetTest {
                     ),
             ).suggestedMonthBudgetMinor()
 
-        // Median is 20_000, which is already round at two significant figures.
         assertEquals(20_000L, suggestion)
     }
 
@@ -52,7 +50,6 @@ class SuggestedBudgetTest {
                     ),
             ).suggestedMonthBudgetMinor()
 
-        // Median 12_377 rounds up to 13_000.
         assertEquals(13_000L, suggestion)
     }
 
@@ -80,20 +77,15 @@ class SuggestedBudgetTest {
             state(
                 expenses =
                     listOf(
-                        // March: 5_000 + 3_000 = 8_000
                         expense(cat, 5_000, LocalDate.of(2026, 3, 10)),
                         expense(cat, 3_000, LocalDate.of(2026, 3, 20)),
-                        // April: 12_000
                         expense(cat, 12_000, LocalDate.of(2026, 4, 10)),
-                        // May: 4_000
                         expense(cat, 4_000, LocalDate.of(2026, 5, 10)),
-                        // Other categories and income entries are ignored.
                         expense(UUID.randomUUID(), 99_000, LocalDate.of(2026, 4, 11)),
                         expense(cat, 70_000, LocalDate.of(2026, 6, 1), kind = CategoryKind.income),
                     ),
             ).suggestedCategoryBudgetMinor(cat)
 
-        // Monthly sums [8_000, 12_000, 4_000] -> sorted median 8_000, no rounding.
         assertEquals(8_000L, suggestion)
     }
 

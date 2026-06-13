@@ -2,7 +2,6 @@ package com.grove.app.data
 
 import com.grove.app.data.model.NotificationSettings
 
-/** Single home for app-wide fallback values and small behavioral constants. */
 object GroveDefaults {
     const val DEFAULT_CURRENCY = "INR"
     const val DEFAULT_USER_NAME = "Mae"

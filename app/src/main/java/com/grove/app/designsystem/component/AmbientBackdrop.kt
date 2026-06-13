@@ -25,12 +25,6 @@ import com.grove.app.designsystem.theme.GroveTheme
 import java.time.LocalTime
 import java.time.MonthDay
 
-/**
- * Time-aware ambience behind the dashboard hero: dawn warms, daytime is neutral,
- * dusk glows clay, night cools. On API 33+ an AGSL shader adds two slow drifting
- * light blooms; older devices get the plain gradient. Alpha stays whisper-quiet —
- * ambience, not wallpaper.
- */
 @Composable
 fun AmbientBackdrop(
     modifier: Modifier = Modifier,
@@ -73,13 +67,12 @@ fun AmbientBackdrop(
 private fun ambientColors(time: LocalTime, day: MonthDay, dark: Boolean): Pair<Color, Color> {
     val transparent = Color.Transparent
     val hour = time.hour + time.minute / 60f
-    // Anchor palettes around the day's turning points, blended by hour.
     val anchors = listOf(
-        5f to Color(0xFFE8AA4E),   // dawn clay
-        9f to Color(0xFF62C37A),   // morning fern
-        15f to Color(0xFF4CB0E5),  // afternoon sky
-        19f to Color(0xFFECA851),  // dusk amber
-        23f to Color(0xFF328759),  // night fern
+        5f to Color(0xFFE8AA4E),
+        9f to Color(0xFF62C37A),
+        15f to Color(0xFF4CB0E5),
+        19f to Color(0xFFECA851),
+        23f to Color(0xFF328759),
     )
     var lower = anchors.last()
     var upper = anchors.first()
@@ -90,7 +83,6 @@ private fun ambientColors(time: LocalTime, day: MonthDay, dark: Boolean): Pair<C
     val span = ((upper.first - lower.first + 24f) % 24f).coerceAtLeast(0.01f)
     val f = (((hour - lower.first + 24f) % 24f) / span).coerceIn(0f, 1f)
     var glow = lerp(lower.second, upper.second, f)
-    // Seasonal tilt: autumn months lean warmer, spring greener.
     val month = day.monthValue
     if (month in 9..11) glow = lerp(glow, Color(0xFFECA851), 0.25f)
     if (month in 3..5) glow = lerp(glow, Color(0xFF62C37A), 0.25f)

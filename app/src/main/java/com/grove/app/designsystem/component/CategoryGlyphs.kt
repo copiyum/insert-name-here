@@ -29,11 +29,6 @@ import kotlin.math.sin
 
 private const val TwoPi = (2.0 * PI).toFloat()
 
-/**
- * Bespoke, hand-drawn category glyph with a subtle looping idle animation. Each
- * category has its own motion (steam rises, wheels roll, heart beats, dots
- * ripple). All motion freezes to a clean static pose when reduce-motion is on.
- */
 @Composable
 fun CategoryGlyph(
     iconKey: String,
@@ -67,9 +62,6 @@ fun CategoryGlyph(
     }
 }
 
-// --- glyphs -----------------------------------------------------------------
-
-/** A bowl with two ribbons of steam rising and fading. */
 private fun DrawScope.glyphFood(color: Color, t: Float) {
     val w = size.width
     val h = size.height
@@ -99,7 +91,6 @@ private fun DrawScope.glyphFood(color: Color, t: Float) {
     }
 }
 
-/** A little car that bobs while ground dashes stream past underneath. */
 private fun DrawScope.glyphCar(color: Color, t: Float) {
     val w = size.width
     val h = size.height
@@ -136,7 +127,6 @@ private fun DrawScope.glyphCar(color: Color, t: Float) {
     }
 }
 
-/** A receipt that sways gently, zigzag torn edge at the bottom. */
 private fun DrawScope.glyphReceipt(color: Color, t: Float) {
     val w = size.width
     val h = size.height
@@ -167,7 +157,6 @@ private fun DrawScope.glyphReceipt(color: Color, t: Float) {
     }
 }
 
-/** A shopping bag whose handle sways. */
 private fun DrawScope.glyphBag(color: Color, t: Float) {
     val w = size.width
     val h = size.height
@@ -194,7 +183,6 @@ private fun DrawScope.glyphBag(color: Color, t: Float) {
     }
 }
 
-/** A heart with a soft heartbeat pulse. */
 private fun DrawScope.glyphHeart(color: Color, t: Float) {
     val w = size.width
     val h = size.height
@@ -217,7 +205,6 @@ private fun DrawScope.glyphHeart(color: Color, t: Float) {
     }
 }
 
-/** A play button in a rounded frame, pulsing, with an orbiting spark. */
 private fun DrawScope.glyphPlay(color: Color, t: Float) {
     val w = size.width
     val h = size.height
@@ -245,7 +232,6 @@ private fun DrawScope.glyphPlay(color: Color, t: Float) {
     drawCircle(color.copy(alpha = 0.7f), sw * 0.5f, Offset(cx + cos(ang) * w * 0.30f, cy + sin(ang) * w * 0.30f))
 }
 
-/** A rising trend line with a dot travelling up it on a loop. */
 private fun DrawScope.glyphTrend(color: Color, t: Float) {
     val w = size.width
     val h = size.height
@@ -274,7 +260,6 @@ private fun DrawScope.glyphTrend(color: Color, t: Float) {
     )
 }
 
-/** Three dots rippling in sequence. */
 private fun DrawScope.glyphDots(color: Color, t: Float) {
     val w = size.width
     val h = size.height

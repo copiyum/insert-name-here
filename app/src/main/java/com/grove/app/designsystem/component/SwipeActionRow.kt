@@ -91,7 +91,6 @@ fun SwipeActionRow(
                 anchors = anchors,
                 positionalThreshold = { distance -> distance * 0.5f },
                 velocityThreshold = { with(density) { 80.dp.toPx() } },
-                // Slight underdamping so the row settles with a toothy little overshoot.
                 snapAnimationSpec = spring(dampingRatio = 0.68f, stiffness = Spring.StiffnessMediumLow),
                 decayAnimationSpec = exponentialDecay(),
             )
@@ -104,7 +103,6 @@ fun SwipeActionRow(
     val offsetX = if (swipeState.offset.isNaN()) 0f else swipeState.requireOffset()
     val revealProgress = (-offsetX / revealPx).coerceIn(0f, 1f)
 
-    // Toothed-wheel feel: a quiet tick each quarter of the pull, so the reveal has texture.
     var lastNotch by remember { mutableIntStateOf(0) }
     LaunchedEffect(revealProgress) {
         val notch = (revealProgress * 4f).toInt()

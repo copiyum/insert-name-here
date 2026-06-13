@@ -13,7 +13,6 @@ import java.util.UUID
 class ExpenseRepository(
     private val dao: ExpenseDao,
 ) {
-    /** Expenses pre-joined with their category in SQL, ready for [ExpenseLite] consumers. */
     fun observeAllLite(): Flow<List<ExpenseLite>> =
         dao.observeAllWithCategory().map { rows ->
             rows.map { row ->

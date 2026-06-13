@@ -81,10 +81,11 @@ import com.grove.app.designsystem.theme.SpaceGrotesk
 import com.grove.app.designsystem.theme.SpendStatusCopy
 import com.grove.app.designsystem.theme.SpendTone
 import com.grove.app.designsystem.theme.heroWeightFor
+import com.grove.app.designsystem.theme.spendProgressColorAt
+import com.grove.app.designsystem.theme.spendProgressDeepColorAt
 import com.grove.app.designsystem.theme.spaceGroteskAtWeight
 import java.time.format.DateTimeFormatter
 
-/** Fraction of today's allowance already spent: spent / (spent + still-safe), clamped 0..1. */
 private fun todaySpendFraction(spentTodayMinor: Long, safeTodayMinor: Long): Float {
     val day = spentTodayMinor + safeTodayMinor
     return when {
@@ -139,12 +140,12 @@ fun DashboardScreen(
         }
     val budgetLeftFraction =
         if (state.monthBudgetMinor > 0L) (ui.budgetLeftMinor.toFloat() / state.monthBudgetMinor).coerceIn(0f, 1f) else 1f
-    // The ring tracks how much of TODAY'S safe-to-spend has been used:
-    // spent today / (spent today + still-safe today).
     val pctToday = todaySpendFraction(ui.spentTodayMinor, ui.safeTodayMinor)
     val fromPctToday = activeSnapshot?.let { todaySpendFraction(it.spentTodayMinor, it.safeTodayMinor) }
+    val progressColor = spendProgressColorAt(c, pctToday)
+    val progressColorDeep = spendProgressDeepColorAt(c, pctToday)
     SideEffect {
-        onHeroRingVisualsChange(tone.color, tone.deep, pctToday)
+        onHeroRingVisualsChange(progressColor, progressColorDeep, pctToday)
     }
     AmbientBackdrop(modifier = Modifier.fillMaxSize()) {
     CompositionLocalProvider(LocalOverscrollConfiguration provides null) {
@@ -179,6 +180,7 @@ fun DashboardScreen(
                             remaining = "${Money.currencyLong(ui.budgetLeftMinor, 0, currency)} left · ${state.daysLeft}d",
                             pctSpent = pctToday,
                             tone = tone,
+                            progressColor = progressColor,
                             leftFraction = budgetLeftFraction,
                             onTargetBoundsChange = onSafeSpendTargetBoundsChange,
                             animationKey = safeSpendAnimationKey,
@@ -193,6 +195,8 @@ fun DashboardScreen(
                             remaining = "${Money.currencyLong(ui.budgetLeftMinor, 0, currency)} left · ${state.daysLeft}d",
                             pctSpent = pctToday,
                             tone = tone,
+                            progressColor = progressColor,
+                            progressColorDeep = progressColorDeep,
                             leftFraction = budgetLeftFraction,
                             onTargetBoundsChange = onSafeSpendTargetBoundsChange,
                             onRingBoundsChange = onHeroRingBoundsChange,
@@ -245,6 +249,8 @@ private fun RingHero(
     remaining: String,
     pctSpent: Float,
     tone: SpendTone,
+    progressColor: Color,
+    progressColorDeep: Color,
     leftFraction: Float,
     onTargetBoundsChange: (Rect) -> Unit,
     onRingBoundsChange: (Rect) -> Unit,
@@ -277,8 +283,8 @@ private fun RingHero(
             ) {
                 ArcProgress(
                     pct = pctSpent,
-                    color = tone.color,
-                    colorDeep = tone.deep,
+                    color = progressColor,
+                    colorDeep = progressColorDeep,
                     modifier = Modifier.fillMaxSize(),
                     stroke = 18f,
                     animationKey = animationKey ?: pctSpent,
@@ -328,6 +334,7 @@ private fun FocusHero(
     remaining: String,
     pctSpent: Float,
     tone: SpendTone,
+    progressColor: Color,
     leftFraction: Float,
     onTargetBoundsChange: (Rect) -> Unit,
     animationKey: Any?,
@@ -368,7 +375,7 @@ private fun FocusHero(
         Spacer(Modifier.height(18.dp))
         WavyProgress(
             progress = pctSpent,
-            color = tone.color,
+            color = progressColor,
             trackColor = c.bgMuted,
             animateWave = settlementProgress == null,
         )
@@ -380,10 +387,6 @@ private fun FocusHero(
     }
 }
 
-/**
- * 1.0 -> 1.02 -> 1.0 spring pulse whenever the hero value changes, paused while
- * the spend-transfer overlay drives its own settlement choreography.
- */
 @Composable
 private fun rememberHeroPulse(value: Long, settlementProgress: Float?): Float {
     val pulse = remember { Animatable(1f) }
