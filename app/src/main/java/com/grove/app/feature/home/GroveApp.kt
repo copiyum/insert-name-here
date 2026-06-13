@@ -90,6 +90,14 @@ import com.grove.app.feature.history.HistoryScreen
 import com.grove.app.feature.onboarding.OnboardingFlow
 import com.grove.app.feature.reports.ReportsScreen
 import com.grove.app.feature.settings.SettingsScreen
+import com.grove.app.feature.addexpense.ExpenseViewModel
+import com.grove.app.feature.bills.BillViewModel
+import com.grove.app.feature.budget.BudgetViewModel
+import com.grove.app.feature.settings.SettingsViewModel
+import com.grove.app.feature.onboarding.OnboardingViewModel
+import com.grove.app.core.ui.UiEffect
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.merge
 
 private data class HeroRingVisuals(
     val color: Color,
@@ -100,7 +108,10 @@ private data class HeroRingVisuals(
 @Composable
 fun GroveApp(startupDarkOverride: Boolean? = null) {
     val context = LocalContext.current
-    val vm: MainViewModel = viewModel { MainViewModel(context.applicationContext as android.app.Application) }
+    val vm: AppViewModel = viewModel {
+        val app = context.applicationContext as android.app.Application
+        AppViewModel(GroveAppGraph.notificationRepo(app), GroveAppGraph.prefsRepo(app), GroveAppGraph.reactor(app))
+    }
     val themePrefs by vm.themePrefs.collectAsStateWithLifecycle()
     val dark = resolveDarkMode(themePrefs, startupDarkOverride)
     val currency by vm.currency.collectAsStateWithLifecycle()
@@ -173,7 +184,7 @@ internal fun resolveDarkMode(
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun HomeScaffold(
-    vm: MainViewModel,
+    vm: AppViewModel,
     dark: Boolean,
     currency: String,
     notificationSettings: NotificationSettings,
@@ -187,7 +198,12 @@ private fun HomeScaffold(
     val c = GroveTheme.colors
     val state by vm.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val toast by vm.toast.collectAsStateWithLifecycle()
+    val app = context.applicationContext as android.app.Application
+    val expenseVm: ExpenseViewModel = viewModel { ExpenseViewModel(GroveAppGraph.expenseRepo(app), GroveAppGraph.reactor(app)) }
+    val billVm: BillViewModel = viewModel { BillViewModel(GroveAppGraph.billRepo(app), GroveAppGraph.reactor(app)) }
+    val budgetVm: BudgetViewModel = viewModel { BudgetViewModel(GroveAppGraph.budgetRepo(app), GroveAppGraph.reactor(app)) }
+    val settingsVm: SettingsViewModel = viewModel { SettingsViewModel(GroveAppGraph.userRepo(app), GroveAppGraph.notificationRepo(app), GroveAppGraph.prefsRepo(app)) }
+    val onboardingVm: OnboardingViewModel = viewModel { OnboardingViewModel(GroveAppGraph.userRepo(app), GroveAppGraph.budgetRepo(app)) }
     val soundsEnabled by vm.soundsEnabled.collectAsStateWithLifecycle()
     val sounds = rememberGroveSoundPlayer(soundsEnabled)
     val view = LocalView.current
@@ -205,7 +221,9 @@ private fun HomeScaffold(
     var editing by remember { mutableStateOf<Expense?>(null) }
     var onboarding by rememberSaveable { mutableStateOf(false) }
     var navVisible by remember { mutableStateOf(true) }
-    var lastToast by remember { mutableStateOf<String?>(null) }
+    var lastToast by remember { mutableStateOf("") }
+    var toastVisible by remember { mutableStateOf(false) }
+    var toastTick by remember { mutableStateOf(0) }
     var rootSize by remember { mutableStateOf(IntSize.Zero) }
     var safeSpendTargetBounds by remember { mutableStateOf<Rect?>(null) }
     val spendTransfer = rememberSpendTransferController()
@@ -234,8 +252,22 @@ private fun HomeScaffold(
     LaunchedEffect(currentRoute) {
         navVisible = true
     }
-    LaunchedEffect(toast) {
-        if (toast != null) lastToast = toast
+    LaunchedEffect(Unit) {
+        merge(expenseVm.effects, billVm.effects, budgetVm.effects).collect { effect ->
+            when (effect) {
+                is UiEffect.ShowToast -> {
+                    lastToast = effect.message
+                    toastVisible = true
+                    toastTick++
+                }
+            }
+        }
+    }
+    LaunchedEffect(toastTick) {
+        if (toastVisible) {
+            delay(GroveDefaults.TOAST_DURATION_MS)
+            toastVisible = false
+        }
     }
     LaunchedEffect(spendTransfer.event?.id, safeSpendTargetAvailable) {
         spendTransfer.attachTargetBounds(safeSpendTargetBounds)
@@ -296,8 +328,8 @@ private fun HomeScaffold(
                         HistoryScreen(
                             state = state,
                             currency = currency,
-                            onDelete = vm::deleteExpense,
-                            onEdit = { lite -> vm.findExpenseForEdit(lite.id) { editing = it } },
+                            onDelete = expenseVm::deleteExpense,
+                            onEdit = { lite -> expenseVm.findExpenseForEdit(lite.id) { editing = it } },
                         )
                     }
                     groveDestination(Dest.Bills.route) {
@@ -305,11 +337,11 @@ private fun HomeScaffold(
                             state = state,
                             currency = currency,
                             onToggleBill = { bill ->
-                                vm.toggleBill(bill)
+                                billVm.toggleBill(bill)
                                 sounds.play(GroveSound.Chime, volume = 0.35f)
                             },
-                            onAddBill = vm::addBill,
-                            onDeleteBill = vm::deleteBill,
+                            onAddBill = billVm::addBill,
+                            onDeleteBill = billVm::deleteBill,
                         )
                     }
                     groveDestination(Dest.Reports.route) {
@@ -319,8 +351,8 @@ private fun HomeScaffold(
                         BudgetScreen(
                             state = state,
                             currency = currency,
-                            onUpdateBudget = vm::updateMonthBudget,
-                            onUpdateCatBudget = vm::updateCategoryBudget,
+                            onUpdateBudget = budgetVm::updateMonthBudget,
+                            onUpdateCatBudget = budgetVm::updateCategoryBudget,
                         )
                     }
                     groveDestination(Dest.Settings.route) {
@@ -330,15 +362,15 @@ private fun HomeScaffold(
                             dark = dark,
                             notificationSettings = notificationSettings,
                             soundsEnabled = soundsEnabled,
-                            onToggleDark = { vm.toggleDark(dark) },
-                            onToggleSounds = vm::toggleSounds,
+                            onToggleDark = { settingsVm.toggleDark(dark) },
+                            onToggleSounds = settingsVm::toggleSounds,
                             onReplayOnboarding = { onboarding = true },
                             onOpenBudget = { nav.navigate(Dest.Budget.route) },
-                            onUpdateCurrency = vm::updateCurrency,
-                            onUpdateName = vm::updateUserName,
-                            onUpdateResetDay = vm::updateResetDay,
-                            onUpdateDailySafeSpend = vm::updateDailySafeSpend,
-                            onUpdateBillAlerts = vm::updateBillAlerts,
+                            onUpdateCurrency = settingsVm::updateCurrency,
+                            onUpdateName = settingsVm::updateUserName,
+                            onUpdateResetDay = settingsVm::updateResetDay,
+                            onUpdateDailySafeSpend = settingsVm::updateDailySafeSpend,
+                            onUpdateBillAlerts = settingsVm::updateBillAlerts,
                         )
                     }
                 }
@@ -367,7 +399,7 @@ private fun HomeScaffold(
             safeSpendTargetBounds = safeSpendTargetBounds,
             spendTransfer = spendTransfer,
             onSaveExpense = { input ->
-                vm.saveExpense(input)
+                expenseVm.saveExpense(input)
                 sounds.play(GroveSound.Tick)
             },
             onNavigateHome = {
@@ -385,7 +417,7 @@ private fun HomeScaffold(
             userName = state.user?.name ?: GroveDefaults.DEFAULT_USER_NAME,
             currency = currency,
             onApply = { monthBudget, resetDay ->
-                vm.applyOnboarding(monthBudget, resetDay)
+                onboardingVm.applyOnboarding(monthBudget, resetDay)
                 onboarding = false
                 nav.switchTab(Dest.Home.route)
             },
@@ -394,8 +426,8 @@ private fun HomeScaffold(
         SpendOverlayHost(spendTransfer = spendTransfer, rootSize = rootSize)
 
         ToastHost(
-            visible = toast != null,
-            message = lastToast.orEmpty(),
+            visible = toastVisible,
+            message = lastToast,
             modifier = Modifier.align(Alignment.BottomCenter),
         )
         }
