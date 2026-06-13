@@ -49,12 +49,13 @@ data class BudgetState(
     val totalSpent: Double get() = totalSpentMinor.toDouble() / minorUnit
     val spentToday: Double get() = spentTodayMinor.toDouble() / minorUnit
     val startRemainingMinor: Long get() = monthBudgetMinor - (totalSpentMinor - spentTodayMinor)
-    val remainingMinor: Long get() = monthBudgetMinor - totalSpentMinor - upcomingBillsMinor
+    val billObligationsMinor: Long get() = bills.sumOf { it.amountMinor }
+    val remainingMinor: Long get() = monthBudgetMinor - totalSpentMinor - billObligationsMinor
     val remaining: Double get() = remainingMinor.toDouble() / minorUnit
     val upcomingBills: Double get() = upcomingBillsMinor.toDouble() / minorUnit
 
     val safePerDayMinor: Long get() {
-        val numerator = startRemainingMinor - upcomingBillsMinor
+        val numerator = startRemainingMinor - billObligationsMinor
         if (numerator <= 0) return 0L
         return numerator / daysLeft
     }

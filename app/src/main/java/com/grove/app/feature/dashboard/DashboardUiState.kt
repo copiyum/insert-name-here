@@ -38,7 +38,7 @@ internal data class DashboardUiState(
 )
 
 fun BudgetState.dashboardSpendSnapshot(): DashboardSpendSnapshot {
-    val budgetLeftMinor = monthBudgetMinor - totalSpentMinor
+    val budgetLeftMinor = remainingMinor
     val days = daysSinceFirstExpense.coerceAtLeast(1)
     val pctSpent =
         if (monthBudgetMinor > 0L) {
@@ -67,7 +67,7 @@ internal fun BudgetState.dashboardUiState(
     val progress = settlementProgress?.coerceIn(0f, 1f)
     val activeSnapshot = snapshot.takeIf { progress != null }
     val targetRecent = expenses.sortedByDescending { it.occurredAt }.take(4)
-    val targetBudgetLeftMinor = monthBudgetMinor - totalSpentMinor
+    val targetBudgetLeftMinor = remainingMinor
     val targetSafeTodayMinor = safeToSpendTodayMinor.coerceAtLeast(0L)
     val targetSpentTodayMinor = spentTodayMinor
     val targetUpcomingBillsMinor = upcomingBillsMinor

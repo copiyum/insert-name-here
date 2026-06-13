@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -28,15 +29,18 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.animation.core.Animatable
@@ -90,6 +94,9 @@ private fun todaySpendFraction(spentTodayMinor: Long, safeTodayMinor: Long): Flo
     }
 }
 
+private fun responsiveHeroRingSize(maxWidth: Dp): Dp =
+    (maxWidth * 0.64f).coerceIn(216.dp, 280.dp)
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun DashboardScreen(
@@ -97,6 +104,9 @@ fun DashboardScreen(
     currency: String,
     onNavigate: (String) -> Unit,
     onSafeSpendTargetBoundsChange: (Rect) -> Unit = {},
+    onHeroRingBoundsChange: (Rect) -> Unit = {},
+    onHeroRingVisualsChange: (Color, Color, Float) -> Unit = { _, _, _ -> },
+    suppressInitialProgressAnimation: Boolean = false,
     safeSpendAnimationKey: Any? = null,
     safeSpendSettlementProgress: Float? = null,
     spendSnapshot: DashboardSpendSnapshot? = null,
@@ -114,7 +124,7 @@ fun DashboardScreen(
     val safeSpendFromMinor = activeSnapshot?.safeTodayMinor
     val pace =
         when {
-            ui.budgetLeftMinor - ui.upcomingBillsMinor < 0L -> SpendPace.Over
+            ui.budgetLeftMinor < 0L -> SpendPace.Over
             ui.safePerDayMinor > 0L && ui.dailyAvgMinor.toDouble() > ui.safePerDayMinor.toDouble() * 1.12 -> SpendPace.Tight
             else -> SpendPace.Healthy
         }
@@ -132,6 +142,9 @@ fun DashboardScreen(
     // spent today / (spent today + still-safe today).
     val pctToday = todaySpendFraction(ui.spentTodayMinor, ui.safeTodayMinor)
     val fromPctToday = activeSnapshot?.let { todaySpendFraction(it.spentTodayMinor, it.safeTodayMinor) }
+    SideEffect {
+        onHeroRingVisualsChange(tone.color, tone.deep, pctToday)
+    }
     AmbientBackdrop(modifier = Modifier.fillMaxSize()) {
     CompositionLocalProvider(LocalOverscrollConfiguration provides null) {
     LazyColumn(
@@ -181,9 +194,11 @@ fun DashboardScreen(
                             tone = tone,
                             leftFraction = budgetLeftFraction,
                             onTargetBoundsChange = onSafeSpendTargetBoundsChange,
+                            onRingBoundsChange = onHeroRingBoundsChange,
                             animationKey = safeSpendAnimationKey,
                             fromMinor = safeSpendFromMinor,
                             fromPct = fromPctToday,
+                            suppressInitialProgressAnimation = suppressInitialProgressAnimation,
                             settlementProgress = settlementProgress,
                         )
                     }
@@ -230,64 +245,75 @@ private fun RingHero(
     tone: SpendTone,
     leftFraction: Float,
     onTargetBoundsChange: (Rect) -> Unit,
+    onRingBoundsChange: (Rect) -> Unit,
     animationKey: Any?,
     fromMinor: Long?,
     fromPct: Float?,
+    suppressInitialProgressAnimation: Boolean,
     settlementProgress: Float?,
 ) {
     val c = GroveTheme.colors
     val pulse = rememberHeroPulse(safeTodayMinor, settlementProgress)
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 6.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Box(
-            modifier =
-                Modifier
-                    .size(248.dp)
-                    .graphicsLayer {
-                        scaleX = pulse
-                        scaleY = pulse
-                    },
-            contentAlignment = Alignment.Center,
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val ringSize = responsiveHeroRingSize(maxWidth)
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            ArcProgress(
-                pct = pctSpent,
-                color = tone.color,
-                colorDeep = tone.deep,
-                modifier = Modifier.fillMaxSize(),
-                stroke = 18f,
-                animationKey = animationKey ?: pctSpent,
-                fromPct = fromPct,
-                progressOverride = settlementProgress?.let { pctSpent },
-            ) {}
+            Box(
+                modifier =
+                    Modifier
+                        .size(ringSize)
+                        .onGloballyPositioned { onRingBoundsChange(it.boundsInRoot()) }
+                        .graphicsLayer {
+                            scaleX = pulse
+                            scaleY = pulse
+                        },
+                contentAlignment = Alignment.Center,
+            ) {
+                ArcProgress(
+                    pct = pctSpent,
+                    color = tone.color,
+                    colorDeep = tone.deep,
+                    modifier = Modifier.fillMaxSize(),
+                    stroke = 18f,
+                    animationKey = animationKey ?: pctSpent,
+                    fromPct = fromPct,
+                    progressOverride = when {
+                        settlementProgress != null -> pctSpent
+                        suppressInitialProgressAnimation -> 0f
+                        else -> null
+                    },
+                    snapToTargetWhenOverrideClears = true,
+                ) {}
 
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    "SAFE TO SPEND TODAY",
-                    fontFamily = JetBrainsMono,
-                    fontSize = 11.sp,
-                    letterSpacing = 1.4.sp,
-                    color = c.fg3,
-                )
-                Spacer(Modifier.height(6.dp))
-                TickerMoneyText(
-                    minor = safeTodayMinor,
-                    currency = currency,
-                    style = moneyTextStyle(MoneyTextSize.Hero).copy(
-                        fontFamily = spaceGroteskAtWeight(heroWeightFor(leftFraction)),
-                    ),
-                    modifier = Modifier.onGloballyPositioned { onTargetBoundsChange(it.boundsInRoot()) },
-                    color = c.fg1,
-                    fromMinor = fromMinor,
-                    progress = settlementProgress,
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(remaining, fontFamily = InterTight, fontSize = 13.sp, color = c.fg3)
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        "SAFE TO SPEND TODAY",
+                        fontFamily = JetBrainsMono,
+                        fontSize = 11.sp,
+                        letterSpacing = 1.4.sp,
+                        color = c.fg3,
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    TickerMoneyText(
+                        minor = safeTodayMinor,
+                        currency = currency,
+                        style = moneyTextStyle(MoneyTextSize.Hero).copy(
+                            fontFamily = spaceGroteskAtWeight(heroWeightFor(leftFraction)),
+                        ),
+                        modifier = Modifier.onGloballyPositioned { onTargetBoundsChange(it.boundsInRoot()) },
+                        color = c.fg1,
+                        fromMinor = fromMinor,
+                        progress = settlementProgress,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(remaining, fontFamily = InterTight, fontSize = 13.sp, color = c.fg3)
+                }
             }
+            Spacer(Modifier.height(14.dp))
+            HeroStatusChip(tone)
         }
-        Spacer(Modifier.height(14.dp))
-        HeroStatusChip(tone)
     }
 }
 
@@ -490,4 +516,3 @@ private fun HomeModeTabs(
         }
     }
 }
-

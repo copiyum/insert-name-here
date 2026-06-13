@@ -1,9 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.Grove" parent="android:Theme.Material.Light.NoActionBar">
-        <item name="android:windowBackground">#F1EDE2</item>
+    <!--
+      Launch theme: core-splashscreen backports the system splash to all API levels.
+      The system splash is a static dark frame (matching the app's default-dark bgApp);
+      the icon is suppressed (transparent, 0ms) because the real ceremony is the Compose
+      SplashRing overlay. installSplashScreen() swaps to Theme.Grove.Main on first frame.
+    -->
+    <style name="Theme.Grove" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#010102</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_transparent_icon</item>
+        <item name="windowSplashScreenAnimationDuration">0</item>
+        <item name="postSplashScreenTheme">@style/Theme.Grove.Main</item>
+    </style>
+
+    <style name="Theme.Grove.Main" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">#010102</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightStatusBar">false</item>
     </style>
 </resources>

@@ -10,7 +10,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -40,6 +39,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -69,7 +69,6 @@ import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import com.grove.app.designsystem.component.LocalNavAnimatedScope
 import com.grove.app.designsystem.component.LocalSharedTransitionScope
-import com.grove.app.designsystem.component.RingSpinner
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import com.grove.app.designsystem.component.rememberBottomNavVisibilityConnection
@@ -92,22 +91,82 @@ import com.grove.app.feature.onboarding.OnboardingFlow
 import com.grove.app.feature.reports.ReportsScreen
 import com.grove.app.feature.settings.SettingsScreen
 
+private data class HeroRingVisuals(
+    val color: Color,
+    val colorDeep: Color,
+    val pct: Float,
+)
+
 @Composable
-fun GroveApp() {
+fun GroveApp(startupDarkOverride: Boolean? = null) {
     val context = LocalContext.current
     val vm: MainViewModel = viewModel { MainViewModel(context.applicationContext as android.app.Application) }
     val themePrefs by vm.themePrefs.collectAsStateWithLifecycle()
-    // Until a saved override loads, follow the system theme rather than forcing dark —
-    // otherwise a light-mode cold start flashes dark cards on the first frames.
-    val dark = themePrefs.darkOverride ?: isSystemInDarkTheme()
+    val dark = resolveDarkMode(themePrefs, startupDarkOverride)
     val currency by vm.currency.collectAsStateWithLifecycle()
     val notificationSettings by vm.notificationSettings.collectAsStateWithLifecycle()
 
+    // Cold-start launch ceremony. rememberSaveable survives config changes (no replay on
+    // rotation) but resets on process death — i.e. exactly once per cold start. Skipped
+    // entirely under reduced motion so it can never read as a sluggish/broken wait.
+    val motionEnabled = remember(context) { systemAnimationsEnabled(context) }
+    var splashDone by rememberSaveable { mutableStateOf(false) }
+    var heroRingBounds by remember { mutableStateOf<Rect?>(null) }
+    var heroRingVisuals by remember { mutableStateOf<HeroRingVisuals?>(null) }
+    var contentReady by remember { mutableStateOf(false) }
+    var dashboardRevealProgress by remember { mutableStateOf(if (motionEnabled && !splashDone) 0f else 1f) }
+    var splashRingHandoffReady by remember { mutableStateOf(!motionEnabled || splashDone) }
+
+    LaunchedEffect(splashDone, motionEnabled) {
+        if (splashDone || !motionEnabled) {
+            dashboardRevealProgress = 1f
+            splashRingHandoffReady = true
+        }
+    }
+
     GroveTheme(dark = dark) {
         SystemBars(dark)
-        HomeScaffold(vm = vm, dark = dark, currency = currency, notificationSettings = notificationSettings)
+        Box(modifier = Modifier.fillMaxSize()) {
+            HomeScaffold(
+                vm = vm,
+                dark = dark,
+                currency = currency,
+                notificationSettings = notificationSettings,
+                onHeroRingBoundsChange = { heroRingBounds = it },
+                onHeroRingVisualsChange = { color, colorDeep, pct ->
+                    heroRingVisuals = HeroRingVisuals(color, colorDeep, pct)
+                },
+                onContentReady = { contentReady = it },
+                suppressInitialProgressAnimation = !splashRingHandoffReady,
+                dashboardRevealProgress = dashboardRevealProgress,
+            )
+            if (!splashDone) {
+                if (motionEnabled) {
+                    SplashRing(
+                        heroRingBounds = heroRingBounds,
+                        heroRingColor = heroRingVisuals?.color,
+                        heroRingColorDeep = heroRingVisuals?.colorDeep,
+                        heroRingPct = heroRingVisuals?.pct,
+                        contentReady = contentReady,
+                        onRevealProgressChange = { dashboardRevealProgress = it },
+                        onRingHandoffReady = { splashRingHandoffReady = true },
+                        onFinished = { splashDone = true },
+                    )
+                } else {
+                    LaunchedEffect(Unit) {
+                        splashDone = true
+                    }
+                }
+            }
+        }
     }
 }
+
+internal fun resolveDarkMode(
+    themePrefs: ThemePrefs,
+    startupDarkOverride: Boolean?,
+): Boolean =
+    themePrefs.darkOverride ?: startupDarkOverride ?: true
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -116,18 +175,14 @@ private fun HomeScaffold(
     dark: Boolean,
     currency: String,
     notificationSettings: NotificationSettings,
+    onHeroRingBoundsChange: (Rect) -> Unit = {},
+    onHeroRingVisualsChange: (Color, Color, Float) -> Unit = { _, _, _ -> },
+    onContentReady: (Boolean) -> Unit = {},
+    suppressInitialProgressAnimation: Boolean = false,
+    dashboardRevealProgress: Float = 1f,
 ) {
     val c = GroveTheme.colors
     val state by vm.state.collectAsStateWithLifecycle()
-    val themePrefs by vm.themePrefs.collectAsStateWithLifecycle()
-
-    if (!themePrefs.loaded || state.user == null) {
-        Box(modifier = Modifier.fillMaxSize().background(c.bgApp)) {
-            BootVeil(visible = true)
-        }
-        return
-    }
-
     val context = LocalContext.current
     val toast by vm.toast.collectAsStateWithLifecycle()
     val soundsEnabled by vm.soundsEnabled.collectAsStateWithLifecycle()
@@ -156,6 +211,9 @@ private fun HomeScaffold(
     val safeSpendTargetAvailable = safeSpendTargetBounds != null
     val spendTargetReady = spendTransfer.event?.targetBounds != null && rootSize.width > 0 && rootSize.height > 0
     val spendSettlementProgress = spendTransfer.settlementProgress(motionEnabled)
+    val contentReveal = dashboardRevealProgress.coerceIn(0f, 1f)
+    val contentRevealOffsetPx = with(density) { (1f - contentReveal) * 10.dp.toPx() }
+    val contentRevealScale = 0.992f + 0.008f * contentReveal
     val navOffset by animateDpAsState(
         targetValue = if (navVisible) 0.dp else 96.dp,
         animationSpec = GroveSprings.standard(),
@@ -171,6 +229,9 @@ private fun HomeScaffold(
     LaunchedEffect(state.user?.onboardingCompleted) {
         if (state.user?.onboardingCompleted == false) onboarding = true
     }
+    // Signal the splash overlay once the budget data has actually loaded, so it only
+    // hands off onto a fully-populated dashboard (no post-morph reload/pop-in).
+    LaunchedEffect(state.user != null) { onContentReady(state.user != null) }
     LaunchedEffect(currentRoute) {
         navVisible = true
     }
@@ -194,7 +255,17 @@ private fun HomeScaffold(
                 .background(c.bgApp),
     ) {
         CompositionLocalProvider(LocalGroveSounds provides sounds) {
-        Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .graphicsLayer {
+                    alpha = contentReveal
+                    translationY = contentRevealOffsetPx
+                    scaleX = contentRevealScale
+                    scaleY = contentRevealScale
+                },
+        ) {
             Box(modifier = Modifier.weight(1f).hazeSource(state = hazeState).nestedScroll(bottomNavScrollConnection)) {
                 SharedTransitionLayout {
                 CompositionLocalProvider(LocalSharedTransitionScope provides this@SharedTransitionLayout) {
@@ -216,6 +287,9 @@ private fun HomeScaffold(
                             currency = currency,
                             onNavigate = { nav.switchTab(it) },
                             onSafeSpendTargetBoundsChange = { safeSpendTargetBounds = it },
+                            onHeroRingBoundsChange = onHeroRingBoundsChange,
+                            onHeroRingVisualsChange = onHeroRingVisualsChange,
+                            suppressInitialProgressAnimation = suppressInitialProgressAnimation,
                             safeSpendAnimationKey = spendTransfer.event?.id,
                             safeSpendSettlementProgress = spendSettlementProgress,
                             spendSnapshot = spendTransfer.snapshot,
@@ -285,7 +359,7 @@ private fun HomeScaffold(
                 Modifier
                     .align(Alignment.BottomCenter)
                     .offset { IntOffset(0, with(density) { navOffset.roundToPx() }) }
-                    .graphicsLayer { alpha = navAlpha },
+                    .graphicsLayer { alpha = navAlpha * contentReveal },
         )
 
         AddExpenseHost(
@@ -403,28 +477,6 @@ private fun SpendOverlayHost(
             travelProgress = spendTransfer.travelProgress,
             impactProgress = spendTransfer.impactProgress,
         )
-    }
-}
-
-/**
- * Covers the first frames while Room delivers the initial state, so the user
- * never sees empty placeholders flash. Local-first means this is gone in well
- * under a second; the morphing loader keeps even that moment alive.
- */
-@Composable
-private fun BootVeil(visible: Boolean) {
-    val c = GroveTheme.colors
-    AnimatedVisibility(
-        visible = visible,
-        enter = fadeIn(GroveEase.fast()),
-        exit = fadeOut(GroveEase.normal()),
-    ) {
-        Box(
-            modifier = Modifier.fillMaxSize().background(c.bgApp),
-            contentAlignment = Alignment.Center,
-        ) {
-            RingSpinner(size = 40.dp)
-        }
     }
 }
 

@@ -58,6 +58,26 @@ class BudgetStateTest {
     }
 
     @Test
+    fun paidBillsStillReduceBalanceAndSafeToSpend() {
+        val cat = UUID.randomUUID()
+        val bill = UUID.randomUUID()
+        val state =
+            state(
+                today = LocalDateTime.of(2026, 6, 10, 12, 0),
+                resetDay = 1,
+                budgetMinor = 30_000,
+                expenses = listOf(expense(cat, 5_000, LocalDate.of(2026, 6, 10))),
+                bills = listOf(bill(bill, "Rent", 10_000, LocalDate.of(2026, 6, 15), paid = true)),
+            )
+
+        assertEquals(0, state.upcomingBillsMinor)
+        assertEquals(10_000, state.billObligationsMinor)
+        assertEquals(15_000, state.remainingMinor)
+        assertEquals(952, state.safePerDayMinor)
+        assertEquals(-4_048, state.safeToSpendTodayMinor)
+    }
+
+    @Test
     fun incomeCategoryEntriesDoNotCountAsSpend() {
         val food = UUID.randomUUID()
         val income = UUID.randomUUID()
@@ -126,6 +146,7 @@ class BudgetStateTest {
         name: String,
         amountMinor: Long,
         dueDate: LocalDate,
+        paid: Boolean = false,
     ) = BillLite(
         id = id,
         name = name,
@@ -135,6 +156,6 @@ class BudgetStateTest {
         dueAt = dueDate.atStartOfDay(ZoneOffset.UTC).toInstant(),
         dueDay = dueDate.dayOfMonth,
         frequency = BillFrequency.monthly,
-        paid = false,
+        paid = paid,
     )
 }

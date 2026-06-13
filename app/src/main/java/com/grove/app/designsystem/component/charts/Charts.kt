@@ -86,22 +86,41 @@ fun ArcProgress(
     durationMillis: Int = ArcDefaultDurationMillis,
     easing: Easing = GroveEase.Out,
     progressOverride: Float? = null,
+    snapToTargetWhenOverrideClears: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val c = GroveTheme.colors
     var played by remember { mutableStateOf(false) }
+    var hadProgressOverride by remember { mutableStateOf(false) }
     val animPct = remember { Animatable(if (fromPct != null) fromPct.coerceIn(0f, 1f) else 0f) }
     val drawPct = progressOverride?.coerceIn(0f, 1f) ?: animPct.value
 
-    LaunchedEffect(pct, animationKey, fromPct, startDelayMillis, durationMillis, easing) {
+    LaunchedEffect(
+        pct,
+        animationKey,
+        fromPct,
+        startDelayMillis,
+        durationMillis,
+        easing,
+        progressOverride,
+        snapToTargetWhenOverrideClears,
+    ) {
         if (progressOverride != null) {
             // Spend settlement is driving the fill directly. Keep animPct in step so
             // that when the override clears, the ring simply holds at the settled
             // value instead of re-animating from a stale one.
             animPct.snapTo(progressOverride.coerceIn(0f, 1f))
             played = true
+            hadProgressOverride = true
             return@LaunchedEffect
         }
+        if (hadProgressOverride && snapToTargetWhenOverrideClears) {
+            animPct.snapTo(pct.coerceIn(0f, 1f))
+            played = true
+            hadProgressOverride = false
+            return@LaunchedEffect
+        }
+        hadProgressOverride = false
         if (fromPct != null) {
             animPct.snapTo(fromPct.coerceIn(0f, 1f))
         } else if (!played) {

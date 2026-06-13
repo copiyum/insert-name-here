@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 val Context.userPreferencesDataStore: DataStore<Preferences> by preferencesDataStore(name = "user_preferences")
@@ -22,18 +23,25 @@ object UserPreferencesKeys {
     val SOUNDS = booleanPreferencesKey("sounds_enabled")
 }
 
+fun darkModeOverrideFromPreference(value: String?): Boolean? =
+    when (value) {
+        "light" -> false
+        "dark" -> true
+        else -> null
+    }
+
+suspend fun Context.readDarkModeOverrideOnce(): Boolean? =
+    userPreferencesDataStore.data
+        .map { prefs -> darkModeOverrideFromPreference(prefs[UserPreferencesKeys.DARK_MODE]) }
+        .first()
+
 class UserPreferencesRepository(
     private val dataStore: DataStore<Preferences>,
 ) {
     val preferences: Flow<UserPreferences> =
         dataStore.data.map { prefs ->
             UserPreferences(
-                darkModeOverride =
-                    when (prefs[UserPreferencesKeys.DARK_MODE]) {
-                        "light" -> false
-                        "dark" -> true
-                        else -> null
-                    },
+                darkModeOverride = darkModeOverrideFromPreference(prefs[UserPreferencesKeys.DARK_MODE]),
                 soundsEnabled = prefs[UserPreferencesKeys.SOUNDS] ?: true,
             )
         }
